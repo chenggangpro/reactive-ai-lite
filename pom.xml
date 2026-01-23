@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+       Copyright 2025-2026 the original author or authors.
+
+       Licensed under the Apache License, Version 2.0 (the "License");
+       you may not use this file except in compliance with the License.
+       You may obtain a copy of the License at
+
+          https://www.apache.org/licenses/LICENSE-2.0
+
+       Unless required by applicable law or agreed to in writing, software
+       distributed under the License is distributed on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       See the License for the specific language governing permissions and
+       limitations under the License.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -33,7 +50,7 @@
     </developers>
 
     <scm>
-        <tag>${project.version}</tag>
+        <tag>v${project.version}</tag>
         <connection>scm:git:git@github.com:chenggangpro/reactive-ai-lite.git</connection>
         <developerConnection>scm:git:git@github.com:chenggangpro/reactive-ai-lite.git</developerConnection>
         <url>https://github.com/chenggangpro/reactive-ai-lite</url>
@@ -41,30 +58,44 @@
 
     <inceptionYear>2025</inceptionYear>
 
+    <modules>
+        <module>reactive-ai-lite-core</module>
+        <module>clients/reactive-ai-lite-client-openai</module>
+        <module>clients/reactive-ai-lite-client-ollama</module>
+        <module>clients/reactive-ai-lite-client-deepseek</module>
+        <module>clients/reactive-ai-lite-client-gemini</module>
+        <module>reactive-ai-lite-starter</module>
+    </modules>
+
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!--dependencies-->
-        <spring-boot-starter-parent.version>3.3.11</spring-boot-starter-parent.version>
-        <reactor-bom.version>2024.0.6</reactor-bom.version>
-        <lombok.version>1.18.38</lombok.version>
+        <spring-boot.version>3.5.9</spring-boot.version>
+        <reactor-bom.version>2024.0.13</reactor-bom.version>
+        <lombok.version>1.18.42</lombok.version>
         <slf4j.version>2.0.17</slf4j.version>
+        <mcp-bom.version>0.17.0</mcp-bom.version>
+        <jsonschema.version>4.38.0</jsonschema.version>
+        <jackson-databind.version>2.19.4</jackson-databind.version>
+        <reactive-ai-lite-core.version>0.1.0-SNAPSHOT</reactive-ai-lite-core.version>
         <!--tests-->
-        <logback.version>1.5.18</logback.version>
-        <blockhound.version>1.0.11.RELEASE</blockhound.version>
-        <junit.version>5.12.2</junit.version>
-        <assertj.version>3.27.3</assertj.version>
+        <logback.version>1.5.22</logback.version>
+        <blockhound.version>1.0.15.RELEASE</blockhound.version>
+        <junit.version>5.14.1</junit.version>
+        <assertj.version>3.27.6</assertj.version>
         <!--plugins-->
-        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
-        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
-        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
-        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-        <error-prone.version>2.38.0</error-prone.version>
+        <javadoc.opts>-Xdoclint:none</javadoc.opts>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <error-prone.version>2.36.0</error-prone.version>
         <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
-        <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
-        <jacoco-maven-plugin.version>0.8.13</jacoco-maven-plugin.version>
-        <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
+        <versions-maven-plugin.version>2.20.1</versions-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -79,7 +110,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-parent</artifactId>
-                <version>${spring-boot-starter-parent.version}</version>
+                <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -91,9 +122,20 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-bom</artifactId>
+                <version>${mcp-bom.version}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.projectreactor.tools</groupId>
@@ -120,33 +162,24 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.github.victools</groupId>
+                <artifactId>jsonschema-generator</artifactId>
+                <version>${jsonschema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.victools</groupId>
+                <artifactId>jsonschema-module-jackson</artifactId>
+                <version>${jsonschema.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <profiles>
         <profile>
             <id>release</id>
-            <properties>
-                <javadoc.opts>-Xdoclint:none</javadoc.opts>
-            </properties>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>${maven-javadoc-plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                                <configuration>
-                                    <additionalOptions>${javadoc.opts}</additionalOptions>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -188,7 +221,7 @@
                 <configuration>
                     <licenseSets>
                         <licenseSet>
-                            <header>${user.dir}/LICENSE_HEADER</header>
+                            <header>LICENSE_HEADER</header>
                             <excludes>
                                 <exclude>**/README</exclude>
                                 <exclude>src/test/resources/**</exclude>
@@ -264,6 +297,22 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <additionalOptions>${javadoc.opts}</additionalOptions>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

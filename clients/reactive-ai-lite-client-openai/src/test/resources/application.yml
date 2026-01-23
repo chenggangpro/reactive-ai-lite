@@ -1,0 +1,16 @@
+server:
+  port: 0
+  netty:
+    connection-timeout: PT120S
+logging:
+  level:
+    pro.chenggang: TRACE
+reactive:
+  ai:
+    lite:
+      client:
+        openai:
+          chat-provider:
+            certifications:
+              - token: YOUR_OPENAI_API_KEY
+                default: true
