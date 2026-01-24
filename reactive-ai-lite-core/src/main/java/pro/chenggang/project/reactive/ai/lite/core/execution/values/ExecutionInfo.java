@@ -32,7 +32,6 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallResponse;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -56,8 +55,9 @@ public class ExecutionInfo {
     private final Function<ExecutionContextView, String> modelNameConfigure;
     private final Function<ExecutionContextView, Double> temperatureConfigure;
     private final Function<ExecutionContextView, Double> topPConfigure;
+    private final Function<ExecutionContextView, Boolean> includeUsageConfigure;
+    private final Function<ExecutionContextView, String> reasoningConfigure;
     private final Function<ExecutionContextView, Integer> maxCompletionTokensConfigure;
-    private final Function<ExecutionContextView, Map<String, Object>> extraDataConfigure;
     private final Function<ExecutionContextView, TextMessage> textMessageConfigure;
     private final Function<ExecutionContextView, MediaMessage> mediaMessageConfigure;
     private final Function<ExecutionContextView, TextMessage> systemMessageConfigure;

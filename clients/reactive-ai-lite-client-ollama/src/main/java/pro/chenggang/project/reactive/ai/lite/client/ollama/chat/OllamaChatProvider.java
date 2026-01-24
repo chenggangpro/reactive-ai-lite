@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.client.openai.chat;
+package pro.chenggang.project.reactive.ai.lite.client.ollama.chat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -24,30 +24,14 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.util.MimeType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
-import org.springframework.web.reactive.function.client.WebClient.RequestBodyUriSpec;
-import pro.chenggang.project.reactive.ai.lite.client.openai.certification.OrganizationTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.ImageUrl;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.InputAudio;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.InputAudio.Format;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.InputFile;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.MediaContent;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.FunctionTool;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.FunctionTool.Function;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.OpenaiChatRequest;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.OpenaiChatRequest.OpenaiChatRequestBuilder;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.JsonSchema;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.Type;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.FunctionTool;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.FunctionTool.Function;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.OllamaChatMessage;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.OllamaChatRequest;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
@@ -59,7 +43,6 @@ import pro.chenggang.project.reactive.ai.lite.core.message.defaults.AssistantTex
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.ToolResponseMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.UrlAttachment;
 import pro.chenggang.project.reactive.ai.lite.core.option.ResponseDataType;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
@@ -72,42 +55,48 @@ import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.StreamChunk;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static pro.chenggang.project.reactive.ai.lite.client.openai.dto.OpenaiChatRequest.StreamOptions.INCLUDE_USAGE;
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
 /**
- * The default OpenAI chat provider implementation.
+ * The default implementation for Ollama chat provider.
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @Slf4j
-public class OpenaiChatProvider extends AbstractLlmChatProvider {
+public class OllamaChatProvider extends AbstractLlmChatProvider {
+
+    private final List<String> usageJsonField = List.of(
+            "total_duration",
+            "load_duration",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "eval_count",
+            "eval_duration"
+    );
 
     private final String baseUrL;
     private final String chatCompletionEndpoint;
     private final WebClient webClient;
 
-
     @Builder
-    private OpenaiChatProvider(@NonNull WebClient.Builder webClientBuilder,
-                               @NonNull String baseUrL,
-                               @NonNull String chatCompletionEndpoint,
-                               boolean isDefault,
-                               @NonNull String name,
-                               Set<String> supportedModels,
-                               @NonNull List<TokenCertification> certifications) {
-        super(certifications, (certificationMap) -> OpenaiLlmProviderInfo.builder()
+    protected OllamaChatProvider(@NonNull WebClient.Builder webClientBuilder,
+                                 @NonNull String baseUrL,
+                                 @NonNull String chatCompletionEndpoint,
+                                 boolean isDefault,
+                                 @NonNull String name,
+                                 Set<String> supportedModels,
+                                 @NonNull List<TokenCertification> certifications) {
+        super(certifications, (certificationMap) -> OllamaLlmProviderInfo.builder()
                 .isDefault(isDefault)
                 .name(name)
                 .supportedModels(supportedModels)
@@ -121,7 +110,11 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
 
     @Override
     protected RequestBodySpec loadRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
-        throw new UnsupportedOperationException("This method is not supported for OpenAI chat provider.");
+        return this.webClient.post()
+                .uri(uriBuilder -> {
+                    uriBuilder.path(this.chatCompletionEndpoint);
+                    return uriBuilder.build();
+                });
     }
 
     @Override
@@ -136,39 +129,16 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
 
     @Override
     protected StreamChunk[] extractStreamChunks(@NonNull ObjectNode rawResponseData) {
-        JsonNode usageNode = rawResponseData.at("/usage");
-        if (!usageNode.isMissingNode() && usageNode.isObject()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.USAGE)
-                    .dataContent(rawResponseData)
-                    .build()
-            };
-        }
-        JsonNode finishNode = rawResponseData.at("/choices/0/finish_reason");
-        if (!finishNode.isMissingNode() && !finishNode.isNull()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.FINISHED)
-                    .dataContent(rawResponseData)
-                    .build()
-            };
-        }
-        JsonNode deltaNode = rawResponseData.at("/choices/0/delta");
-        if (deltaNode.isMissingNode() || !deltaNode.isObject()) {
-            log.debug("Missing or invalid delta node in raw response data : {}", rawResponseData);
+        JsonNode messageNode = rawResponseData.at("/message");
+        if (messageNode.isMissingNode() || !messageNode.isObject()) {
+            log.debug("Missing or invalid message node in raw response data : {}", rawResponseData);
             return new StreamChunk[]{StreamChunk.builder()
                     .responseDataType(ResponseDataType.UNKNOWN)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
-        if (deltaNode.has("role")) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.ROLE)
-                    .dataContent(rawResponseData)
-                    .build()
-            };
-        }
-        JsonNode reasoningContentNode = deltaNode.at("/reasoning_content");
+        JsonNode reasoningContentNode = messageNode.at("/thinking");
         if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual() && !reasoningContentNode.isNull()) {
             return new StreamChunk[]{StreamChunk.builder()
                     .responseDataType(ResponseDataType.REASONING_CONTENT)
@@ -176,7 +146,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     .build()
             };
         }
-        JsonNode contentNode = deltaNode.at("/content");
+        JsonNode contentNode = messageNode.at("/content");
         if (!contentNode.isMissingNode() && contentNode.isTextual() && !contentNode.isNull()) {
             return new StreamChunk[]{StreamChunk.builder()
                     .responseDataType(ResponseDataType.ANSWER_CONTENT)
@@ -184,15 +154,64 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     .build()
             };
         }
-        JsonNode toolCallsNode = deltaNode.at("/tool_calls");
-        if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
-            return new StreamChunk[]{StreamChunk.builder()
+        JsonNode done = rawResponseData.at("/done");
+        JsonNode toolCallsNode = messageNode.at("/tool_calls");
+        boolean isToolCall = !toolCallsNode.isMissingNode() && toolCallsNode.isArray();
+        boolean isDone = !done.isMissingNode() && done.isBoolean() && done.asBoolean();
+        if (!isDone && isToolCall) {
+            if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
+                return new StreamChunk[]{StreamChunk.builder()
+                        .responseDataType(ResponseDataType.TOOL_CALL)
+                        .dataContent(rawResponseData)
+                        .build()
+                };
+            }
+        } else if (isDone && isToolCall) {
+            boolean anyMatchUsageField = usageJsonField.stream()
+                    .anyMatch(fieldName -> {
+                        JsonNode fieldNode = rawResponseData.at("/" + fieldName);
+                        return !fieldNode.isMissingNode() && fieldNode.isInt();
+                    });
+            ObjectNode toolCallRawData = rawResponseData.deepCopy();
+            for (String fieldName : usageJsonField) {
+                JsonNode fieldNode = rawResponseData.at("/" + fieldName);
+                if (!fieldNode.isMissingNode()) {
+                    toolCallRawData.remove(fieldName);
+                }
+            }
+            StreamChunk toolCallChunk = StreamChunk.builder()
                     .responseDataType(ResponseDataType.TOOL_CALL)
+                    .dataContent(toolCallRawData)
+                    .build();
+            rawResponseData.remove("message");
+            if (!anyMatchUsageField) {
+                StreamChunk finishedChunk = StreamChunk.builder()
+                        .responseDataType(ResponseDataType.FINISHED)
+                        .dataContent(rawResponseData)
+                        .build();
+                return new StreamChunk[]{toolCallChunk, finishedChunk};
+            }
+            StreamChunk usageChunk = StreamChunk.builder()
+                    .responseDataType(ResponseDataType.USAGE)
                     .dataContent(rawResponseData)
-                    .build()
-            };
+                    .build();
+            return new StreamChunk[]{toolCallChunk, usageChunk};
+
+        } else if (isDone) {
+            boolean anyMatchUsageField = usageJsonField.stream()
+                    .anyMatch(fieldName -> {
+                        JsonNode fieldNode = rawResponseData.at("/" + fieldName);
+                        return !fieldNode.isMissingNode() && fieldNode.isInt();
+                    });
+            if (anyMatchUsageField) {
+                return new StreamChunk[]{StreamChunk.builder()
+                        .responseDataType(ResponseDataType.USAGE)
+                        .dataContent(rawResponseData)
+                        .build()
+                };
+            }
         }
-        log.debug("Unrecognized delta node in raw response data : {}", rawResponseData);
+        log.warn("Unrecognized message node in raw response data : {}", rawResponseData);
         return new StreamChunk[]{StreamChunk.builder()
                 .responseDataType(ResponseDataType.UNKNOWN)
                 .dataContent(rawResponseData)
@@ -202,66 +221,25 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
 
     @Override
     protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages) {
+        if (rawToolCallMessages.size() == 1) {
+            return rawToolCallMessages.get(0);
+        }
         ArrayNode toolCalls = OBJECT_MAPPER.createArrayNode();
         for (ObjectNode rawToolCallMessage : rawToolCallMessages) {
-            JsonNode toolCallNode = rawToolCallMessage.at("/choices/0/delta/tool_calls/0");
-            if (toolCallNode.isMissingNode() || !toolCallNode.isObject() || toolCallNode.isNull()) {
+            JsonNode toolCallsNode = rawToolCallMessage.at("/message/tool_calls");
+            if (toolCallsNode.isMissingNode() || !toolCallsNode.isArray() || toolCallsNode.isNull()) {
                 continue;
             }
-            JsonNode indexNode = toolCallNode.at("/index");
-            if (indexNode.isMissingNode() || indexNode.isNull() || !indexNode.isInt()) {
-                continue;
-            }
-            int index = indexNode.asInt();
-            JsonNode jsonNode = toolCalls.at("/" + index);
-            ObjectNode toolCall = (ObjectNode) toolCallNode;
-            if (jsonNode.isMissingNode()) {
-                toolCalls.add(toolCall);
-            } else {
-                ObjectNode existToolCall = (ObjectNode) jsonNode;
-                if (toolCall.has("id")) {
-                    this.mergeJsonNode(existToolCall, toolCall, "id");
-                } else if (toolCall.has("type")) {
-                    this.mergeJsonNode(existToolCall, toolCall, "type");
-                } else if (toolCall.has("function")) {
-                    JsonNode functionNode = toolCall.at("/function");
-                    JsonNode existFunctionNode = existToolCall.at("/function");
-                    if (existFunctionNode.isMissingNode() || existFunctionNode.isNull()) {
-                        existToolCall.set("function", functionNode);
-                    } else if (functionNode.isObject() && !functionNode.isNull()) {
-                        ObjectNode newFunctionNode = (ObjectNode) functionNode;
-                        if (newFunctionNode.has("name")) {
-                            this.mergeJsonNode((ObjectNode) existFunctionNode, newFunctionNode, "name");
-                        } else if (newFunctionNode.has("arguments")) {
-                            this.mergeJsonNode((ObjectNode) existFunctionNode, newFunctionNode, "arguments");
-                        }
-                    }
+            for (JsonNode eachToolCalls : toolCallsNode) {
+                if (Objects.isNull(eachToolCalls) || eachToolCalls.isMissingNode() || !eachToolCalls.isObject() || eachToolCalls.isNull()) {
+                    continue;
                 }
+                toolCalls.add(eachToolCalls);
             }
         }
         ObjectNode toolCallsObject = OBJECT_MAPPER.createObjectNode();
         toolCallsObject.set("tool_calls", toolCalls);
         return toolCallsObject;
-    }
-
-    private void mergeJsonNode(ObjectNode existNode, ObjectNode newNode, String fieldName) {
-        JsonNode newValueNode = newNode.at("/" + fieldName);
-        if (newValueNode.isMissingNode()) {
-            return;
-        }
-        if (newValueNode.isNull()) {
-            return;
-        }
-        if (!newValueNode.isValueNode()) {
-            return;
-        }
-        String newValue = newValueNode.asText();
-        if (existNode.has(fieldName)) {
-            String existValue = existNode.get(fieldName).asText();
-            existNode.put(fieldName, existValue + newValue);
-            return;
-        }
-        existNode.put(fieldName, newValue);
     }
 
     @Override
@@ -273,7 +251,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         .rawRequestMessages(rawResponse.getRawRequestMessages())
                 )
                 .map(builder -> {
-                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
+                    JsonNode messageNode = rawResponseBody.at("/message");
                     if (!messageNode.isMissingNode() && messageNode.isObject()) {
                         builder.responseMessage((ObjectNode) messageNode);
                     }
@@ -281,7 +259,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     if (!contentNode.isMissingNode() && contentNode.isTextual()) {
                         builder.answerContent(contentNode.asText());
                     }
-                    JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
+                    JsonNode reasoningContentNode = messageNode.at("/thinking");
                     if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
                         builder.reasoningContent(reasoningContentNode.asText());
                     }
@@ -291,9 +269,15 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolCallsArrayNode);
                         builder.toolCallList(llmToolCallRequests);
                     }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        builder.usages((ObjectNode) usageNode);
+                    ObjectNode usageNode = OBJECT_MAPPER.createObjectNode();
+                    for (String fieldName : usageJsonField) {
+                        JsonNode fieldNode = rawResponseBody.at("/" + fieldName);
+                        if (!fieldNode.isMissingNode() && fieldNode.isInt()) {
+                            usageNode.put(fieldName, fieldNode.asInt());
+                        }
+                    }
+                    if (!usageNode.isEmpty()) {
+                        builder.usages(usageNode);
                     }
                     return builder.build();
                 });
@@ -303,8 +287,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         return toolCallsArrayNode.valueStream()
                 .filter(jsonNode -> jsonNode.isObject() && !jsonNode.isNull() && jsonNode.has("function") && jsonNode.get("function").isObject())
                 .map(jsonNode -> {
-                    ObjectNode toolCallObjectNode = (ObjectNode) jsonNode;
-                    ObjectNode functionNode = (ObjectNode) toolCallObjectNode.get("function");
+                    ObjectNode functionNode = (ObjectNode) jsonNode.get("function");
                     String arguments = functionNode.get("arguments").toString();
                     JsonNode args = null;
                     if (StringUtils.hasText(arguments)) {
@@ -319,9 +302,9 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         }
                     }
                     return LlmToolCallRequest.builder()
-                            .id(toolCallObjectNode.get("id").asText())
-                            .type(toolCallObjectNode.get("type").asText())
+                            .id(functionNode.get("name").asText())
                             .name(functionNode.get("name").asText())
+                            .type("function")
                             .rawArgs(arguments)
                             .args(args)
                             .build();
@@ -338,11 +321,11 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         .rawRequestMessages(rawResponse.getRawRequestMessages())
                 )
                 .map(builder -> {
-                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
+                    JsonNode messageNode = rawResponseBody.at("/message");
                     if (!messageNode.isMissingNode() && messageNode.isObject()) {
                         builder.responseMessage((ObjectNode) messageNode);
                     }
-                    JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
+                    JsonNode reasoningContentNode = messageNode.at("/thinking");
                     if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
                         builder.reasoningContent(reasoningContentNode.asText());
                     }
@@ -352,14 +335,20 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolCallsArrayNode);
                         builder.toolCallList(llmToolCallRequests);
                     }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        builder.usages((ObjectNode) usageNode);
+                    ObjectNode usageNode = OBJECT_MAPPER.createObjectNode();
+                    for (String fieldName : usageJsonField) {
+                        JsonNode fieldNode = rawResponseBody.at("/" + fieldName);
+                        if (!fieldNode.isMissingNode() && fieldNode.isInt()) {
+                            usageNode.put(fieldName, fieldNode.asInt());
+                        }
+                    }
+                    if (!usageNode.isEmpty()) {
+                        builder.usages(usageNode);
                     }
                     return builder;
                 })
                 .handle((builder, sink) -> {
-                    JsonNode contentNode = rawResponseBody.at("/choices/0/message/content");
+                    JsonNode contentNode = rawResponseBody.at("/message/content");
                     if (contentNode.isMissingNode() || contentNode.isNull()) {
                         sink.next(builder.build());
                         sink.complete();
@@ -403,11 +392,11 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         .rawRequestMessages(rawResponse.getRawRequestMessages())
                 )
                 .map(builder -> {
-                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
+                    JsonNode messageNode = rawResponseBody.at("/message");
                     if (!messageNode.isMissingNode() && messageNode.isObject()) {
                         builder.responseMessage((ObjectNode) messageNode);
                     }
-                    JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
+                    JsonNode reasoningContentNode = messageNode.at("/thinking");
                     if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
                         builder.reasoningContent(reasoningContentNode.asText());
                     }
@@ -417,14 +406,20 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolCallsArrayNode);
                         builder.toolCallList(llmToolCallRequests);
                     }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        builder.usages((ObjectNode) usageNode);
+                    ObjectNode usageNode = OBJECT_MAPPER.createObjectNode();
+                    for (String fieldName : usageJsonField) {
+                        JsonNode fieldNode = rawResponseBody.at("/" + fieldName);
+                        if (!fieldNode.isMissingNode() && fieldNode.isInt()) {
+                            usageNode.put(fieldName, fieldNode.asInt());
+                        }
+                    }
+                    if (!usageNode.isEmpty()) {
+                        builder.usages(usageNode);
                     }
                     return builder;
                 })
                 .handle((builder, sink) -> {
-                    JsonNode contentNode = rawResponseBody.at("/choices/0/message/content");
+                    JsonNode contentNode = rawResponseBody.at("/message/content");
                     if (contentNode.isMissingNode() || contentNode.isNull()) {
                         sink.next(builder.build());
                         sink.complete();
@@ -451,7 +446,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     if (contentNode.isObject()) {
                         R value;
                         try {
-                            value = OBJECT_MAPPER.treeToValue(contentNode, new TypeReference<R>() {
+                            value = OBJECT_MAPPER.readValue(contentNode.asText(), new TypeReference<R>() {
                                         @Override
                                         public java.lang.reflect.Type getType() {
                                             return resultType.getType();
@@ -493,17 +488,13 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         }
         if (ResponseDataType.ANSWER_CONTENT.equals(responseDataType)) {
             ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
-            JsonNode deltaNode = dataContent.at("/choices/0/delta");
-            if (deltaNode.isMissingNode() || deltaNode.isNull()) {
-                return Mono.empty();
-            }
-            JsonNode contentNode = dataContent.at("/choices/0/delta/content");
-            if (contentNode.isMissingNode() || contentNode.isNull() || !contentNode.isTextual()) {
+            JsonNode contentNode = dataContent.at("/message/content");
+            if (contentNode.isMissingNode() || contentNode.isNull()) {
                 return Mono.empty();
             }
             return Mono.just(StreamResponse.builder()
                     .dataType(StreamDataType.ANSWER_CONTENT)
-                    .dataContent(deltaNode)
+                    .dataContent(contentNode)
                     .messageContent(contentNode.asText())
                     .contextView(rawStreamResponse.getContextView())
                     .build()
@@ -511,31 +502,14 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         }
         if (ResponseDataType.REASONING_CONTENT.equals(responseDataType)) {
             ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
-            JsonNode deltaNode = dataContent.at("/choices/0/delta");
-            if (deltaNode.isMissingNode() || deltaNode.isNull()) {
-                return Mono.empty();
-            }
-            JsonNode reasoningContentNode = dataContent.at("/choices/0/delta/reasoning_content");
-            if (reasoningContentNode.isMissingNode() || reasoningContentNode.isNull() || !reasoningContentNode.isTextual()) {
+            JsonNode thinkingNode = dataContent.at("/message/thinking");
+            if (thinkingNode.isMissingNode() || thinkingNode.isNull()) {
                 return Mono.empty();
             }
             return Mono.just(StreamResponse.builder()
                     .dataType(StreamDataType.ANSWER_CONTENT)
-                    .dataContent(deltaNode)
-                    .messageContent(reasoningContentNode.asText())
-                    .contextView(rawStreamResponse.getContextView())
-                    .build()
-            );
-        }
-        if (ResponseDataType.USAGE.equals(responseDataType)) {
-            ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
-            JsonNode usageNode = dataContent.at("/usage");
-            if (usageNode.isMissingNode() || usageNode.isNull()) {
-                return Mono.empty();
-            }
-            return Mono.just(StreamResponse.builder()
-                    .dataType(StreamDataType.USAGE)
-                    .dataContent(usageNode)
+                    .dataContent(thinkingNode)
+                    .messageContent(thinkingNode.asText())
                     .contextView(rawStreamResponse.getContextView())
                     .build()
             );
@@ -555,104 +529,38 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     .build()
             );
         }
+        if (ResponseDataType.USAGE.equals(responseDataType)) {
+            ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
+            return Mono.just(StreamResponse.builder()
+                    .dataType(StreamDataType.USAGE)
+                    .dataContent(dataContent)
+                    .contextView(rawStreamResponse.getContextView())
+                    .build()
+            );
+        }
         log.warn("Unsupported response data type: {}", responseDataType);
         return Mono.empty();
     }
 
-    @Override
-    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
-        AtomicBoolean certificationSet = new AtomicBoolean(false);
-        RequestBodyUriSpec requestBodyUriSpec = this.webClient.post();
-        Optional<TokenCertification> optionalTokenCertification = llmRequestData.getTokenCertification();
-        if (optionalTokenCertification.isEmpty()) {
-            throw new IllegalStateException("At least one token certification is required for the chat completion request.");
-        }
-        TokenCertification tokenCertification = optionalTokenCertification.get();
-        RequestBodySpec requestBodySpec = requestBodyUriSpec.uri(uriBuilder -> {
-            uriBuilder.path(this.chatCompletionEndpoint);
-            if (tokenCertification instanceof UriTokenCertification uriTokenCertification) {
-                uriTokenCertification.applyTo(uriBuilder);
-                certificationSet.set(true);
-            }
-            return uriBuilder.build();
-        });
-        requestBodySpec.contentType(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.USER_AGENT, "reactive-ai-lite")
-                .acceptCharset(StandardCharsets.UTF_8);
-        if (llmRequestData.isStream()) {
-            requestBodySpec.accept(MediaType.TEXT_EVENT_STREAM);
-        } else {
-            requestBodySpec.accept(MediaType.APPLICATION_JSON);
-        }
-        if (tokenCertification instanceof BearerTokenCertification bearerTokenCertification) {
-            if (!certificationSet.get()) {
-                requestBodySpec.headers(bearerTokenCertification::applyTo);
-                certificationSet.set(true);
-            }
-        } else if (tokenCertification instanceof OrganizationTokenCertification organizationTokenCertification) {
-            if (!certificationSet.get()) {
-                requestBodySpec.headers(organizationTokenCertification::applyTo);
-                certificationSet.set(true);
-            }
-        }
-        if (!certificationSet.get()) {
-            log.warn("No token certification be applied, cause of the unknown TokenCertification : {}", tokenCertification);
-        }
-        return requestBodySpec;
-    }
-
-    @Override
-    public String toString() {
-        return "OpenaiChatProvider{" +
-                "llmProviderInfo=" + llmProviderInfo +
-                ", baseUrL='" + baseUrL + '\'' +
-                ", chatCompletionEndpoint='" + chatCompletionEndpoint + '\'' +
-                ", certification=" + certificationMap.size() +
-                '}';
-    }
-
-    protected OpenaiChatRequest buildRequest(LlmRequestData llmRequestData) {
-        OpenaiChatRequestBuilder openaiChatRequestBuilder = OpenaiChatRequest.builder()
+    protected OllamaChatRequest buildRequest(LlmRequestData llmRequestData) {
+        var ollamaChatRequestBuilder = OllamaChatRequest.builder()
                 .model(llmRequestData.getModelName());
         if (llmRequestData.getResponseJsonSchema().isEmpty() && llmRequestData.getStructuredOutputType().isEmpty()) {
-            openaiChatRequestBuilder.responseFormat(ResponseFormat.builder()
-                    .type(Type.TEXT)
-                    .build()
-            );
+            ollamaChatRequestBuilder.format("json");
         } else {
-            String jsonSchemaName = "custom_json_schema";
             Map<String, Object> jsonSchemaMap = Map.of();
             if (llmRequestData.getResponseJsonSchema().isPresent()) {
                 jsonSchemaMap = JsonRelatedUtil.jsonToMap(llmRequestData.getResponseJsonSchema().get());
             } else if (llmRequestData.getStructuredOutputType().isPresent()) {
                 var structuredOutputType = llmRequestData.getStructuredOutputType().get();
-                jsonSchemaName = this.extractTypeName(structuredOutputType);
                 jsonSchemaMap = JsonRelatedUtil.jsonToMap(JsonSchemaUtil.generateForType(structuredOutputType));
             }
-            if (jsonSchemaName.length() > 64) {
-                jsonSchemaName = jsonSchemaName.substring(0, 64);
-            }
-            openaiChatRequestBuilder.responseFormat(ResponseFormat.builder()
-                    .type(Type.JSON_SCHEMA)
-                    .jsonSchema(JsonSchema.builder()
-                            .name(jsonSchemaName)
-                            .schema(jsonSchemaMap)
-                            .strict(true)
-                            .build()
-                    )
-                    .build()
-            );
-
+            ollamaChatRequestBuilder.format(jsonSchemaMap);
         }
-        llmRequestData.getTemperature().ifPresent(openaiChatRequestBuilder::temperature);
-        llmRequestData.getTopP().ifPresent(openaiChatRequestBuilder::topP);
-        if (llmRequestData.isStream() && llmRequestData.isIncludeUsage()) {
-            openaiChatRequestBuilder.streamOptions(INCLUDE_USAGE);
-        }
-        llmRequestData.getReasoning().ifPresent(openaiChatRequestBuilder::reasoningEffort);
-        llmRequestData.getMaxCompletionTokens().ifPresent(openaiChatRequestBuilder::maxCompletionTokens);
-        llmRequestData.getToolChoice().ifPresent(openaiChatRequestBuilder::toolChoice);
-        var functionTools = buildFunctionTools(llmRequestData);
+        Map<String, Object> options = new HashMap<>();
+        llmRequestData.getTemperature().ifPresent(temperature -> options.put("temperature", temperature));
+        llmRequestData.getTopP().ifPresent(topP -> options.put("top_p", topP));
+        llmRequestData.getReasoning().ifPresent(ollamaChatRequestBuilder::think);
         var systemMessage = buildSystemMessage(llmRequestData);
         var userMessage = buildUserMessage(llmRequestData);
         var historicalMessages = buildHistoricalMessages(llmRequestData);
@@ -662,61 +570,15 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         historicalMessages.stream(),
                         latestAssistantMessages.stream(),
                         toolMessages.stream(),
-                        toolMessages.isEmpty() ? Stream.of(userMessage) : Stream.<ChatCompletionMessage>empty()
+                        toolMessages.isEmpty() ? Stream.of(userMessage) : Stream.<OllamaChatMessage>empty()
                 )
                 .flatMap(java.util.function.Function.identity())
                 .toList();
-        return openaiChatRequestBuilder
+        return ollamaChatRequestBuilder.options(options)
                 .stream(llmRequestData.isStream())
+                .tools(this.buildFunctionTools(llmRequestData))
                 .messages(allMessages)
-                .tools(functionTools)
-                .parallelToolCalls(true)
                 .build();
-    }
-
-    private String extractTypeName(java.lang.reflect.Type type) {
-        if (type instanceof Class<?> clazz) {
-            return clazz.getSimpleName();
-        }
-        String typeName = type.getTypeName();
-        if (typeName.contains("<")) {
-            StringBuilder stringBuilder = new StringBuilder();
-            char[] charArray = typeName.toCharArray();
-            List<Character> tempCharacters = new ArrayList<>();
-            for (char c : charArray) {
-                if ('[' == c || ']' == c) {
-                    continue;
-                }
-                if ('.' == c) {
-                    tempCharacters.clear();
-                    continue;
-                }
-                if (',' == c) {
-                    tempCharacters.stream().filter(Predicate.not(Character::isSpaceChar)).forEach(stringBuilder::append);
-                    if (!tempCharacters.isEmpty()) {
-                        stringBuilder.append('_');
-                    }
-                    tempCharacters.clear();
-                    continue;
-                }
-                if ('<' == c) {
-                    tempCharacters.stream().filter(Predicate.not(Character::isSpaceChar)).forEach(stringBuilder::append);
-                    if (!tempCharacters.isEmpty()) {
-                        stringBuilder.append('_');
-                    }
-                    tempCharacters.clear();
-                    continue;
-                }
-                if ('>' == c) {
-                    tempCharacters.stream().filter(Predicate.not(Character::isSpaceChar)).forEach(stringBuilder::append);
-                    tempCharacters.clear();
-                    continue;
-                }
-                tempCharacters.add(c);
-            }
-            return stringBuilder.toString();
-        }
-        return typeName.substring(typeName.lastIndexOf(".") + 1);
     }
 
     protected List<FunctionTool> buildFunctionTools(LlmRequestData llmRequestData) {
@@ -738,143 +600,109 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected Optional<ChatCompletionMessage> buildLatestAssistantMessages(LlmRequestData llmRequestData) {
+    protected Optional<OllamaChatMessage> buildLatestAssistantMessages(LlmRequestData llmRequestData) {
         return llmRequestData.getLatestAssistantMessage()
                 .map(latestAssistantMessage -> {
                     try {
-                        return OBJECT_MAPPER.treeToValue(latestAssistantMessage, ChatCompletionMessage.class);
+                        return OBJECT_MAPPER.treeToValue(latestAssistantMessage, OllamaChatMessage.class);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(e);
                     }
                 });
     }
 
-    protected List<ChatCompletionMessage> buildToolMessages(LlmRequestData llmRequestData) {
+    protected List<OllamaChatMessage> buildToolMessages(LlmRequestData llmRequestData) {
         List<LlmToolCallResponse> llmToolCallResponses = llmRequestData.getLlmToolCallResponse();
         if (llmToolCallResponses.isEmpty()) {
             return List.of();
         }
         return llmToolCallResponses.stream()
                 .map(llmToolCallResponse -> {
-                    return ChatCompletionMessage.builder()
+                    return OllamaChatMessage.builder()
                             .role(Role.TOOL)
-                            .toolCallId(llmToolCallResponse.getId())
-                            .rawContent(llmToolCallResponse.getContent())
+                            .toolName(llmToolCallResponse.getId())
+                            .content(llmToolCallResponse.getContent())
                             .build();
                 })
                 .toList();
     }
 
-    protected ChatCompletionMessage buildSystemMessage(LlmRequestData llmRequestData) {
-        return ChatCompletionMessage.builder()
+    protected OllamaChatMessage buildSystemMessage(LlmRequestData llmRequestData) {
+        return OllamaChatMessage.builder()
                 .role(Role.SYSTEM)
-                .rawContent(llmRequestData.getSystemMessage().text())
+                .content(llmRequestData.getSystemMessage().text())
                 .build();
     }
 
-    protected List<ChatCompletionMessage> buildHistoricalMessages(LlmRequestData llmRequestData) {
+    protected List<OllamaChatMessage> buildHistoricalMessages(LlmRequestData llmRequestData) {
         return llmRequestData.getHistoricalMessages()
                 .stream()
                 .flatMap(message -> {
                     if (message instanceof AssistantTextMessage assistantTextMessage) {
-                        return Stream.of(
-                                ChatCompletionMessage.builder()
-                                        .role(Role.ASSISTANT)
-                                        .rawContent(assistantTextMessage.text())
-                                        .reasoningContent(assistantTextMessage.getReasoningContent())
-                                        .build()
-                        );
+                        return Stream.of(OllamaChatMessage.builder()
+                                .role(Role.ASSISTANT)
+                                .content(assistantTextMessage.text())
+                                .thinking(assistantTextMessage.getReasoningContent())
+                                .build());
                     }
                     if (message instanceof ToolResponseMessage toolResponseMessage) {
                         return toolResponseMessage.getLlmToolCallResponses()
                                 .stream()
                                 .map(llmToolCallResponse -> {
-                                    return ChatCompletionMessage.builder()
+                                    return OllamaChatMessage.builder()
                                             .role(Role.TOOL)
-                                            .toolCallId(llmToolCallResponse.getId())
-                                            .rawContent(llmToolCallResponse.getContent())
+                                            .toolName(llmToolCallResponse.getId())
+                                            .content(llmToolCallResponse.getContent())
                                             .build();
                                 });
                     }
                     if (message instanceof MediaMessage mediaMessage) {
                         List<Attachment> attachments = mediaMessage.getAttachments();
-                        List<MediaContent> mediaContents = new ArrayList<>(attachments.size() + 1);
-                        MediaContent textMediaContent = MediaContent.of(mediaMessage.text());
-                        mediaContents.add(textMediaContent);
+                        List<String> images = new ArrayList<>();
                         for (Attachment attachment : attachments) {
-                            MimeType mimeType = attachment.mimeType();
-                            if (attachment instanceof UrlAttachment urlAttachment && "image".equalsIgnoreCase(mimeType.getType())) {
-                                MediaContent imageContent = MediaContent.of(ImageUrl.of(urlAttachment.content(), null));
-                                mediaContents.add(imageContent);
-                                continue;
-                            }
                             if (attachment instanceof Base64Attachment base64Attachment) {
-                                if ("audio".equalsIgnoreCase(mimeType.getType())) {
-                                    if (!Format.MP3.name().equalsIgnoreCase(mimeType.getSubtype()) && !Format.WAV.name().equalsIgnoreCase(mimeType.getSubtype())) {
-                                        log.warn("Unsupported audio format: {}", mimeType.getSubtype());
-                                        continue;
-                                    }
-                                    MediaContent audioContent = MediaContent.of(InputAudio.of(base64Attachment.content(), Format.valueOf(mimeType.getSubtype().toUpperCase())));
-                                    mediaContents.add(audioContent);
-                                    continue;
-                                }
-                                MediaContent fileContent = MediaContent.of(InputFile.of(base64Attachment.name(), base64Attachment.content()));
-                                mediaContents.add(fileContent);
+                                images.add(base64Attachment.content());
+                            } else {
+                                log.warn("Unsupported attachment type: {}, MimeType: {}", attachment.name(), attachment.mimeType());
                             }
                         }
-                        return Stream.of(ChatCompletionMessage.builder()
+                        return Stream.of(OllamaChatMessage.builder()
                                 .role(Role.USER)
-                                .rawContent(mediaContents)
+                                .content(mediaMessage.text())
+                                .images(images.isEmpty() ? null : images)
                                 .build());
                     }
-                    return Stream.of(ChatCompletionMessage.builder()
+                    return Stream.of(OllamaChatMessage.builder()
                             .role(Role.USER)
-                            .rawContent(message.text())
+                            .content(message.text())
                             .build()
                     );
                 })
                 .toList();
     }
 
-    protected ChatCompletionMessage buildUserMessage(LlmRequestData llmRequestData) {
+    protected OllamaChatMessage buildUserMessage(LlmRequestData llmRequestData) {
         Optional<MediaMessage> optionalMediaMessage = llmRequestData.getUserMediaMessage();
         if (optionalMediaMessage.isPresent()) {
             MediaMessage mediaMessage = optionalMediaMessage.get();
             List<Attachment> attachments = mediaMessage.getAttachments();
-            List<MediaContent> mediaContents = new ArrayList<>(attachments.size() + 1);
-            MediaContent textMediaContent = MediaContent.of(mediaMessage.text());
-            mediaContents.add(textMediaContent);
+            List<String> images = new ArrayList<>();
             for (Attachment attachment : attachments) {
-                MimeType mimeType = attachment.mimeType();
-                if (attachment instanceof UrlAttachment urlAttachment && "image".equalsIgnoreCase(mimeType.getType())) {
-                    MediaContent imageContent = MediaContent.of(ImageUrl.of(urlAttachment.content(), null));
-                    mediaContents.add(imageContent);
-                    continue;
-                }
                 if (attachment instanceof Base64Attachment base64Attachment) {
-                    if ("audio".equalsIgnoreCase(mimeType.getType())) {
-                        if (!Format.MP3.name().equalsIgnoreCase(mimeType.getSubtype()) && !Format.WAV.name().equalsIgnoreCase(mimeType.getSubtype())) {
-                            log.warn("Unsupported audio format: {}", mimeType.getSubtype());
-                            continue;
-                        }
-                        MediaContent audioContent = MediaContent.of(InputAudio.of(base64Attachment.content(), Format.valueOf(mimeType.getSubtype().toUpperCase())));
-                        mediaContents.add(audioContent);
-                        continue;
-                    }
-                    MediaContent fileContent = MediaContent.of(InputFile.of(base64Attachment.name(), base64Attachment.content()));
-                    mediaContents.add(fileContent);
+                    images.add(base64Attachment.content());
+                } else {
+                    log.warn("Unsupported attachment type: {}, MimeType: {}", attachment.name(), attachment.mimeType());
                 }
             }
-            return ChatCompletionMessage.builder()
-                    .rawContent(mediaContents)
+            return OllamaChatMessage.builder()
                     .role(Role.USER)
+                    .content(mediaMessage.text())
+                    .images(images.isEmpty() ? null : images)
                     .build();
         }
-        return ChatCompletionMessage.builder()
+        return OllamaChatMessage.builder()
                 .role(Role.USER)
-                .rawContent(llmRequestData.getUserTextMessage().text())
+                .content(llmRequestData.getUserTextMessage().text())
                 .build();
     }
-
 }
-

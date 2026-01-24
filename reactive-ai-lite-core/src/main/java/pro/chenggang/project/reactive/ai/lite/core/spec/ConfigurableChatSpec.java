@@ -29,7 +29,6 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -105,21 +104,45 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures extra, provider-specific data for the chat request.
+     * Dynamically configures whether to include usage metadata (e.g., token counts)
+     * in the chat response.
      *
-     * @param extraDataConfigure A function that returns a map of extra data based on the execution context.
+     * @param includeUsageConfigure A function that returns {@code true} to include usage
+     *                              metadata, or {@code false} to omit it, based on the
+     *                              execution context.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
      */
-    ConfigurableChatSpec extraData(@NonNull Function<ExecutionContextView, Map<String, Object>> extraDataConfigure);
+    ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContextView, Boolean> includeUsageConfigure);
 
     /**
-     * Sets a static map of extra, provider-specific data for the chat request.
+     * Statically configures the chat request to include usage metadata (e.g., token counts)
+     * in the response. This is a convenience method that sets the inclusion flag to {@code true}.
      *
-     * @param extraData A map containing extra data.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
      */
-    default ConfigurableChatSpec extraData(@NonNull Map<String, Object> extraData) {
-        return extraData(contextView -> extraData);
+    default ConfigurableChatSpec includeUsage() {
+        return includeUsage(contextView -> true);
+    }
+
+    /**
+     * Dynamically configures the reasoning or system-level instructions for the model.
+     * This can be used to guide the model's thought process or provide meta-prompts,
+     * which might be supported by specific AI providers.
+     *
+     * @param reasoningConfigure A function that returns the reasoning string based on the execution context.
+     * @return This {@link ConfigurableChatSpec} instance for method chaining.
+     */
+    ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContextView, String> reasoningConfigure);
+
+    /**
+     * Sets a static reasoning or system-level instruction for the model.
+     * This can be used to guide the model's thought process or provide meta-prompts.
+     *
+     * @param reasoning The reasoning string to use.
+     * @return This {@link ConfigurableChatSpec} instance for method chaining.
+     */
+    default ConfigurableChatSpec reasoning(@NonNull String reasoning) {
+        return reasoning(contextView -> reasoning);
     }
 
     /**

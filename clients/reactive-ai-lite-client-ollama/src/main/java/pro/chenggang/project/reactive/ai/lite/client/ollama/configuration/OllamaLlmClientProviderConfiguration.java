@@ -13,20 +13,18 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.client.openai.configuration;
+package pro.chenggang.project.reactive.ai.lite.client.ollama.configuration;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
-import pro.chenggang.project.reactive.ai.lite.client.openai.certification.OrganizationTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.client.openai.chat.OpenaiChatProvider;
-import pro.chenggang.project.reactive.ai.lite.client.openai.chat.OpenaiLlmProviderInfo;
-import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties;
-import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties.ChatProvider;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.chat.OllamaChatProvider;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.chat.OllamaLlmProviderInfo;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties.ChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
@@ -34,36 +32,27 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import java.util.List;
 
 /**
- * The auto configuration for OpenAI LLM client provider.
+ * The auto configuration for Ollama LLM client provider.
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @AutoConfiguration
 @AutoConfigureAfter(WebClientAutoConfiguration.class)
-public class OpenaiLlmClientProviderConfiguration {
+public class OllamaLlmClientProviderConfiguration {
 
-    @ConfigurationProperties(OpenaiClientProperties.PREFIX)
+    @ConfigurationProperties(OllamaClientProperties.PREFIX)
     @Bean
-    public OpenaiClientProperties openaiClientProperties() {
-        return new OpenaiClientProperties();
+    public OllamaClientProperties ollamaClientProperties() {
+        return new OllamaClientProperties();
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OpenaiClientProperties openaiClientProperties) {
-        ChatProvider chatProvider = openaiClientProperties.getChatProvider();
+    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OllamaClientProperties ollamaClientProperties) {
+        ChatProvider chatProvider = ollamaClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
-                .map(certification -> {
-                    if (StringUtils.hasText(certification.getOrganizationId()) && StringUtils.hasText(certification.getProjectId())) {
-                        return OrganizationTokenCertification.builder()
-                                .profile(certification.getProfile())
-                                .token(certification.getToken())
-                                .organizationId(certification.getOrganizationId())
-                                .projectId(certification.getProjectId())
-                                .isDefault(certification.isDefault())
-                                .build();
-                    }
+                .<TokenCertification>map(certification -> {
                     return BearerTokenCertification.builder()
                             .profile(certification.getProfile())
                             .token(certification.getToken())
@@ -71,8 +60,8 @@ public class OpenaiLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        return OpenaiChatProvider.builder()
-                .name(OpenaiLlmProviderInfo.DEFAULT_NAME)
+        return OllamaChatProvider.builder()
+                .name(OllamaLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
                 .webClientBuilder(webClientBuilder)

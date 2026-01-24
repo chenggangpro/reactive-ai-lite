@@ -40,7 +40,6 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallResponse;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -63,7 +62,8 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     private Function<ExecutionContextView, String> modelNameConfigure;
     private Function<ExecutionContextView, Double> temperatureConfigure;
     private Function<ExecutionContextView, Double> topPConfigure;
-    private Function<ExecutionContextView, Map<String, Object>> extraDataConfigure;
+    private Function<ExecutionContextView, Boolean> includeUsageConfigure;
+    private Function<ExecutionContextView, String> reasoningConfigure;
     private Function<ExecutionContextView, TextMessage> textMessageConfigure;
     private Function<ExecutionContextView, MediaMessage> mediaMessageConfigure;
     private Function<ExecutionContextView, TextMessage> systemMessageConfigure;
@@ -105,8 +105,14 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     }
 
     @Override
-    public ConfigurableChatSpec extraData(@NonNull Function<ExecutionContextView, Map<String, Object>> extraDataConfigure) {
-        this.extraDataConfigure = extraDataConfigure;
+    public ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContextView, Boolean> includeUsageConfigure) {
+        this.includeUsageConfigure = includeUsageConfigure;
+        return this;
+    }
+
+    @Override
+    public ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContextView, String> reasoningConfigure) {
+        this.reasoningConfigure = reasoningConfigure;
         return this;
     }
 
@@ -217,8 +223,9 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
                 .modelNameConfigure(this.modelNameConfigure)
                 .temperatureConfigure(this.temperatureConfigure)
                 .topPConfigure(this.topPConfigure)
+                .includeUsageConfigure(this.includeUsageConfigure)
+                .reasoningConfigure(this.reasoningConfigure)
                 .maxCompletionTokensConfigure(this.maxCompletionTokensConfigure)
-                .extraDataConfigure(this.extraDataConfigure)
                 .systemMessageConfigure(this.systemMessageConfigure)
                 .historicalMessageConfigure(this.historicalMessageConfigure)
                 .latestAssistantMessageConfigure(this.latestAssistantMessageConfigure)

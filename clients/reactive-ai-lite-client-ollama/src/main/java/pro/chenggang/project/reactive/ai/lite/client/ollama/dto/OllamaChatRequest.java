@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.client.openai.dto;
+package pro.chenggang.project.reactive.ai.lite.client.ollama.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Cheng Gang
@@ -37,38 +38,20 @@ import java.util.List;
 @Builder
 @Jacksonized
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class OpenaiChatRequest {
+public class OllamaChatRequest {
 
-    @JsonProperty("messages")
-    private final List<ChatCompletionMessage> messages;
     @JsonProperty("model")
     private final String model;
-    @JsonProperty("response_format")
-    private final ResponseFormat responseFormat;
+    @JsonProperty("messages")
+    private final List<OllamaChatMessage> messages;
     @JsonProperty("stream")
     private final Boolean stream;
-    @JsonProperty("stream_options")
-    private final StreamOptions streamOptions;
-    @JsonProperty("temperature")
-    private final Double temperature;
-    @JsonProperty("top_p")
-    private final Double topP;
+    @JsonProperty("format")
+    private final Object format;
     @JsonProperty("tools")
     private final List<FunctionTool> tools;
-    @JsonProperty("tool_choice")
-    private final Object toolChoice;
-    @JsonProperty("parallel_tool_calls")
-    private final Boolean parallelToolCalls;
-    @JsonProperty("max_completion_tokens")
-    private final Integer maxCompletionTokens;
-    @JsonProperty("reasoning_effort")
-    private final String reasoningEffort;
-
-    @JsonInclude(Include.NON_NULL)
-    public record StreamOptions(
-            @JsonProperty("include_usage") Boolean includeUsage) {
-
-        public static StreamOptions INCLUDE_USAGE = new StreamOptions(true);
-    }
-
+    @JsonProperty("options")
+    private final Map<String, Object> options;
+    @JsonProperty("think")
+    private final String think;
 }

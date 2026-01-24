@@ -1,0 +1,7 @@
+server:
+  port: 0
+  netty:
+    connection-timeout: PT120S
+logging:
+  level:
+    pro.chenggang: TRACE

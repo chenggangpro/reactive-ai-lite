@@ -18,13 +18,17 @@ package pro.chenggang.project.reactive.ai.lite.core.provider.defaults;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException;
@@ -37,25 +41,27 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInf
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
-import pro.chenggang.project.reactive.ai.lite.core.option.ExecutionType;
-import pro.chenggang.project.reactive.ai.lite.core.option.ResponseDataType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallResponse;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.LlmProviderUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser;
+import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.StreamChunk;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static pro.chenggang.project.reactive.ai.lite.core.message.Message.EMPTY_MESSAGE;
 
@@ -66,9 +72,9 @@ import static pro.chenggang.project.reactive.ai.lite.core.message.Message.EMPTY_
  * @author Cheng Gang
  * @version 0.1.0
  */
+@Slf4j
 public abstract class AbstractLlmChatProvider implements LlmChatProvider {
 
-    protected static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
     protected final Map<String, TokenCertification> certificationMap = new HashMap<>();
     protected final TokenCertification defaultCertification;
     protected final LlmProviderInfo llmProviderInfo;
@@ -77,19 +83,23 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                       @NonNull Function<Map<String, TokenCertification>, LlmProviderInfo> llmProviderInfoInitializer) {
         certifications.forEach(cert -> certificationMap.put(cert.profile(), cert));
         this.llmProviderInfo = llmProviderInfoInitializer.apply(this.certificationMap);
-        this.defaultCertification = certifications.stream()
-                .filter(TokenCertification::isDefault)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("At least one default TokenCertification is required  for " + this.llmProviderInfo));
+        if (!certifications.isEmpty()) {
+            this.defaultCertification = certifications.stream()
+                    .filter(TokenCertification::isDefault)
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("At least one default TokenCertification is required  for " + this.llmProviderInfo));
+        } else {
+            this.defaultCertification = null;
+        }
     }
 
-    protected abstract RequestBodySpec initializeRequestBodySpec(@NonNull LlmRequestData llmRequestData);
+    protected abstract RequestBodySpec loadRequestBodySpec(@NonNull LlmRequestData llmRequestData);
 
     protected abstract ObjectNode initializeRequestBody(@NonNull LlmRequestData llmRequestData);
 
     protected abstract ArrayNode extractRequestMessages(@NonNull ObjectNode requestBody);
 
-    protected abstract ResponseDataType extractStreamDataType(@NonNull ObjectNode rawResponseData);
+    protected abstract StreamChunk[] extractStreamChunks(@NonNull ObjectNode rawResponseData);
 
     protected abstract ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages);
 
@@ -115,7 +125,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     @Override
     public Mono<RawResponse> executeGeneralRaw(@NonNull ExecutionInfo executionInfo) {
         return this.initializeLlmRequestExchange(executionInfo, false, null, null)
-                .flatMap((LlmRequestData llmRequestData) -> executeInternalRaw(llmRequestData, ExecutionType.GENERAL));
+                .flatMap(this::executeInternalRaw);
     }
 
     @Override
@@ -127,35 +137,40 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     @Override
     public Flux<RawStreamResponse> executeStreamRaw(@NonNull ExecutionInfo executionInfo) {
         return this.initializeLlmRequestExchange(executionInfo, true, null, null)
-                .flatMapMany(llmRequestData -> Mono.fromCallable(() -> this.initializeRequestBody(llmRequestData))
-                        .flatMapMany(body -> {
-                                    return Flux.deferContextual(contextView -> {
-                                        return StreamResponseParser.parseStreamResponse(
-                                                        this.extractRequestMessages(body),
-                                                        executionInfo.getExecutionContext().getContextView(),
-                                                        this.getrRawStreamResponseFlux(llmRequestData, body),
-                                                        this::extractStreamDataType,
-                                                        this::mergeRawToolCallMessages
-                                                )
-                                                .concatMap(rawStreamResponse -> {
-                                                    return Mono.justOrEmpty(executionInfo.getRawStreamResponseCustomizer())
-                                                            .flatMap(consumer -> Mono
-                                                                    .<Void>fromRunnable(() -> consumer.accept(executionInfo.getExecutionContext().getContextView(), rawStreamResponse))
-                                                            )
-                                                            .then(Mono.defer(() -> Mono.just(rawStreamResponse)));
-                                                })
-                                                .contextWrite(contextView);
-                                    });
-                                }
-                        )
+                .flatMapMany(llmRequestData -> Mono.fromCallable(() -> {
+                                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
+                                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
+                                    if (Objects.nonNull(rawRequestCustomizer)) {
+                                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
+                                    }
+                                    return requestBody;
+                                })
+                                .flatMapMany(body -> {
+                                            return Flux.deferContextual(contextView -> {
+                                                return StreamResponseParser.parseStreamResponse(
+                                                                this.extractRequestMessages(body),
+                                                                executionInfo.getExecutionContext().getContextView(),
+                                                                this.getRawStreamResponseFlux(llmRequestData, body),
+                                                                this::extractStreamChunks,
+                                                                this::mergeRawToolCallMessages
+                                                        )
+                                                        .concatMap(rawStreamResponse -> {
+                                                            return Mono.justOrEmpty(executionInfo.getRawStreamResponseCustomizer())
+                                                                    .flatMap(consumer -> Mono
+                                                                            .<Void>fromRunnable(() -> consumer.accept(executionInfo.getExecutionContext().getContextView(), rawStreamResponse))
+                                                                    )
+                                                                    .then(Mono.defer(() -> Mono.just(rawStreamResponse)));
+                                                        })
+                                                        .contextWrite(contextView);
+                                            });
+                                        }
+                                )
                 );
     }
 
-    private Flux<String> getrRawStreamResponseFlux(LlmRequestData llmRequestData, ObjectNode body) {
+    private Flux<String> getRawStreamResponseFlux(LlmRequestData llmRequestData, ObjectNode body) {
         return this.toResponseSpec(llmRequestData, body)
-                .flatMapMany(responseSpec -> responseSpec.bodyToFlux(String.class))
-                .takeUntil(SSE_DONE_PREDICATE)
-                .filter(SSE_DONE_PREDICATE.negate());
+                .flatMapMany(responseSpec -> responseSpec.bodyToFlux(String.class));
     }
 
 
@@ -174,23 +189,30 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     @Override
     public Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull String responseJsonSchema) {
         return this.initializeLlmRequestExchange(executionInfo, false, null, responseJsonSchema)
-                .flatMap((LlmRequestData llmRequestData) -> executeInternalRaw(llmRequestData, ExecutionType.STRUCTURED));
+                .flatMap(this::executeInternalRaw);
     }
 
     @Override
     public <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType) {
         return this.initializeLlmRequestExchange(executionInfo, false, resultType, null)
-                .flatMap((LlmRequestData llmRequestData) -> executeInternalRaw(llmRequestData, ExecutionType.STRUCTURED));
+                .flatMap(this::executeInternalRaw);
     }
 
     @Override
     public <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType) {
         return this.initializeLlmRequestExchange(executionInfo, false, resultType.getType(), null)
-                .flatMap((LlmRequestData llmRequestData) -> executeInternalRaw(llmRequestData, ExecutionType.STRUCTURED));
+                .flatMap(this::executeInternalRaw);
     }
 
-    protected Mono<RawResponse> executeInternalRaw(@NonNull LlmRequestData llmRequestData, @NonNull ExecutionType executionType) {
-        return Mono.fromCallable(() -> this.initializeRequestBody(llmRequestData))
+    protected Mono<RawResponse> executeInternalRaw(@NonNull LlmRequestData llmRequestData) {
+        return Mono.fromCallable(() -> {
+                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
+                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
+                    if (Objects.nonNull(rawRequestCustomizer)) {
+                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
+                    }
+                    return requestBody;
+                })
                 .flatMap(body -> {
                     return this.toResponseSpec(llmRequestData, body)
                             .flatMap(responseSpec -> responseSpec.bodyToMono(new ParameterizedTypeReference<ObjectNode>() {}))
@@ -223,8 +245,9 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                 .latestAssistantMessage(this.loadLatestAssistantMessage(executionInfo))
                 .temperature(this.loadTemperature(executionInfo))
                 .topP(this.loadTopP(executionInfo))
+                .includeUsage(this.loadIncludeUsage(executionInfo))
+                .reasoning(this.loadReasoning(executionInfo))
                 .maxCompletionTokens(this.loadMaxCompletionTokens(executionInfo))
-                .extraData(this.loadExtraData(executionInfo))
                 .toolDefinitions(this.loadToolDefinitions(executionInfo))
                 .llmToolCallResponse(this.loadToolResponse(executionInfo))
                 .rawRequestCustomizer(executionInfo.getRawRequestCustomizer())
@@ -327,6 +350,23 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
         return topP;
     }
 
+    protected boolean loadIncludeUsage(@NonNull ExecutionInfo executionInfo) {
+        Function<ExecutionContextView, Boolean> includeUsageConfigure = executionInfo.getIncludeUsageConfigure();
+        if (Objects.isNull(includeUsageConfigure)) {
+            return false;
+        }
+        Boolean includeUsage = includeUsageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+        return Boolean.TRUE.equals(includeUsage);
+    }
+
+    protected String loadReasoning(@NonNull ExecutionInfo executionInfo) {
+        Function<ExecutionContextView, String> reasoningConfigure = executionInfo.getReasoningConfigure();
+        if (Objects.isNull(reasoningConfigure)) {
+            return null;
+        }
+        return reasoningConfigure.apply(executionInfo.getExecutionContext().getContextView());
+    }
+
     protected Integer loadMaxCompletionTokens(@NonNull ExecutionInfo executionInfo) {
         Function<ExecutionContextView, Integer> maxCompletionTokensConfigure = executionInfo.getMaxCompletionTokensConfigure();
         Integer maxCompletionTokens = null;
@@ -334,15 +374,6 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
             maxCompletionTokens = maxCompletionTokensConfigure.apply(executionInfo.getExecutionContext().getContextView());
         }
         return maxCompletionTokens;
-    }
-
-    protected Map<String, Object> loadExtraData(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Map<String, Object>> extraDataConfigure = executionInfo.getExtraDataConfigure();
-        Map<String, Object> extraData = null;
-        if (Objects.nonNull(extraDataConfigure)) {
-            extraData = extraDataConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return extraData;
     }
 
     protected List<ToolDefinition> loadToolDefinitions(@NonNull ExecutionInfo executionInfo) {
@@ -375,6 +406,33 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
             return List.of();
         }
         return List.copyOf(toolCallResponses);
+    }
+
+    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
+        AtomicBoolean certificationSet = new AtomicBoolean(false);
+        Optional<TokenCertification> optionalTokenCertification = llmRequestData.getTokenCertification();
+        RequestBodySpec requestBodySpec = this.loadRequestBodySpec(llmRequestData);
+        requestBodySpec.contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.USER_AGENT, "reactive-ai-lite")
+                .acceptCharset(StandardCharsets.UTF_8);
+        if (llmRequestData.isStream()) {
+            requestBodySpec.accept(MediaType.TEXT_EVENT_STREAM);
+        } else {
+            requestBodySpec.accept(MediaType.APPLICATION_JSON);
+        }
+        if (optionalTokenCertification.isPresent()) {
+            TokenCertification tokenCertification = optionalTokenCertification.get();
+            if (tokenCertification instanceof BearerTokenCertification bearerTokenCertification) {
+                if (!certificationSet.get()) {
+                    requestBodySpec.headers(bearerTokenCertification::applyTo);
+                    certificationSet.set(true);
+                }
+            }
+        }
+        if (!certificationSet.get()) {
+            log.debug("No token certification be applied, cause of the unknown TokenCertification : {}", optionalTokenCertification);
+        }
+        return requestBodySpec;
     }
 
     protected Mono<ResponseSpec> toResponseSpec(LlmRequestData llmRequestData, ObjectNode body) {

@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.client.openai.dto;
+package pro.chenggang.project.reactive.ai.lite.client.ollama.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -25,7 +25,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * @author Cheng Gang
@@ -37,38 +37,23 @@ import java.util.List;
 @Builder
 @Jacksonized
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class OpenaiChatRequest {
+public class ToolCall {
 
-    @JsonProperty("messages")
-    private final List<ChatCompletionMessage> messages;
-    @JsonProperty("model")
-    private final String model;
-    @JsonProperty("response_format")
-    private final ResponseFormat responseFormat;
-    @JsonProperty("stream")
-    private final Boolean stream;
-    @JsonProperty("stream_options")
-    private final StreamOptions streamOptions;
-    @JsonProperty("temperature")
-    private final Double temperature;
-    @JsonProperty("top_p")
-    private final Double topP;
-    @JsonProperty("tools")
-    private final List<FunctionTool> tools;
-    @JsonProperty("tool_choice")
-    private final Object toolChoice;
-    @JsonProperty("parallel_tool_calls")
-    private final Boolean parallelToolCalls;
-    @JsonProperty("max_completion_tokens")
-    private final Integer maxCompletionTokens;
-    @JsonProperty("reasoning_effort")
-    private final String reasoningEffort;
+    @JsonProperty("function")
+    private final ToolCallFunction function;
 
     @JsonInclude(Include.NON_NULL)
-    public record StreamOptions(
-            @JsonProperty("include_usage") Boolean includeUsage) {
-
-        public static StreamOptions INCLUDE_USAGE = new StreamOptions(true);
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
+    @Builder
+    @Jacksonized
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ToolCallFunction {
+        @JsonProperty("name")
+        private final String name;
+        @JsonProperty("arguments")
+        private final Map<String, Object> arguments;
+        @JsonProperty("index")
+        private final Integer index;
     }
-
 }

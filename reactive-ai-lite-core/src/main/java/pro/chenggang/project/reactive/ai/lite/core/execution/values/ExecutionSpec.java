@@ -72,8 +72,9 @@ public class ExecutionSpec {
     private final Function<ExecutionContextView, String> modelNameConfigure;
     private final Function<ExecutionContextView, Double> temperatureConfigure;
     private final Function<ExecutionContextView, Double> topPConfigure;
+    private final Function<ExecutionContextView, Boolean> includeUsageConfigure;
+    private final Function<ExecutionContextView, String> reasoningConfigure;
     private final Function<ExecutionContextView, Integer> maxCompletionTokensConfigure;
-    private final Function<ExecutionContextView, Map<String, Object>> extraDataConfigure;
     private final Function<ExecutionContextView, TextMessage> textMessageConfigure;
     private final Function<ExecutionContextView, MediaMessage> mediaMessageConfigure;
     private final Function<ExecutionContextView, TextMessage> systemMessageConfigure;
@@ -113,8 +114,9 @@ public class ExecutionSpec {
                 .modelNameConfigure(this.modelNameConfigure)
                 .temperatureConfigure(this.temperatureConfigure)
                 .topPConfigure(this.topPConfigure)
+                .includeUsageConfigure(this.includeUsageConfigure)
+                .reasoningConfigure(this.reasoningConfigure)
                 .maxCompletionTokensConfigure(this.maxCompletionTokensConfigure)
-                .extraDataConfigure(this.extraDataConfigure)
                 .textMessageConfigure(this.textMessageConfigure)
                 .mediaMessageConfigure(this.mediaMessageConfigure)
                 .systemMessageConfigure(this.systemMessageConfigure)

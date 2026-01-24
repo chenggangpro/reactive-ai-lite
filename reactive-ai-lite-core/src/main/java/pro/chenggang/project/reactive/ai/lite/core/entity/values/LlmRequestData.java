@@ -35,7 +35,6 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
@@ -54,8 +53,6 @@ public class LlmRequestData {
     @Getter
     @NonNull
     private final ExecutionContextView executionContextView;
-    @Getter
-    @NonNull
     private final TokenCertification tokenCertification;
     @Getter
     private final String modelName;
@@ -70,8 +67,10 @@ public class LlmRequestData {
     private final String responseJsonSchema;
     private final Double temperature;
     private final Double topP;
+    @Getter
+    private final boolean includeUsage;
+    private final String reasoning;
     private final Integer maxCompletionTokens;
-    private final Map<String, Object> extraData;
     private final TextMessage userTextMessage;
     @Getter
     private final List<Message> historicalMessages;
@@ -85,6 +84,10 @@ public class LlmRequestData {
     @Getter
     private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer;
 
+    public Optional<TokenCertification> getTokenCertification() {
+        return Optional.ofNullable(tokenCertification);
+    }
+
     public Optional<Double> getTemperature() {
         return Optional.ofNullable(this.temperature);
     }
@@ -93,12 +96,12 @@ public class LlmRequestData {
         return Optional.ofNullable(this.topP);
     }
 
-    public Optional<Integer> getMaxCompletionTokens() {
-        return Optional.ofNullable(this.maxCompletionTokens);
+    public Optional<String> getReasoning() {
+        return Optional.ofNullable(this.reasoning);
     }
 
-    public Optional<Map<String, Object>> getExtraData() {
-        return Optional.ofNullable(this.extraData);
+    public Optional<Integer> getMaxCompletionTokens() {
+        return Optional.ofNullable(this.maxCompletionTokens);
     }
 
     public TextMessage getSystemMessage() {

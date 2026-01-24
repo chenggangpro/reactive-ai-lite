@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.client.openai.dto;
+package pro.chenggang.project.reactive.ai.lite.client.ollama.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -24,6 +24,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
+import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 
 import java.util.List;
 
@@ -37,38 +38,18 @@ import java.util.List;
 @Builder
 @Jacksonized
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class OpenaiChatRequest {
+public class OllamaChatMessage {
 
-    @JsonProperty("messages")
-    private final List<ChatCompletionMessage> messages;
-    @JsonProperty("model")
-    private final String model;
-    @JsonProperty("response_format")
-    private final ResponseFormat responseFormat;
-    @JsonProperty("stream")
-    private final Boolean stream;
-    @JsonProperty("stream_options")
-    private final StreamOptions streamOptions;
-    @JsonProperty("temperature")
-    private final Double temperature;
-    @JsonProperty("top_p")
-    private final Double topP;
-    @JsonProperty("tools")
-    private final List<FunctionTool> tools;
-    @JsonProperty("tool_choice")
-    private final Object toolChoice;
-    @JsonProperty("parallel_tool_calls")
-    private final Boolean parallelToolCalls;
-    @JsonProperty("max_completion_tokens")
-    private final Integer maxCompletionTokens;
-    @JsonProperty("reasoning_effort")
-    private final String reasoningEffort;
-
-    @JsonInclude(Include.NON_NULL)
-    public record StreamOptions(
-            @JsonProperty("include_usage") Boolean includeUsage) {
-
-        public static StreamOptions INCLUDE_USAGE = new StreamOptions(true);
-    }
-
+    @JsonProperty("role")
+    private final Role role;
+    @JsonProperty("content")
+    private final String content;
+    @JsonProperty("images")
+    private final List<String> images;
+    @JsonProperty("tool_calls")
+    private final List<ToolCall> toolCalls;
+    @JsonProperty("tool_name")
+    private final String toolName;
+    @JsonProperty("thinking")
+    private final String thinking;
 }
