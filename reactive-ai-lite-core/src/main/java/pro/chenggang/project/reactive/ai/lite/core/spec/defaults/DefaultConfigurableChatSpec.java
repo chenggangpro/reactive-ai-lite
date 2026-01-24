@@ -71,8 +71,8 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     private Function<ExecutionContextView, ObjectNode> latestAssistantMessageConfigure;
     private Function<ExecutionContextView, Integer> maxCompletionTokensConfigure;
     private BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer;
-    private BiConsumer<ExecutionContextView, RawResponse> rawResponseConsumer;
-    private BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseConsumer;
+    private BiConsumer<ExecutionContextView, RawResponse> rawResponseCustomizer;
+    private BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer;
     private Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
     private Function<ExecutionContextView, Collection<LlmToolCallResponse>> toolsResponseConfigure;
 
@@ -171,14 +171,14 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     }
 
     @Override
-    public ConfigurableChatSpec rawResponseConsumer(@NonNull BiConsumer<ExecutionContextView, RawResponse> rawResponseConsumer) {
-        this.rawResponseConsumer = rawResponseConsumer;
+    public ConfigurableChatSpec rawResponseCustomizer(@NonNull BiConsumer<ExecutionContextView, RawResponse> rawResponseCustomizer) {
+        this.rawResponseCustomizer = rawResponseCustomizer;
         return this;
     }
 
     @Override
-    public ConfigurableChatSpec rawStreamResponseConsumer(@NonNull BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseConsumer) {
-        this.rawStreamResponseConsumer = rawStreamResponseConsumer;
+    public ConfigurableChatSpec rawStreamResponseCustomizer(@NonNull BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer) {
+        this.rawStreamResponseCustomizer = rawStreamResponseCustomizer;
         return this;
     }
 
@@ -225,8 +225,8 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
                 .textMessageConfigure(this.textMessageConfigure)
                 .mediaMessageConfigure(this.mediaMessageConfigure)
                 .rawRequestCustomizer(this.rawRequestCustomizer)
-                .rawResponseConsumer(this.rawResponseConsumer)
-                .rawStreamResponseConsumer(this.rawStreamResponseConsumer)
+                .rawResponseCustomizer(this.rawResponseCustomizer)
+                .rawStreamResponseCustomizer(this.rawStreamResponseCustomizer)
                 .toolsConfigure(this.toolsConfigure)
                 .toolsResponseConfigure(this.toolsResponseConfigure)
                 .build();

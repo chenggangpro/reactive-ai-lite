@@ -302,36 +302,36 @@ public interface ConfigurableChatSpec extends ChatSpec {
     /**
      * Registers a {@link BiConsumer} to process the raw, non-streaming response from the AI provider.
      *
-     * @param rawResponseConsumer A biconsumer that accepts the execution context and the {@link RawResponse}.
+     * @param rawResponseCustomizer A biconsumer that accepts the execution context and the {@link RawResponse}.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
      */
-    ConfigurableChatSpec rawResponseConsumer(@NonNull BiConsumer<ExecutionContextView, RawResponse> rawResponseConsumer);
+    ConfigurableChatSpec rawResponseCustomizer(@NonNull BiConsumer<ExecutionContextView, RawResponse> rawResponseCustomizer);
 
     /**
      * Registers a {@link Consumer} to process the raw, non-streaming response.
      *
-     * @param rawResponseConsumer A consumer that accepts the {@link RawResponse}.
+     * @param rawResponseCustomizer A consumer that accepts the {@link RawResponse}.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
      */
-    default ConfigurableChatSpec rawResponseConsumer(@NonNull Consumer<RawResponse> rawResponseConsumer) {
-        return rawResponseConsumer((contextView, response) -> rawResponseConsumer.accept(response));
+    default ConfigurableChatSpec rawResponseCustomizer(@NonNull Consumer<RawResponse> rawResponseCustomizer) {
+        return rawResponseCustomizer((contextView, response) -> rawResponseCustomizer.accept(response));
     }
 
     /**
      * Registers a {@link BiConsumer} to process each chunk of a raw, streaming response from the AI provider.
      *
-     * @param rawStreamResponseConsumer A biconsumer that accepts the execution context and each {@link RawStreamResponse} chunk.
+     * @param rawStreamResponseCustomizer A biconsumer that accepts the execution context and each {@link RawStreamResponse} chunk.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
      */
-    ConfigurableChatSpec rawStreamResponseConsumer(@NonNull BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseConsumer);
+    ConfigurableChatSpec rawStreamResponseCustomizer(@NonNull BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer);
 
     /**
      * Registers a {@link Consumer} to process each chunk of a raw, streaming response.
      *
-     * @param rawStreamResponseConsumer A consumer that accepts each {@link RawStreamResponse} chunk.
+     * @param rawStreamResponseCustomizer A consumer that accepts each {@link RawStreamResponse} chunk.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
      */
-    default ConfigurableChatSpec rawStreamResponseConsumer(@NonNull Consumer<RawStreamResponse> rawStreamResponseConsumer) {
-        return rawStreamResponseConsumer((contextView, response) -> rawStreamResponseConsumer.accept(response));
+    default ConfigurableChatSpec rawStreamResponseCustomizer(@NonNull Consumer<RawStreamResponse> rawStreamResponseCustomizer) {
+        return rawStreamResponseCustomizer((contextView, response) -> rawStreamResponseCustomizer.accept(response));
     }
 }

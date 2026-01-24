@@ -80,8 +80,8 @@ public class ExecutionSpec {
     private final Function<ExecutionContextView, Collection<Message>> historicalMessageConfigure;
     private final Function<ExecutionContextView, ObjectNode> latestAssistantMessageConfigure;
     private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer;
-    private final BiConsumer<ExecutionContextView, RawResponse> rawResponseConsumer;
-    private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseConsumer;
+    private final BiConsumer<ExecutionContextView, RawResponse> rawResponseCustomizer;
+    private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer;
     private final Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
     @Builder.Default
     private final Function<ExecutionContextView, String> toolChoiceConfigure = __ -> "auto";
@@ -121,8 +121,8 @@ public class ExecutionSpec {
                 .historicalMessageConfigure(this.historicalMessageConfigure)
                 .latestAssistantMessageConfigure(this.latestAssistantMessageConfigure)
                 .rawRequestCustomizer(this.rawRequestCustomizer)
-                .rawResponseConsumer(this.rawResponseConsumer)
-                .rawStreamResponseConsumer(this.rawStreamResponseConsumer)
+                .rawResponseCustomizer(this.rawResponseCustomizer)
+                .rawStreamResponseCustomizer(this.rawStreamResponseCustomizer)
                 .toolsConfigure(this.toolsConfigure)
                 .toolChoiceConfigure(this.toolChoiceConfigure)
                 .toolsResponseConfigure(this.toolsResponseConfigure)

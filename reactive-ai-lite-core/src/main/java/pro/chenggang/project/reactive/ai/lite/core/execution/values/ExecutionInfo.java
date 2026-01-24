@@ -64,8 +64,8 @@ public class ExecutionInfo {
     private final Function<ExecutionContextView, Collection<Message>> historicalMessageConfigure;
     private final Function<ExecutionContextView, ObjectNode> latestAssistantMessageConfigure;
     private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer;
-    private final BiConsumer<ExecutionContextView, RawResponse> rawResponseConsumer;
-    private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseConsumer;
+    private final BiConsumer<ExecutionContextView, RawResponse> rawResponseCustomizer;
+    private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer;
     private final Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
     private final Function<ExecutionContextView, String> toolChoiceConfigure;
     private final Function<ExecutionContextView, Collection<LlmToolCallResponse>> toolsResponseConfigure;

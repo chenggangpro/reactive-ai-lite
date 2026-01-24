@@ -81,9 +81,9 @@ public class LlmRequestData {
     @Getter
     private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer;
     @Getter
-    private final BiConsumer<ExecutionContextView, RawResponse> rawResponseConsumer;
+    private final BiConsumer<ExecutionContextView, RawResponse> rawResponseCustomizer;
     @Getter
-    private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseConsumer;
+    private final BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer;
 
     public Optional<Double> getTemperature() {
         return Optional.ofNullable(this.temperature);

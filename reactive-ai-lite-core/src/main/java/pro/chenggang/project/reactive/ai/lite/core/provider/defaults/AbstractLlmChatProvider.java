@@ -138,11 +138,11 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                                         this::mergeRawToolCallMessages
                                                 )
                                                 .concatMap(rawStreamResponse -> {
-                                                    return Mono.justOrEmpty(executionInfo.getRawStreamResponseConsumer())
+                                                    return Mono.justOrEmpty(executionInfo.getRawStreamResponseCustomizer())
                                                             .flatMap(consumer -> Mono
-                                                                    .fromRunnable(() -> consumer.accept(executionInfo.getExecutionContext().getContextView(), rawStreamResponse))
+                                                                    .<Void>fromRunnable(() -> consumer.accept(executionInfo.getExecutionContext().getContextView(), rawStreamResponse))
                                                             )
-                                                            .thenReturn(rawStreamResponse);
+                                                            .then(Mono.defer(() -> Mono.just(rawStreamResponse)));
                                                 })
                                                 .contextWrite(contextView);
                                     });
@@ -201,11 +201,11 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                     .build()
                             )
                             .flatMap(rawResponse -> {
-                                return Mono.justOrEmpty(llmRequestData.getRawResponseConsumer())
+                                return Mono.justOrEmpty(llmRequestData.getRawResponseCustomizer())
                                         .flatMap(consumer -> Mono.
                                                 <Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawResponse)
                                         ))
-                                        .thenReturn(rawResponse);
+                                        .then(Mono.defer(() -> Mono.just(rawResponse)));
                             });
                 });
     }
