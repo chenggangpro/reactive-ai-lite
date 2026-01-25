@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 import org.springframework.util.Assert;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallResponse;
@@ -28,6 +29,7 @@ import java.util.List;
  * @version 0.1.0
  */
 @Getter
+@ToString
 public class ToolResponseMessage implements Message {
 
     private final List<LlmToolCallResponse> llmToolCallResponses;

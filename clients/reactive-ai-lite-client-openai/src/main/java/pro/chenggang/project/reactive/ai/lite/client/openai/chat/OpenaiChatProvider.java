@@ -365,23 +365,30 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         sink.complete();
                         return;
                     }
-                    if (contentNode.isTextual()) {
+                    if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
                         R value;
-                        try {
-                            value = OBJECT_MAPPER.readValue(contentNode.asText(), resultType);
-                        } catch (JsonProcessingException e) {
-                            sink.error(e);
+                        String content = contentNode.asText();
+                        boolean perhapsJsonObject = content.startsWith("{") && content.endsWith("}");
+                        boolean perhapsJsonArray = content.startsWith("[") && content.endsWith("]");
+                        if (perhapsJsonObject || perhapsJsonArray) {
+                            try {
+                                value = OBJECT_MAPPER.readValue(contentNode.asText(), resultType);
+                            } catch (Exception e) {
+                                log.error("Failed to parse content as {}: {}", resultType, contentNode.asText(), e);
+                                sink.error(e);
+                                return;
+                            }
+                            sink.next(builder.structuredContent(value).build());
+                            sink.complete();
                             return;
                         }
-                        sink.next(builder.structuredContent(value).build());
-                        sink.complete();
-                        return;
                     }
-                    if (contentNode.isObject()) {
+                    if (contentNode.isObject() || contentNode.isArray()) {
                         R value;
                         try {
                             value = OBJECT_MAPPER.treeToValue(contentNode, resultType);
-                        } catch (JsonProcessingException e) {
+                        } catch (Exception e) {
+                            log.error("Failed to parse content as {}: {}", resultType, contentNode, e);
                             sink.error(e);
                             return;
                         }
@@ -389,7 +396,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         sink.complete();
                         return;
                     }
-                    log.warn("Unsupported json node type: {}", contentNode.getNodeType());
+                    log.warn("Unable to parse json ( {} ) for type {}", contentNode, resultType);
+                    sink.next(builder.build());
                     sink.complete();
                 });
     }
@@ -430,25 +438,31 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         sink.complete();
                         return;
                     }
-                    if (contentNode.isTextual()) {
+                    if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
                         R value;
-                        try {
-                            value = OBJECT_MAPPER.readValue(contentNode.asText(), new TypeReference<R>() {
-                                        @Override
-                                        public java.lang.reflect.Type getType() {
-                                            return resultType.getType();
+                        String content = contentNode.asText();
+                        boolean perhapsJsonObject = content.startsWith("{") && content.endsWith("}");
+                        boolean perhapsJsonArray = content.startsWith("[") && content.endsWith("]");
+                        if (perhapsJsonObject || perhapsJsonArray) {
+                            try {
+                                value = OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
+                                            @Override
+                                            public java.lang.reflect.Type getType() {
+                                                return resultType.getType();
+                                            }
                                         }
-                                    }
-                            );
-                        } catch (JsonProcessingException e) {
-                            sink.error(e);
+                                );
+                            } catch (Exception e) {
+                                log.error("Failed to parse content as {}: {}", resultType.getType(), content, e);
+                                sink.error(e);
+                                return;
+                            }
+                            sink.next(builder.structuredContent(value).build());
+                            sink.complete();
                             return;
                         }
-                        sink.next(builder.structuredContent(value).build());
-                        sink.complete();
-                        return;
                     }
-                    if (contentNode.isObject()) {
+                    if (contentNode.isObject() || contentNode.isArray()) {
                         R value;
                         try {
                             value = OBJECT_MAPPER.treeToValue(contentNode, new TypeReference<R>() {
@@ -458,7 +472,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                                         }
                                     }
                             );
-                        } catch (JsonProcessingException e) {
+                        } catch (Exception e) {
+                            log.error("Failed to parse content as {}: {}", resultType.getType(), contentNode.asText(), e);
                             sink.error(e);
                             return;
                         }
@@ -466,7 +481,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                         sink.complete();
                         return;
                     }
-                    log.warn("Unsupported json node type: {}", contentNode.getNodeType());
+                    log.warn("Unable to parse json ( {} ) for type {}", contentNode, resultType);
+                    sink.next(builder.build());
                     sink.complete();
                 });
     }

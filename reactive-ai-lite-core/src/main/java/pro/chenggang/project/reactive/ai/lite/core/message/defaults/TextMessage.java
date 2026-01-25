@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
 
 import lombok.NonNull;
+import lombok.ToString;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 
 
@@ -26,6 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.Message;
  * @author Cheng Gang
  * @version 0.1.0
  */
+@ToString
 public class TextMessage implements Message {
 
     /**

@@ -63,7 +63,6 @@
         <module>clients/reactive-ai-lite-client-openai</module>
         <module>clients/reactive-ai-lite-client-ollama</module>
         <module>clients/reactive-ai-lite-client-deepseek</module>
-        <module>clients/reactive-ai-lite-client-gemini</module>
         <module>reactive-ai-lite-starter</module>
     </modules>
 

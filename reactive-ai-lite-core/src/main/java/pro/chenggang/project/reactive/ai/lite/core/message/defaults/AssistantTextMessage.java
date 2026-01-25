@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 
 /**
  * Represents a text message from the AI assistant.
@@ -27,6 +28,7 @@ import lombok.NonNull;
  * @version 0.1.0
  */
 @Getter
+@ToString
 public class AssistantTextMessage extends TextMessage {
 
     /**

@@ -19,6 +19,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import lombok.extern.jackson.Jacksonized;
 
 /**
@@ -30,6 +31,7 @@ import lombok.extern.jackson.Jacksonized;
  * @version 0.1.0
  */
 @Getter
+@ToString
 @Builder
 @Jacksonized
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

@@ -1,0 +1,16 @@
+server:
+  port: 0
+  netty:
+    connection-timeout: PT120S
+logging:
+  level:
+    pro.chenggang: DEBUG
+reactive:
+  ai:
+    lite:
+      client:
+        deepseek:
+          chat-provider:
+            certifications:
+              - token: Your_DEEPSEE_API_TOKEN
+                default: true

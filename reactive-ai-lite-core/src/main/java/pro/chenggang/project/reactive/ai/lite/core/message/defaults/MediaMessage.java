@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 import org.springframework.util.Assert;
 import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
@@ -31,6 +32,7 @@ import java.util.List;
  * @author Cheng Gang
  * @version 0.1.0
  */
+@ToString
 public class MediaMessage implements Message {
 
     /**
@@ -83,4 +85,5 @@ public class MediaMessage implements Message {
     public String text() {
         return this.textContent;
     }
+
 }
