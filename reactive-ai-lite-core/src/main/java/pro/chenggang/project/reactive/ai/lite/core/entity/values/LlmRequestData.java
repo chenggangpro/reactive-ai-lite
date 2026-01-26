@@ -62,6 +62,8 @@ public class LlmRequestData {
     private final List<LlmToolCallResponse> llmToolCallResponse;
     @Getter
     private final boolean isStream;
+    @Getter
+    private final boolean distinctToolCalls;
     private final String toolChoice;
     private final Type structuredOutputType;
     private final String responseJsonSchema;

@@ -75,6 +75,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     private BiConsumer<ExecutionContextView, RawStreamResponse> rawStreamResponseCustomizer;
     private Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
     private Function<ExecutionContextView, Collection<LlmToolCallResponse>> toolsResponseConfigure;
+    private boolean distinctToolCalls;
 
     protected DefaultConfigurableChatSpec(@NonNull LlmClientType llmClientType,
                                           @NonNull LlmProviderRegistry llmProviderRegistry,
@@ -159,6 +160,12 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     }
 
     @Override
+    public ConfigurableChatSpec distinctToolCalls(boolean distinctToolCalls) {
+        this.distinctToolCalls = distinctToolCalls;
+        return this;
+    }
+
+    @Override
     public ConfigurableChatSpec toolChoice(@NonNull Function<ExecutionContextView, String> toolChoiceConfigure) {
         this.toolChoiceConfigure = toolChoiceConfigure;
         return this;
@@ -236,6 +243,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
                 .rawStreamResponseCustomizer(this.rawStreamResponseCustomizer)
                 .toolsConfigure(this.toolsConfigure)
                 .toolsResponseConfigure(this.toolsResponseConfigure)
+                .distinctToolCalls(this.distinctToolCalls)
                 .build();
     }
 }

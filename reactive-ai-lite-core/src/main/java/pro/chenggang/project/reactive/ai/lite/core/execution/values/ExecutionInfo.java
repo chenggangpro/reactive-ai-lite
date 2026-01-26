@@ -69,5 +69,6 @@ public class ExecutionInfo {
     private final Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
     private final Function<ExecutionContextView, String> toolChoiceConfigure;
     private final Function<ExecutionContextView, Collection<LlmToolCallResponse>> toolsResponseConfigure;
+    private final boolean distinctToolCalls;
 
 }

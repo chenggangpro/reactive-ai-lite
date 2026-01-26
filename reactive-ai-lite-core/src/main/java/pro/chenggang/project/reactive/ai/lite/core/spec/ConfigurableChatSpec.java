@@ -125,9 +125,14 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures the reasoning or system-level instructions for the model.
+     * Dynamically configures the reasoning for the model.
      * This can be used to guide the model's thought process or provide meta-prompts,
      * which might be supported by specific AI providers.
+     * <p/>
+     * Like:
+     * <li>low/medium/high value in openai</li>
+     * <li>enabled/disabled in deepseek's thinking param</li>
+     * <li>true/false in ollama's think param</li>
      *
      * @param reasoningConfigure A function that returns the reasoning string based on the execution context.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
@@ -136,7 +141,11 @@ public interface ConfigurableChatSpec extends ChatSpec {
 
     /**
      * Sets a static reasoning or system-level instruction for the model.
-     * This can be used to guide the model's thought process or provide meta-prompts.
+     * <p/>
+     * Like:
+     * <li>low/medium/high value in openai</li>
+     * <li>enabled/disabled in deepseek's thinking param</li>
+     * <li>true/false in ollama's think param</li>
      *
      * @param reasoning The reasoning string to use.
      * @return This {@link ConfigurableChatSpec} instance for method chaining.
@@ -262,9 +271,25 @@ public interface ConfigurableChatSpec extends ChatSpec {
      */
     ConfigurableChatSpec tools(@NonNull Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure);
 
+    /**
+     * Sets a static collection of tools (e.g., functions) available to the model.
+     *
+     * @param toolDefinitions A collection of tool definitions.
+     * @return This {@link ConfigurableChatSpec} instance for method chaining.
+     */
     default ConfigurableChatSpec tools(@NonNull Collection<ToolDefinition> toolDefinitions) {
         return tools(contextView -> toolDefinitions);
     }
+
+    /**
+     * Configures whether to filter for distinct tool calls in the model's response.
+     * Some models may return multiple, identical tool call requests in a single turn.
+     * Setting this to {@code true} ensures that only unique tool calls are processed.
+     *
+     * @param distinctToolCalls If {@code true}, filters for unique tool calls; if {@code false}, preserves all tool calls.
+     * @return This {@link ConfigurableChatSpec} instance for method chaining.
+     */
+    ConfigurableChatSpec distinctToolCalls(boolean distinctToolCalls);
 
     /**
      * Dynamically configures the tool choice behavior for the model.

@@ -87,6 +87,7 @@ public class ExecutionSpec {
     @Builder.Default
     private final Function<ExecutionContextView, String> toolChoiceConfigure = __ -> "auto";
     private final Function<ExecutionContextView, Collection<LlmToolCallResponse>> toolsResponseConfigure;
+    private final boolean distinctToolCalls;
 
     public ExecutionContext newExecutionContext() {
         String currentTraceId = this.traceIdGenerator.get();
@@ -128,6 +129,7 @@ public class ExecutionSpec {
                 .toolsConfigure(this.toolsConfigure)
                 .toolChoiceConfigure(this.toolChoiceConfigure)
                 .toolsResponseConfigure(this.toolsResponseConfigure)
+                .distinctToolCalls(this.distinctToolCalls)
                 .build();
     }
 }

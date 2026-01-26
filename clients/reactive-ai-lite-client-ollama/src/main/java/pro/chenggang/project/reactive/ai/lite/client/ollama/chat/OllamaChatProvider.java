@@ -57,6 +57,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -220,11 +222,11 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages) {
+    protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls) {
         if (rawToolCallMessages.size() == 1) {
             return rawToolCallMessages.get(0);
         }
-        ArrayNode toolCalls = OBJECT_MAPPER.createArrayNode();
+        List<ObjectNode> toolCalls = new ArrayList<>();
         for (ObjectNode rawToolCallMessage : rawToolCallMessages) {
             JsonNode toolCallsNode = rawToolCallMessage.at("/message/tool_calls");
             if (toolCallsNode.isMissingNode() || !toolCallsNode.isArray() || toolCallsNode.isNull()) {
@@ -234,11 +236,33 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 if (Objects.isNull(eachToolCalls) || eachToolCalls.isMissingNode() || !eachToolCalls.isObject() || eachToolCalls.isNull()) {
                     continue;
                 }
-                toolCalls.add(eachToolCalls);
+                toolCalls.add((ObjectNode) eachToolCalls);
             }
         }
+        if (distinctToolCalls) {
+            Set<ObjectNode> toolCallSet = new HashSet<>();
+            if (toolCalls.size() > 1) {
+                Iterator<ObjectNode> iterator = toolCalls.iterator();
+                while (iterator.hasNext()) {
+                    ObjectNode toolCall = iterator.next();
+                    ObjectNode copied = toolCall.deepCopy();
+                    copied.remove("index");
+                    copied.remove("id");
+                    if (toolCallSet.contains(copied)) {
+                        iterator.remove();
+                    } else {
+                        toolCallSet.add(copied);
+                    }
+                }
+            }
+            toolCallSet.clear();
+        }
+        ArrayNode toolCallsArrayNode = OBJECT_MAPPER.createArrayNode();
+        for (ObjectNode toolCall : toolCalls) {
+            toolCallsArrayNode.add(toolCall);
+        }
         ObjectNode toolCallsObject = OBJECT_MAPPER.createObjectNode();
-        toolCallsObject.set("tool_calls", toolCalls);
+        toolCallsObject.set("tool_calls", toolCallsArrayNode);
         return toolCallsObject;
     }
 
@@ -291,14 +315,10 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                     String arguments = functionNode.get("arguments").toString();
                     JsonNode args = null;
                     if (StringUtils.hasText(arguments)) {
-                        boolean perhapsJsonObject = arguments.startsWith("{") && arguments.endsWith("}");
-                        boolean perhapsJsonArray = arguments.startsWith("[") && arguments.endsWith("]");
-                        if (perhapsJsonObject || perhapsJsonArray) {
-                            try {
-                                args = OBJECT_MAPPER.readTree(arguments);
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException(e);
-                            }
+                        try {
+                            args = OBJECT_MAPPER.readTree(arguments);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
                         }
                     }
                     return LlmToolCallRequest.builder()
@@ -430,26 +450,22 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                     if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
                         R value;
                         String content = contentNode.asText();
-                        boolean perhapsJsonObject = content.startsWith("{") && content.endsWith("}");
-                        boolean perhapsJsonArray = content.startsWith("[") && content.endsWith("]");
-                        if (perhapsJsonObject || perhapsJsonArray) {
-                            try {
-                                value = OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
-                                            @Override
-                                            public java.lang.reflect.Type getType() {
-                                                return resultType.getType();
-                                            }
+                        try {
+                            value = OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
+                                        @Override
+                                        public java.lang.reflect.Type getType() {
+                                            return resultType.getType();
                                         }
-                                );
-                            } catch (Exception e) {
-                                log.error("Failed to parse content as {}: {}", resultType.getType(), content, e);
-                                sink.error(e);
-                                return;
-                            }
-                            sink.next(builder.structuredContent(value).build());
-                            sink.complete();
+                                    }
+                            );
+                        } catch (Exception e) {
+                            log.error("Failed to parse content as {}: {}", resultType.getType(), content, e);
+                            sink.error(e);
                             return;
                         }
+                        sink.next(builder.structuredContent(value).build());
+                        sink.complete();
+                        return;
                     }
                     if (contentNode.isObject() || contentNode.isArray()) {
                         R value;

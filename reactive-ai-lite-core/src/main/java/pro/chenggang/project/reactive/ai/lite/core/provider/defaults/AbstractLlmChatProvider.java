@@ -101,7 +101,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
 
     protected abstract StreamChunk[] extractStreamChunks(@NonNull ObjectNode rawResponseData);
 
-    protected abstract ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages);
+    protected abstract ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls);
 
     protected abstract Mono<GeneralResponse> extraGeneralResponse(@NonNull RawResponse rawResponse);
 
@@ -149,15 +149,15 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                             return Flux.deferContextual(contextView -> {
                                                 return StreamResponseParser.parseStreamResponse(
                                                                 this.extractRequestMessages(body),
-                                                                executionInfo.getExecutionContext().getContextView(),
+                                                                llmRequestData.getExecutionContextView(),
                                                                 this.getRawStreamResponseFlux(llmRequestData, body),
                                                                 this::extractStreamChunks,
-                                                                this::mergeRawToolCallMessages
+                                                                rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
                                                         )
                                                         .concatMap(rawStreamResponse -> {
-                                                            return Mono.justOrEmpty(executionInfo.getRawStreamResponseCustomizer())
+                                                            return Mono.justOrEmpty(llmRequestData.getRawStreamResponseCustomizer())
                                                                     .flatMap(consumer -> Mono
-                                                                            .<Void>fromRunnable(() -> consumer.accept(executionInfo.getExecutionContext().getContextView(), rawStreamResponse))
+                                                                            .<Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawStreamResponse))
                                                                     )
                                                                     .then(Mono.defer(() -> Mono.just(rawStreamResponse)));
                                                         })
@@ -252,6 +252,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                 .llmToolCallResponse(this.loadToolResponse(executionInfo))
                 .rawRequestCustomizer(executionInfo.getRawRequestCustomizer())
                 .isStream(isStream)
+                .distinctToolCalls(executionInfo.isDistinctToolCalls())
                 .toolChoice(this.loadToolChoice(executionInfo))
                 .structuredOutputType(structuredOutputType)
                 .responseJsonSchema(responseJsonSchema)

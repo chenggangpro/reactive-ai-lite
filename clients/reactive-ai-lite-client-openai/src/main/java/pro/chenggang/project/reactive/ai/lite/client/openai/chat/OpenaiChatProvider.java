@@ -74,6 +74,8 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -97,7 +99,6 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     private final String baseUrL;
     private final String chatCompletionEndpoint;
     private final WebClient webClient;
-
 
     @Builder
     private OpenaiChatProvider(@NonNull WebClient.Builder webClientBuilder,
@@ -201,8 +202,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages) {
-        ArrayNode toolCalls = OBJECT_MAPPER.createArrayNode();
+    protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls) {
+        List<ObjectNode> toolCalls = new ArrayList<>();
         for (ObjectNode rawToolCallMessage : rawToolCallMessages) {
             JsonNode toolCallNode = rawToolCallMessage.at("/choices/0/delta/tool_calls/0");
             if (toolCallNode.isMissingNode() || !toolCallNode.isObject() || toolCallNode.isNull()) {
@@ -213,34 +214,58 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 continue;
             }
             int index = indexNode.asInt();
-            JsonNode jsonNode = toolCalls.at("/" + index);
+            if (index < 0) {
+                continue;
+            }
             ObjectNode toolCall = (ObjectNode) toolCallNode;
-            if (jsonNode.isMissingNode()) {
+            if (toolCalls.size() == index) {
                 toolCalls.add(toolCall);
-            } else {
-                ObjectNode existToolCall = (ObjectNode) jsonNode;
-                if (toolCall.has("id")) {
-                    this.mergeJsonNode(existToolCall, toolCall, "id");
-                } else if (toolCall.has("type")) {
-                    this.mergeJsonNode(existToolCall, toolCall, "type");
-                } else if (toolCall.has("function")) {
-                    JsonNode functionNode = toolCall.at("/function");
-                    JsonNode existFunctionNode = existToolCall.at("/function");
-                    if (existFunctionNode.isMissingNode() || existFunctionNode.isNull()) {
-                        existToolCall.set("function", functionNode);
-                    } else if (functionNode.isObject() && !functionNode.isNull()) {
-                        ObjectNode newFunctionNode = (ObjectNode) functionNode;
-                        if (newFunctionNode.has("name")) {
-                            this.mergeJsonNode((ObjectNode) existFunctionNode, newFunctionNode, "name");
-                        } else if (newFunctionNode.has("arguments")) {
-                            this.mergeJsonNode((ObjectNode) existFunctionNode, newFunctionNode, "arguments");
-                        }
+                continue;
+            }
+            ObjectNode existToolCall = toolCalls.get(index);
+            if (toolCall.has("id")) {
+                this.mergeJsonNode(existToolCall, toolCall, "id");
+            } else if (toolCall.has("type")) {
+                this.mergeJsonNode(existToolCall, toolCall, "type");
+            } else if (toolCall.has("function")) {
+                JsonNode functionNode = toolCall.at("/function");
+                JsonNode existFunctionNode = existToolCall.at("/function");
+                if (existFunctionNode.isMissingNode() || existFunctionNode.isNull()) {
+                    existToolCall.set("function", functionNode);
+                } else if (functionNode.isObject() && !functionNode.isNull()) {
+                    ObjectNode newFunctionNode = (ObjectNode) functionNode;
+                    if (newFunctionNode.has("name")) {
+                        this.mergeJsonNode((ObjectNode) existFunctionNode, newFunctionNode, "name");
+                    } else if (newFunctionNode.has("arguments")) {
+                        this.mergeJsonNode((ObjectNode) existFunctionNode, newFunctionNode, "arguments");
                     }
                 }
             }
         }
+        if (distinctToolCalls) {
+            Set<ObjectNode> toolCallSet = new HashSet<>();
+            if (toolCalls.size() > 1) {
+                Iterator<ObjectNode> iterator = toolCalls.iterator();
+                while (iterator.hasNext()) {
+                    ObjectNode toolCall = iterator.next();
+                    ObjectNode copied = toolCall.deepCopy();
+                    copied.remove("index");
+                    copied.remove("id");
+                    if (toolCallSet.contains(copied)) {
+                        iterator.remove();
+                    } else {
+                        toolCallSet.add(copied);
+                    }
+                }
+            }
+            toolCallSet.clear();
+        }
+        ArrayNode toolCallsArrayNode = OBJECT_MAPPER.createArrayNode();
+        for (ObjectNode toolCall : toolCalls) {
+            toolCallsArrayNode.add(toolCall);
+        }
         ObjectNode toolCallsObject = OBJECT_MAPPER.createObjectNode();
-        toolCallsObject.set("tool_calls", toolCalls);
+        toolCallsObject.set("tool_calls", toolCallsArrayNode);
         return toolCallsObject;
     }
 
@@ -308,14 +333,10 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     String arguments = functionNode.get("arguments").toString();
                     JsonNode args = null;
                     if (StringUtils.hasText(arguments)) {
-                        boolean perhapsJsonObject = arguments.startsWith("{") && arguments.endsWith("}");
-                        boolean perhapsJsonArray = arguments.startsWith("[") && arguments.endsWith("]");
-                        if (perhapsJsonObject || perhapsJsonArray) {
-                            try {
-                                args = OBJECT_MAPPER.readTree(arguments);
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException(e);
-                            }
+                        try {
+                            args = OBJECT_MAPPER.readTree(arguments);
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
                         }
                     }
                     return LlmToolCallRequest.builder()
@@ -368,20 +389,16 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
                         R value;
                         String content = contentNode.asText();
-                        boolean perhapsJsonObject = content.startsWith("{") && content.endsWith("}");
-                        boolean perhapsJsonArray = content.startsWith("[") && content.endsWith("]");
-                        if (perhapsJsonObject || perhapsJsonArray) {
-                            try {
-                                value = OBJECT_MAPPER.readValue(contentNode.asText(), resultType);
-                            } catch (Exception e) {
-                                log.error("Failed to parse content as {}: {}", resultType, contentNode.asText(), e);
-                                sink.error(e);
-                                return;
-                            }
-                            sink.next(builder.structuredContent(value).build());
-                            sink.complete();
+                        try {
+                            value = OBJECT_MAPPER.readValue(contentNode.asText(), resultType);
+                        } catch (Exception e) {
+                            log.error("Failed to parse content as {}: {}", resultType, contentNode.asText(), e);
+                            sink.error(e);
                             return;
                         }
+                        sink.next(builder.structuredContent(value).build());
+                        sink.complete();
+                        return;
                     }
                     if (contentNode.isObject() || contentNode.isArray()) {
                         R value;
@@ -441,26 +458,22 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                     if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
                         R value;
                         String content = contentNode.asText();
-                        boolean perhapsJsonObject = content.startsWith("{") && content.endsWith("}");
-                        boolean perhapsJsonArray = content.startsWith("[") && content.endsWith("]");
-                        if (perhapsJsonObject || perhapsJsonArray) {
-                            try {
-                                value = OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
-                                            @Override
-                                            public java.lang.reflect.Type getType() {
-                                                return resultType.getType();
-                                            }
+                        try {
+                            value = OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
+                                        @Override
+                                        public java.lang.reflect.Type getType() {
+                                            return resultType.getType();
                                         }
-                                );
-                            } catch (Exception e) {
-                                log.error("Failed to parse content as {}: {}", resultType.getType(), content, e);
-                                sink.error(e);
-                                return;
-                            }
-                            sink.next(builder.structuredContent(value).build());
-                            sink.complete();
+                                    }
+                            );
+                        } catch (Exception e) {
+                            log.error("Failed to parse content as {}: {}", resultType.getType(), content, e);
+                            sink.error(e);
                             return;
                         }
+                        sink.next(builder.structuredContent(value).build());
+                        sink.complete();
+                        return;
                     }
                     if (contentNode.isObject() || contentNode.isArray()) {
                         R value;
