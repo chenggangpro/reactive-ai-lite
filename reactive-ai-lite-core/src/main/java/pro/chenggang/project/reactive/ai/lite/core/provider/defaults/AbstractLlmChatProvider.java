@@ -93,22 +93,82 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
         }
     }
 
+    /**
+     * Initialize Request Body Spec for LLM request.
+     *
+     * @param llmRequestData The LLM request data.
+     * @return A RequestBodySpec.
+     */
     protected abstract RequestBodySpec loadRequestBodySpec(@NonNull LlmRequestData llmRequestData);
 
+    /**
+     * Initialize Request Body for LLM request.
+     *
+     * @param llmRequestData The LLM request data.
+     * @return the initialized Request Body.
+     */
     protected abstract ObjectNode initializeRequestBody(@NonNull LlmRequestData llmRequestData);
 
+    /**
+     * Extract Request Messages from the raw response data.
+     *
+     * @param requestBody the raw response data.
+     * @return the extracted Request Messages.
+     */
     protected abstract ArrayNode extractRequestMessages(@NonNull ObjectNode requestBody);
 
+    /**
+     * Extract Stream Chunks from the raw response data.
+     * This method is used for stream responses to determine stream data type and chunks.
+     *
+     * @param rawResponseData the raw response data.
+     * @return the extracted Stream Chunks.
+     */
     protected abstract StreamChunk[] extractStreamChunks(@NonNull ObjectNode rawResponseData);
 
+    /**
+     * Merge Raw Tool Call Messages into a single ObjectNode.
+     *
+     * @param rawToolCallMessages the raw Tool Call Messages.
+     * @param distinctToolCalls   whether to distinct the tool calls of response
+     * @return the merged ObjectNode.
+     */
     protected abstract ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls);
 
+    /**
+     * Extract raw response data to a GeneralResponse.
+     *
+     * @param rawResponse the raw response data.
+     * @return the GeneralResponse.
+     */
     protected abstract Mono<GeneralResponse> extraGeneralResponse(@NonNull RawResponse rawResponse);
 
+    /**
+     * Extract raw response data to a StructuredResponse.
+     *
+     * @param rawResponse the raw response data.
+     * @param resultType  the class type to deserialize the response into
+     * @param <R>         result data
+     * @return StructuredResponse.
+     */
     protected abstract <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull RawResponse rawResponse, @NonNull Class<R> resultType);
 
+    /**
+     * Extract raw response data to a StructuredResponse.
+     *
+     * @param rawResponse the raw response data.
+     * @param resultType  the parameterized type reference to deserialize the response into
+     * @param <R>         result data
+     * @return StructuredResponse.
+     */
     protected abstract <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull RawResponse rawResponse, @NonNull ParameterizedTypeReference<R> resultType);
 
+    /**
+     * Extract raw stream response data to a StreamResponse.
+     *
+     * @param rawStreamResponse the raw stream response data.
+     * @return A StreamResponse.
+     */
     protected abstract Mono<StreamResponse> extractStreamResponseContent(@NonNull RawStreamResponse rawStreamResponse);
 
     @Override
