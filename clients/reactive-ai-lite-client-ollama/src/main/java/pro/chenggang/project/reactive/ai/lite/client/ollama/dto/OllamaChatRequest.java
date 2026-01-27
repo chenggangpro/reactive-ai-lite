@@ -53,5 +53,5 @@ public class OllamaChatRequest {
     @JsonProperty("options")
     private final Map<String, Object> options;
     @JsonProperty("think")
-    private final String think;
+    private final Object think;
 }

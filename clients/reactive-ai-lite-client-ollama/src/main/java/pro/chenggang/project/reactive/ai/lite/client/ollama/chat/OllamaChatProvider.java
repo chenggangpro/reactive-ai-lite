@@ -586,7 +586,13 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
         Map<String, Object> options = new HashMap<>();
         llmRequestData.getTemperature().ifPresent(temperature -> options.put("temperature", temperature));
         llmRequestData.getTopP().ifPresent(topP -> options.put("top_p", topP));
-        llmRequestData.getReasoning().ifPresent(ollamaChatRequestBuilder::think);
+        llmRequestData.getReasoning().ifPresent(think -> {
+            if ("true".equalsIgnoreCase(think) || "false".equalsIgnoreCase(think)) {
+                ollamaChatRequestBuilder.think(Boolean.parseBoolean(think));
+                return;
+            }
+            ollamaChatRequestBuilder.think(think);
+        });
         var systemMessage = buildSystemMessage(llmRequestData);
         var userMessage = buildUserMessage(llmRequestData);
         var historicalMessages = buildHistoricalMessages(llmRequestData);
