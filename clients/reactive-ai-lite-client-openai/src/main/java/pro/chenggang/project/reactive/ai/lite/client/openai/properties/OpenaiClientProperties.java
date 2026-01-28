@@ -115,6 +115,11 @@ public class OpenaiClientProperties implements InitializingBean {
          * A list of authentication credentials for accessing the API.
          */
         private List<OpenaiCertification> certifications = List.of();
+
+        /**
+         * A set of specific models that are allowed for chat completions. If not specified, all models are allowed.
+         */
+        private Set<String> limitedModels;
     }
 
     /**

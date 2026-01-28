@@ -67,6 +67,7 @@ public class DeepseekLlmClientProviderConfiguration {
                 .webClientBuilder(webClientBuilder)
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
+                .supportedModels(chatProvider.getLimitedModels())
                 .build();
     }
 }

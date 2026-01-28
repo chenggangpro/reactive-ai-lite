@@ -45,7 +45,7 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
         if (Objects.nonNull(supportedModels) && !supportedModels.isEmpty()) {
             this.supportedModels = Set.copyOf(supportedModels);
         } else {
-            log.warn("No supported models provided. Assuming all models are supported.");
+            log.info("No supported models provided. Assuming all models are supported.");
             this.supportedModels = Set.of();
         }
     }

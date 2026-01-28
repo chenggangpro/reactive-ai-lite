@@ -78,6 +78,7 @@ public class OpenaiLlmClientProviderConfiguration {
                 .webClientBuilder(webClientBuilder)
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
+                .supportedModels(chatProvider.getLimitedModels())
                 .build();
     }
 }
