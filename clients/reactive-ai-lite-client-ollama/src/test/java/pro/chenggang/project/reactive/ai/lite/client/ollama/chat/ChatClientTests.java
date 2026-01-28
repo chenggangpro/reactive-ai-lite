@@ -30,7 +30,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.OllamaLlmClientTestApplicationTests;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
-import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
+import pro.chenggang.project.reactive.ai.lite.core.tool.DefaultToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import reactor.test.StepVerifier;
 
@@ -47,7 +47,7 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
 
     @Autowired
     ReactiveLlmClient reactiveLlmClient;
-    
+
     String model = "gpt-oss:120b";
 
     @Test
@@ -58,7 +58,7 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")))
                 .textMessage((contextView -> TextMessage.of("192.168.64.1/24 网段范围?")))
                 .maxCompletionTokens(contextView -> 100)
@@ -83,7 +83,7 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")))
                 .textMessage((contextView -> TextMessage.of("192.168.64.1/24 网段范围?")))
                 .maxCompletionTokens(contextView -> 50)
@@ -109,7 +109,7 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")))
                 .textMessage((contextView -> TextMessage.of("192.168.64.1/24 网段范围?")))
                 .maxCompletionTokens(contextView -> 50)
@@ -134,11 +134,11 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -167,11 +167,11 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -200,11 +200,11 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -234,11 +234,11 @@ public class ChatClientTests extends OllamaLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView ->model)
+                .model(contextView -> model)
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(

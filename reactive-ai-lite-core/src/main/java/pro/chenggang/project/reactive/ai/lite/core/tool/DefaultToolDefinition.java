@@ -19,6 +19,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil.SchemaOption;
 
@@ -34,10 +36,15 @@ import java.util.Objects;
  * @author Cheng Gang
  * @version 0.1.0
  */
+@ToString
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultToolDefinition implements ToolDefinition {
 
+    @ToString.Include
+    private final String identifier;
+    @ToString.Include
     private final String name;
+    @ToString.Include
     private final String description;
     private final String inputSchema;
     private final Boolean strict;
@@ -62,6 +69,11 @@ public class DefaultToolDefinition implements ToolDefinition {
         return this.strict;
     }
 
+    @Override
+    public String identifier() {
+        return StringUtils.hasText(this.identifier) ? this.identifier : this.name;
+    }
+
     /**
      * Creates a new builder instance for constructing a {@link DefaultToolDefinition}.
      *
@@ -78,12 +90,25 @@ public class DefaultToolDefinition implements ToolDefinition {
      */
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static class DefaultToolDefinitionBuilder {
+
         private String name;
         private String description;
         private String inputSchema;
         private Type inputSchemaType;
         private SchemaOption[] schemaOptions;
         private Boolean strict;
+        private String identifier;
+
+        /**
+         * Sets the identifier of the tool. If no identifier is provided, the name will be used.
+         *
+         * @param identifier the identifier of the tool.
+         * @return This builder instance for chaining.
+         */
+        public DefaultToolDefinitionBuilder identifier(@NonNull String identifier) {
+            this.identifier = identifier;
+            return this;
+        }
 
         /**
          * Sets the name of the tool.
@@ -156,11 +181,11 @@ public class DefaultToolDefinition implements ToolDefinition {
          */
         public DefaultToolDefinition build() {
             if (Objects.nonNull(this.inputSchema)) {
-                return new DefaultToolDefinition(name, description, inputSchema, strict);
+                return new DefaultToolDefinition(identifier, name, description, inputSchema, strict);
             }
             if (Objects.nonNull(this.inputSchemaType)) {
                 String inputSchema = JsonSchemaUtil.generateForType(inputSchemaType, schemaOptions);
-                return new DefaultToolDefinition(name, description, inputSchema, strict);
+                return new DefaultToolDefinition(identifier, name, description, inputSchema, strict);
             }
             throw new IllegalArgumentException("Either inputSchema or inputSchemaType must be provided.");
         }

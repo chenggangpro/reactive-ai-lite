@@ -72,12 +72,12 @@ public interface ToolDefinition {
     }
 
     /**
-     * A factory method to create a new builder for a {@link DefaultToolDefinition}.
-     * This provides a convenient way to construct a tool definition instance.
+     * Gets a unique identifier for the tool.
+     * <p>
+     * The identifier is actual name which submitted into the AI model.
+     * The tool-calling response will include this identifier inside {@link LlmToolCallRequest}
      *
-     * @return A new {@link DefaultToolDefinition.DefaultToolDefinitionBuilder} instance.
+     * @return The unique identifier for the tool.
      */
-    static DefaultToolDefinition.DefaultToolDefinitionBuilder newBuilder() {
-        return DefaultToolDefinition.builder();
-    }
+    String identifier();
 }

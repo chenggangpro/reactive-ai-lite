@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
@@ -267,7 +268,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Mono<GeneralResponse> extraGeneralResponse(@NonNull RawResponse rawResponse) {
+    protected Mono<GeneralResponse> extraGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse) {
         ObjectNode rawResponseBody = rawResponse.getRawResponse();
         return Mono.just(GeneralResponse.builder()
                         .rawResponse(rawResponseBody)
@@ -290,7 +291,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                     JsonNode toolCallsNode = messageNode.at("/tool_calls");
                     if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
                         ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolCallsArrayNode);
+                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, toolCallsArrayNode);
                         builder.toolCallList(llmToolCallRequests);
                     }
                     ObjectNode usageNode = OBJECT_MAPPER.createObjectNode();
@@ -307,7 +308,14 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 });
     }
 
-    private List<LlmToolCallRequest> parseToolCallRequestList(@NonNull ArrayNode toolCallsArrayNode) {
+    private List<LlmToolCallRequest> parseToolCallRequestList(@NonNull List<ToolDefinition> toolDefinitions, @NonNull ArrayNode toolCallsArrayNode) {
+        Map<String, ToolDefinition> toolDefinitionMapByIdentifier = toolDefinitions.stream()
+                .collect(Collectors.toMap(
+                        ToolDefinition::identifier,
+                        java.util.function.Function.identity(),
+                        (o1, o2) -> o1,
+                        HashMap::new
+                ));
         return toolCallsArrayNode.valueStream()
                 .filter(jsonNode -> jsonNode.isObject() && !jsonNode.isNull() && jsonNode.has("function") && jsonNode.get("function").isObject())
                 .map(jsonNode -> {
@@ -321,9 +329,18 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                             throw new RuntimeException(e);
                         }
                     }
+                    String toolIdentifier = functionNode.get("name").asText();
+                    if (Objects.isNull(toolIdentifier)) {
+                        throw new IllegalStateException("The tool name which in tool-calling response is missing.");
+                    }
+                    if (!toolDefinitionMapByIdentifier.containsKey(toolIdentifier)) {
+                        throw new IllegalStateException("The tool identifier of tool-calling response '" + toolIdentifier + "' is not found in the tool definitions.");
+                    }
+                    ToolDefinition toolDefinition = toolDefinitionMapByIdentifier.get(toolIdentifier);
                     return LlmToolCallRequest.builder()
-                            .id(functionNode.get("name").asText())
-                            .name(functionNode.get("name").asText())
+                            .identifier(toolDefinition.identifier())
+                            .id(toolDefinition.identifier())
+                            .name(toolDefinition.name())
                             .type("function")
                             .rawArgs(arguments)
                             .args(args)
@@ -333,7 +350,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull RawResponse rawResponse, @NonNull Class<R> resultType) {
+    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull Class<R> resultType) {
         ObjectNode rawResponseBody = rawResponse.getRawResponse();
         return Mono.just(StructuredResponse.<R>builder()
                         .rawResponse(rawResponseBody)
@@ -352,7 +369,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                     JsonNode toolCallsNode = messageNode.at("/tool_calls");
                     if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
                         ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolCallsArrayNode);
+                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, toolCallsArrayNode);
                         builder.toolCallList(llmToolCallRequests);
                     }
                     ObjectNode usageNode = OBJECT_MAPPER.createObjectNode();
@@ -406,7 +423,9 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull RawResponse rawResponse, @NonNull ParameterizedTypeReference<R> resultType) {
+    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
+                                                                               @NonNull RawResponse rawResponse,
+                                                                               @NonNull ParameterizedTypeReference<R> resultType) {
         ObjectNode rawResponseBody = rawResponse.getRawResponse();
         return Mono.just(StructuredResponse.<R>builder()
                         .rawResponse(rawResponseBody)
@@ -425,7 +444,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                     JsonNode toolCallsNode = messageNode.at("/tool_calls");
                     if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
                         ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolCallsArrayNode);
+                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, toolCallsArrayNode);
                         builder.toolCallList(llmToolCallRequests);
                     }
                     ObjectNode usageNode = OBJECT_MAPPER.createObjectNode();
@@ -493,7 +512,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Mono<StreamResponse> extractStreamResponseContent(@NonNull RawStreamResponse rawStreamResponse) {
+    protected Mono<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
         ResponseDataType responseDataType = rawStreamResponse.getDataType();
         if (ResponseDataType.UNKNOWN.equals(responseDataType)) {
             return Mono.empty();
@@ -546,7 +565,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
             if (toolCallsNode.isMissingNode() || toolCallsNode.isNull() || !toolCallsNode.isArray()) {
                 return Mono.empty();
             }
-            List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList((ArrayNode) toolCallsNode);
+            List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, (ArrayNode) toolCallsNode);
             return Mono.just(StreamResponse.builder()
                     .dataType(StreamDataType.TOOL_CALL)
                     .dataContent(toolCallsNode)
@@ -622,7 +641,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 .map(toolDefinition -> FunctionTool.builder()
                         .type(FunctionTool.Type.FUNCTION)
                         .function(Function.builder()
-                                .name(toolDefinition.name())
+                                .name(toolDefinition.identifier())
                                 .description(toolDefinition.description())
                                 .parameters(JsonRelatedUtil.jsonToMap(toolDefinition.inputSchema()))
                                 .strict(toolDefinition.strict())

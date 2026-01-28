@@ -38,6 +38,11 @@ import lombok.extern.jackson.Jacksonized;
 public class LlmToolCallRequest {
 
     /**
+     * The unique identifier same as the one provided in tool definition.
+     */
+    private final String identifier;
+
+    /**
      * A unique identifier for this tool call request. This ID must be included in the
      * corresponding {@link LlmToolCallResponse} to allow the model to correlate the
      * request with its result.

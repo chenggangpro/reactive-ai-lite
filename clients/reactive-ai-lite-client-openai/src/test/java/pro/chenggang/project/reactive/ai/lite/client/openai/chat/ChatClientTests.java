@@ -30,7 +30,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import pro.chenggang.project.reactive.ai.lite.client.openai.OpenaiLlmClientTestApplicationTests;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
-import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
+import pro.chenggang.project.reactive.ai.lite.core.tool.DefaultToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import reactor.test.StepVerifier;
 
@@ -136,7 +136,7 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -169,7 +169,7 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -202,7 +202,7 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -236,7 +236,7 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
                 .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
                 .tools(List.of(
-                        ToolDefinition.newBuilder()
+                        DefaultToolDefinition.builder()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
