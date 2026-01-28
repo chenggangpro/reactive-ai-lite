@@ -35,11 +35,15 @@ import java.util.Set;
 @SuperBuilder
 public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
 
+    private final String baseUrl;
+    private final String endpoint;
     private final boolean isDefault;
     private final Set<String> profiles;
     private final Set<String> supportedModels;
 
-    protected AbstractLlmProviderInfo(boolean isDefault, @NonNull Set<String> profiles, Set<String> supportedModels) {
+    protected AbstractLlmProviderInfo(String baseUrl, String endpoint, boolean isDefault, @NonNull Set<String> profiles, Set<String> supportedModels) {
+        this.baseUrl = baseUrl;
+        this.endpoint = endpoint;
         this.isDefault = isDefault;
         this.profiles = profiles;
         if (Objects.nonNull(supportedModels) && !supportedModels.isEmpty()) {
@@ -70,6 +74,6 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
 
     @Override
     public String toString() {
-        return "LlmProviderInfo{name=" + name() + ", profiles=" + profiles + ", supportedModels=" + supportedModels + ", isDefault=" + isDefault + "}";
+        return "LlmProviderInfo{name=" + name() + ", profiles=" + profiles + ", supportedModels=" + supportedModels + ", isDefault=" + isDefault + ", baseUrl=" + this.baseUrl + ", endpoint=" + endpoint + "}";
     }
 }

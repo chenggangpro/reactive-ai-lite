@@ -104,6 +104,8 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 .name(name)
                 .supportedModels(supportedModels)
                 .profiles(certificationMap.keySet())
+                .baseUrl(baseUrL)
+                .endpoint(chatCompletionEndpoint)
                 .build()
         );
         this.baseUrL = baseUrL;
