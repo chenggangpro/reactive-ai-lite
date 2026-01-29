@@ -37,6 +37,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>pro.chenggang</groupId>
             <artifactId>reactive-ai-lite-core</artifactId>
             <version>${project.parent.version}</version>

@@ -23,27 +23,21 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmRequestData;
-import pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
-import pro.chenggang.project.reactive.ai.lite.core.message.Message;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.MediaMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
-import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallResponse;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.LlmProviderUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser;
@@ -53,19 +47,16 @@ import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static pro.chenggang.project.reactive.ai.lite.core.message.Message.EMPTY_MESSAGE;
+import static pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType.CHAT;
 
 /**
  * The common implementation of the LlmChatProvider interface.
@@ -77,12 +68,15 @@ import static pro.chenggang.project.reactive.ai.lite.core.message.Message.EMPTY_
 @Slf4j
 public abstract class AbstractLlmChatProvider implements LlmChatProvider {
 
+    private final LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry;
     protected final Map<String, TokenCertification> certificationMap = new HashMap<>();
     protected final TokenCertification defaultCertification;
     protected final LlmProviderInfo llmProviderInfo;
 
     protected AbstractLlmChatProvider(@NonNull List<TokenCertification> certifications,
-                                      @NonNull Function<Map<String, TokenCertification>, LlmProviderInfo> llmProviderInfoInitializer) {
+                                      @NonNull Function<Map<String, TokenCertification>, LlmProviderInfo> llmProviderInfoInitializer,
+                                      @NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+        this.lLmProviderInterceptorRegistry = lLmProviderInterceptorRegistry;
         certifications.forEach(cert -> certificationMap.put(cert.profile(), cert));
         this.llmProviderInfo = llmProviderInfoInitializer.apply(this.certificationMap);
         if (!certifications.isEmpty()) {
@@ -98,18 +92,18 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     /**
      * Initialize Request Body Spec for LLM request.
      *
-     * @param llmRequestData The LLM request data.
+     * @param llmChatRequestData The LLM request data.
      * @return A RequestBodySpec.
      */
-    protected abstract RequestBodySpec loadRequestBodySpec(@NonNull LlmRequestData llmRequestData);
+    protected abstract RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData);
 
     /**
      * Initialize Request Body for LLM request.
      *
-     * @param llmRequestData The LLM request data.
+     * @param llmChatRequestData The LLM request data.
      * @return the initialized Request Body.
      */
-    protected abstract ObjectNode initializeRequestBody(@NonNull LlmRequestData llmRequestData);
+    protected abstract ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData);
 
     /**
      * Extract Request Messages from the raw response data.
@@ -186,356 +180,248 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
 
     @Override
     public Mono<GeneralResponse> executeGeneral(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestExchange(executionInfo, false, null, null)
-                .flatMap(llmRequestData -> this.executeInternalRaw(llmRequestData)
-                        .flatMap(rawResponse -> this.extraGeneralResponse(llmRequestData.getToolDefinitions(), rawResponse))
+        return this.initializeLlmRequestData(executionInfo, false, null, null)
+                .flatMap(llmRequestData -> {
+                            return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                                    this.llmProviderInfo,
+                                    llmRequestData,
+                                    Mono.defer(() -> this.executeInternalRaw(llmRequestData)
+                                            .flatMap(rawResponse -> this.extraGeneralResponse(llmRequestData.getToolDefinitions(), rawResponse))
+                                    )
+                            );
+                        }
                 );
     }
 
     @Override
     public Mono<RawResponse> executeGeneralRaw(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestExchange(executionInfo, false, null, null)
-                .flatMap(this::executeInternalRaw);
+        return this.initializeLlmRequestData(executionInfo, false, null, null)
+                .flatMap(llmChatRequestData -> {
+                    return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                            this.llmProviderInfo,
+                            llmChatRequestData,
+                            Mono.defer(() -> executeInternalRaw(llmChatRequestData))
+                    );
+                });
     }
 
     @Override
     public Flux<StreamResponse> executeStream(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestExchange(executionInfo, true, null, null)
-                .flatMapMany(llmRequestData -> Mono.fromCallable(() -> {
-                                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
-                                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
-                                    if (Objects.nonNull(rawRequestCustomizer)) {
-                                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
-                                    }
-                                    return requestBody;
-                                })
-                                .flatMapMany(body -> {
-                                            return Flux.deferContextual(contextView -> {
-                                                return StreamResponseParser.parseStreamResponse(
-                                                                this.extractRequestMessages(body),
-                                                                llmRequestData.getExecutionContextView(),
-                                                                this.getRawStreamResponseFlux(llmRequestData, body),
-                                                                this::extractStreamChunks,
-                                                                rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
-                                                        )
-                                                        .concatMap(rawStreamResponse -> {
-                                                            return Mono.justOrEmpty(llmRequestData.getRawStreamResponseCustomizer())
-                                                                    .flatMap(consumer -> Mono
-                                                                            .<Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawStreamResponse))
-                                                                    )
-                                                                    .then(Mono.defer(() -> this.extractStreamResponseContent(llmRequestData.getToolDefinitions(), rawStreamResponse)));
-                                                        })
-                                                        .contextWrite(contextView);
-                                            });
-                                        }
-                                )
+        return this.initializeLlmRequestData(executionInfo, true, null, null)
+                .flatMapMany(llmRequestData -> {
+                            return lLmProviderInterceptorRegistry.interceptFlux(CHAT,
+                                    this.llmProviderInfo,
+                                    llmRequestData,
+                                    Flux.defer(() -> {
+                                        return Mono.fromCallable(() -> {
+                                                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
+                                                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
+                                                    if (Objects.nonNull(rawRequestCustomizer)) {
+                                                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
+                                                    }
+                                                    if (log.isTraceEnabled()) {
+                                                        log.trace("Executing request with body: {}", requestBody);
+                                                    }
+                                                    return requestBody;
+                                                })
+                                                .flatMapMany(requestBody -> {
+                                                    return Flux.deferContextual(contextView -> {
+                                                        return StreamResponseParser.parseStreamResponse(
+                                                                        this.extractRequestMessages(requestBody),
+                                                                        llmRequestData.getExecutionContextView(),
+                                                                        this.getRawStreamResponseFlux(llmRequestData, requestBody),
+                                                                        this::extractStreamChunks,
+                                                                        rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
+                                                                )
+                                                                .concatMap(rawStreamResponse -> {
+                                                                    if (log.isTraceEnabled()) {
+                                                                        log.trace("Receiving raw stream response: {}", rawStreamResponse);
+                                                                    }
+                                                                    return Mono.justOrEmpty(llmRequestData.getRawStreamResponseCustomizer())
+                                                                            .flatMap(consumer -> Mono
+                                                                                    .<Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawStreamResponse))
+                                                                            )
+                                                                            .then(Mono.defer(() -> this.extractStreamResponseContent(llmRequestData.getToolDefinitions(), rawStreamResponse)));
+                                                                })
+                                                                .contextWrite(contextView);
+                                                    });
+                                                });
+                                    })
+                            );
+                        }
                 );
     }
 
     @Override
     public Flux<RawStreamResponse> executeStreamRaw(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestExchange(executionInfo, true, null, null)
-                .flatMapMany(llmRequestData -> Mono.fromCallable(() -> {
-                                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
-                                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
-                                    if (Objects.nonNull(rawRequestCustomizer)) {
-                                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
-                                    }
-                                    return requestBody;
-                                })
-                                .flatMapMany(body -> {
-                                            return Flux.deferContextual(contextView -> {
-                                                return StreamResponseParser.parseStreamResponse(
-                                                                this.extractRequestMessages(body),
-                                                                llmRequestData.getExecutionContextView(),
-                                                                this.getRawStreamResponseFlux(llmRequestData, body),
-                                                                this::extractStreamChunks,
-                                                                rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
-                                                        )
-                                                        .concatMap(rawStreamResponse -> {
-                                                            return Mono.justOrEmpty(llmRequestData.getRawStreamResponseCustomizer())
-                                                                    .flatMap(consumer -> Mono
-                                                                            .<Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawStreamResponse))
-                                                                    )
-                                                                    .then(Mono.defer(() -> Mono.just(rawStreamResponse)));
-                                                        })
-                                                        .contextWrite(contextView);
-                                            });
-                                        }
-                                )
+        return this.initializeLlmRequestData(executionInfo, true, null, null)
+                .flatMapMany(llmRequestData -> {
+                            return lLmProviderInterceptorRegistry.interceptFlux(CHAT,
+                                    this.llmProviderInfo,
+                                    llmRequestData,
+                                    Flux.defer(() -> {
+                                        return Mono.fromCallable(() -> {
+                                                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
+                                                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
+                                                    if (Objects.nonNull(rawRequestCustomizer)) {
+                                                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
+                                                    }
+                                                    if (log.isTraceEnabled()) {
+                                                        log.trace("Executing request with body: {}", requestBody);
+                                                    }
+                                                    return requestBody;
+                                                })
+                                                .flatMapMany(responseBody -> {
+
+                                                            return Flux.deferContextual(contextView -> {
+                                                                return StreamResponseParser.parseStreamResponse(
+                                                                                this.extractRequestMessages(responseBody),
+                                                                                llmRequestData.getExecutionContextView(),
+                                                                                this.getRawStreamResponseFlux(llmRequestData, responseBody),
+                                                                                this::extractStreamChunks,
+                                                                                rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
+                                                                        )
+                                                                        .concatMap(rawStreamResponse -> {
+                                                                            if (log.isTraceEnabled()) {
+                                                                                log.trace("Receiving raw stream response: {}", rawStreamResponse);
+                                                                            }
+                                                                            return Mono.justOrEmpty(llmRequestData.getRawStreamResponseCustomizer())
+                                                                                    .flatMap(consumer -> Mono
+                                                                                            .<Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawStreamResponse))
+                                                                                    )
+                                                                                    .then(Mono.defer(() -> Mono.just(rawStreamResponse)));
+                                                                        })
+                                                                        .contextWrite(contextView);
+                                                            });
+                                                        }
+                                                );
+                                    })
+                            );
+                        }
                 );
     }
 
-    private Flux<String> getRawStreamResponseFlux(LlmRequestData llmRequestData, ObjectNode body) {
-        return this.toResponseSpec(llmRequestData, body)
-                .flatMapMany(responseSpec -> responseSpec.bodyToFlux(String.class));
-    }
-
-
     @Override
     public <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType) {
-        return this.initializeLlmRequestExchange(executionInfo, false, null, null)
-                .flatMap(llmRequestData -> this.executeInternalRaw(llmRequestData)
-                        .flatMap(rawResponse -> this.extractStructuredResponseContent(llmRequestData.getToolDefinitions(), rawResponse, resultType))
+        return this.initializeLlmRequestData(executionInfo, false, null, null)
+                .flatMap(llmRequestData -> {
+                            return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                                    this.llmProviderInfo,
+                                    llmRequestData,
+                                    Mono.defer(() -> this.executeInternalRaw(llmRequestData)
+                                            .flatMap(rawResponse -> this.extractStructuredResponseContent(llmRequestData.getToolDefinitions(), rawResponse, resultType)))
+                            );
+                        }
                 );
     }
 
     @Override
     public <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType) {
-        return this.initializeLlmRequestExchange(executionInfo, false, null, null)
-                .flatMap(llmRequestData -> this.executeInternalRaw(llmRequestData)
-                        .flatMap(rawResponse -> this.extractStructuredResponseContent(llmRequestData.getToolDefinitions(), rawResponse, resultType))
+        return this.initializeLlmRequestData(executionInfo, false, null, null)
+                .flatMap(llmRequestData -> {
+                            return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                                    this.llmProviderInfo,
+                                    llmRequestData,
+                                    Mono.defer(() -> {
+                                        return this.executeInternalRaw(llmRequestData)
+                                                .flatMap(rawResponse -> this.extractStructuredResponseContent(llmRequestData.getToolDefinitions(), rawResponse, resultType));
+                                    })
+                            );
+                        }
                 );
     }
 
     @Override
     public Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull String responseJsonSchema) {
-        return this.initializeLlmRequestExchange(executionInfo, false, null, responseJsonSchema)
-                .flatMap(this::executeInternalRaw);
+        return this.initializeLlmRequestData(executionInfo, false, null, responseJsonSchema)
+                .flatMap(llmChatRequestData -> {
+                    return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                            this.llmProviderInfo,
+                            llmChatRequestData,
+                            Mono.defer(() -> executeInternalRaw(llmChatRequestData))
+                    );
+                });
     }
 
     @Override
     public <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType) {
-        return this.initializeLlmRequestExchange(executionInfo, false, resultType, null)
-                .flatMap(this::executeInternalRaw);
+        return this.initializeLlmRequestData(executionInfo, false, resultType, null)
+                .flatMap(llmChatRequestData -> {
+                    return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                            this.llmProviderInfo,
+                            llmChatRequestData,
+                            Mono.defer(() -> executeInternalRaw(llmChatRequestData))
+                    );
+                });
     }
 
     @Override
     public <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType) {
-        return this.initializeLlmRequestExchange(executionInfo, false, resultType.getType(), null)
-                .flatMap(this::executeInternalRaw);
+        return this.initializeLlmRequestData(executionInfo, false, resultType.getType(), null)
+                .flatMap(llmChatRequestData -> {
+                    return lLmProviderInterceptorRegistry.interceptMono(CHAT,
+                            this.llmProviderInfo,
+                            llmChatRequestData,
+                            Mono.defer(() -> executeInternalRaw(llmChatRequestData))
+                    );
+                });
     }
 
-    protected Mono<RawResponse> executeInternalRaw(@NonNull LlmRequestData llmRequestData) {
+    protected Mono<RawResponse> executeInternalRaw(@NonNull LlmChatRequestData llmChatRequestData) {
         return Mono.fromCallable(() -> {
-                    ObjectNode requestBody = this.initializeRequestBody(llmRequestData);
-                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmRequestData.getRawRequestCustomizer();
+                    ObjectNode requestBody = this.initializeRequestBody(llmChatRequestData);
+                    BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizer = llmChatRequestData.getRawRequestCustomizer();
                     if (Objects.nonNull(rawRequestCustomizer)) {
-                        rawRequestCustomizer.accept(llmRequestData.getExecutionContextView(), requestBody);
+                        rawRequestCustomizer.accept(llmChatRequestData.getExecutionContextView(), requestBody);
+                    }
+                    if (log.isTraceEnabled()) {
+                        log.trace("Executing request with body: {}", requestBody);
                     }
                     return requestBody;
                 })
                 .flatMap(body -> {
-                    return this.toResponseSpec(llmRequestData, body)
+                    return this.toResponseSpec(llmChatRequestData, body)
                             .flatMap(responseSpec -> responseSpec.bodyToMono(new ParameterizedTypeReference<ObjectNode>() {}))
-                            .map(rawJsonResponse -> RawResponse.builder()
-                                    .contextView(llmRequestData.getExecutionContextView())
-                                    .rawRequestMessages(this.extractRequestMessages(body))
-                                    .rawResponse(rawJsonResponse)
-                                    .build()
-                            )
+                            .map(rawJsonResponse -> {
+                                if (log.isTraceEnabled()) {
+                                    log.trace("Received response with body: {}", rawJsonResponse);
+                                }
+                                return RawResponse.builder()
+                                        .contextView(llmChatRequestData.getExecutionContextView())
+                                        .rawRequestMessages(this.extractRequestMessages(body))
+                                        .rawResponse(rawJsonResponse)
+                                        .build();
+                            })
                             .flatMap(rawResponse -> {
-                                return Mono.justOrEmpty(llmRequestData.getRawResponseCustomizer())
+                                return Mono.justOrEmpty(llmChatRequestData.getRawResponseCustomizer())
                                         .flatMap(consumer -> Mono.
-                                                <Void>fromRunnable(() -> consumer.accept(llmRequestData.getExecutionContextView(), rawResponse)
+                                                <Void>fromRunnable(() -> consumer.accept(llmChatRequestData.getExecutionContextView(), rawResponse)
                                         ))
                                         .then(Mono.defer(() -> Mono.just(rawResponse)));
                             });
                 });
     }
 
-    private Mono<LlmRequestData> initializeLlmRequestExchange(@NonNull ExecutionInfo executionInfo, boolean isStream, Type structuredOutputType, String responseJsonSchema) {
-        return Mono.fromCallable(() -> LlmRequestData.builder()
-                .llmProviderInfo(this.llmProviderInfo)
-                .modelName(this.loadModelName(executionInfo))
-                .tokenCertification(this.loadTokenCertification(executionInfo))
-                .executionContextView(executionInfo.getExecutionContext().getContextView())
-                .systemMessage(this.loadSystemMessage(executionInfo))
-                .userTextMessage(this.loadUserMessage(executionInfo))
-                .userMediaMessage(this.loadMediaMessage(executionInfo))
-                .historicalMessages(this.loadHistoricalMessage(executionInfo))
-                .latestAssistantMessage(this.loadLatestAssistantMessage(executionInfo))
-                .temperature(this.loadTemperature(executionInfo))
-                .topP(this.loadTopP(executionInfo))
-                .includeUsage(this.loadIncludeUsage(executionInfo))
-                .reasoning(this.loadReasoning(executionInfo))
-                .maxCompletionTokens(this.loadMaxCompletionTokens(executionInfo))
-                .toolDefinitions(this.loadToolDefinitions(executionInfo))
-                .llmToolCallResponse(this.loadToolResponse(executionInfo))
-                .rawRequestCustomizer(executionInfo.getRawRequestCustomizer())
-                .isStream(isStream)
-                .distinctToolCalls(executionInfo.isDistinctToolCalls())
-                .toolChoice(this.loadToolChoice(executionInfo))
-                .structuredOutputType(structuredOutputType)
-                .responseJsonSchema(responseJsonSchema)
-                .build()
+    private Mono<LlmChatRequestData> initializeLlmRequestData(@NonNull ExecutionInfo executionInfo, boolean isStream, Type structuredOutputType, String responseJsonSchema) {
+        return Mono.fromCallable(() -> LlmChatRequestData.LlmChatRequestDataInitializer
+                .of(certificationMap, defaultCertification, llmProviderInfo, executionInfo, isStream, structuredOutputType, responseJsonSchema)
+                .initialize()
         );
     }
 
-    protected TokenCertification loadTokenCertification(@NonNull ExecutionInfo executionInfo) {
-        if (executionInfo.isDefaultProfile()) {
-            return this.defaultCertification;
-        }
-        ExecutionContextView executionContextView = executionInfo.getExecutionContext().getContextView();
-        String pickedProfile = executionInfo.getProfilePicker().apply(executionContextView, this.llmProviderInfo.profiles());
-        if (Objects.isNull(pickedProfile)) {
-            throw new NoProfileFoundLlmClientException(this.llmProviderInfo);
-        }
-        if (!this.certificationMap.containsKey(pickedProfile)) {
-            throw new NoProfileFoundLlmClientException(this.llmProviderInfo, pickedProfile);
-        }
-        return certificationMap.get(pickedProfile);
+    private Flux<String> getRawStreamResponseFlux(LlmChatRequestData llmChatRequestData, ObjectNode body) {
+        return this.toResponseSpec(llmChatRequestData, body)
+                .flatMapMany(responseSpec -> responseSpec.bodyToFlux(String.class));
     }
 
-    protected String loadModelName(@NonNull ExecutionInfo executionInfo) {
-        String modelName = executionInfo.getModelNameConfigure().apply(executionInfo.getExecutionContext().getContextView());
-        if (!StringUtils.hasText(modelName)) {
-            throw new IllegalArgumentException("Model name cannot be null or empty");
-        }
-        return modelName;
-    }
-
-    protected TextMessage loadSystemMessage(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, TextMessage> defaultSystemMessageConfigure = executionInfo.getDefaultSystemMessageConfigure();
-        Function<ExecutionContextView, TextMessage> systemMessageConfigure = executionInfo.getSystemMessageConfigure();
-        TextMessage systemMessage = EMPTY_MESSAGE;
-        if (Objects.nonNull(systemMessageConfigure)) {
-            systemMessage = systemMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        } else if (Objects.nonNull(defaultSystemMessageConfigure)) {
-            systemMessage = defaultSystemMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return systemMessage;
-    }
-
-    protected List<Message> loadHistoricalMessage(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Collection<Message>> historicalMessageConfigure = executionInfo.getHistoricalMessageConfigure();
-        if (Objects.isNull(historicalMessageConfigure)) {
-            return List.of();
-        }
-        Collection<Message> textMessages = historicalMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        if (CollectionUtils.isEmpty(textMessages)) {
-            return List.of();
-        }
-        return textMessages.stream().toList();
-    }
-
-    protected ObjectNode loadLatestAssistantMessage(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, ObjectNode> latestAssistantMessageConfigure = executionInfo.getLatestAssistantMessageConfigure();
-        if (Objects.isNull(latestAssistantMessageConfigure)) {
-            return null;
-        }
-        return latestAssistantMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-    }
-
-    protected TextMessage loadUserMessage(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, TextMessage> textMessageConfigure = executionInfo.getTextMessageConfigure();
-        TextMessage userMessage = EMPTY_MESSAGE;
-        if (Objects.nonNull(textMessageConfigure)) {
-            userMessage = textMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return userMessage;
-    }
-
-    protected MediaMessage loadMediaMessage(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, MediaMessage> mediaMessageConfigure = executionInfo.getMediaMessageConfigure();
-        MediaMessage mediaMessage = null;
-        if (Objects.nonNull(mediaMessageConfigure)) {
-            mediaMessage = mediaMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return mediaMessage;
-    }
-
-    protected Double loadTemperature(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Double> temperatureConfigure = executionInfo.getTemperatureConfigure();
-        Double temperature = null;
-        if (Objects.nonNull(temperatureConfigure)) {
-            temperature = temperatureConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return temperature;
-    }
-
-    protected Double loadTopP(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Double> topPConfigure = executionInfo.getTopPConfigure();
-        Double topP = null;
-        if (Objects.nonNull(topPConfigure)) {
-            topP = topPConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return topP;
-    }
-
-    protected boolean loadIncludeUsage(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Boolean> includeUsageConfigure = executionInfo.getIncludeUsageConfigure();
-        if (Objects.isNull(includeUsageConfigure)) {
-            return false;
-        }
-        Boolean includeUsage = includeUsageConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        return Boolean.TRUE.equals(includeUsage);
-    }
-
-    protected String loadReasoning(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, String> reasoningConfigure = executionInfo.getReasoningConfigure();
-        if (Objects.isNull(reasoningConfigure)) {
-            return null;
-        }
-        return reasoningConfigure.apply(executionInfo.getExecutionContext().getContextView());
-    }
-
-    protected Integer loadMaxCompletionTokens(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Integer> maxCompletionTokensConfigure = executionInfo.getMaxCompletionTokensConfigure();
-        Integer maxCompletionTokens = null;
-        if (Objects.nonNull(maxCompletionTokensConfigure)) {
-            maxCompletionTokens = maxCompletionTokensConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        }
-        return maxCompletionTokens;
-    }
-
-    protected List<ToolDefinition> loadToolDefinitions(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure = executionInfo.getToolsConfigure();
-        if (Objects.isNull(toolsConfigure)) {
-            return List.of();
-        }
-        Collection<ToolDefinition> toolDefinitions = toolsConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        if (Objects.isNull(toolDefinitions) || toolDefinitions.isEmpty()) {
-            return List.of();
-        }
-        Set<String> identifiers = new HashSet<>();
-        List<ToolDefinition> toolDefinitionList = toolDefinitions.stream()
-                .map(toolDefinition -> {
-                    if (!StringUtils.hasText(toolDefinition.identifier())) {
-                        log.warn("Invalid tool definition, identifier is missing: {}", toolDefinition);
-                        return null;
-                    }
-                    if (identifiers.contains(toolDefinition.identifier())) {
-                        log.warn("Invalid tool definition, identifier is duplicated: {}", toolDefinition);
-                        return null;
-                    }
-                    identifiers.add(toolDefinition.identifier());
-                    return toolDefinition;
-                })
-                .filter(Objects::nonNull)
-                .toList();
-        identifiers.clear();
-        return toolDefinitionList;
-    }
-
-    protected String loadToolChoice(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, String> toolChoiceConfigure = executionInfo.getToolChoiceConfigure();
-        if (Objects.isNull(toolChoiceConfigure)) {
-            return null;
-        }
-        return toolChoiceConfigure.apply(executionInfo.getExecutionContext().getContextView());
-    }
-
-    protected List<LlmToolCallResponse> loadToolResponse(@NonNull ExecutionInfo executionInfo) {
-        Function<ExecutionContextView, Collection<LlmToolCallResponse>> toolsConfigure = executionInfo.getToolsResponseConfigure();
-        if (Objects.isNull(toolsConfigure)) {
-            return List.of();
-        }
-        Collection<LlmToolCallResponse> toolCallResponses = toolsConfigure.apply(executionInfo.getExecutionContext().getContextView());
-        if (Objects.isNull(toolCallResponses) || toolCallResponses.isEmpty()) {
-            return List.of();
-        }
-        return List.copyOf(toolCallResponses);
-    }
-
-    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
+    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
         AtomicBoolean certificationSet = new AtomicBoolean(false);
-        Optional<TokenCertification> optionalTokenCertification = llmRequestData.getTokenCertification();
-        RequestBodySpec requestBodySpec = this.loadRequestBodySpec(llmRequestData);
+        Optional<TokenCertification> optionalTokenCertification = llmChatRequestData.getTokenCertification();
+        RequestBodySpec requestBodySpec = this.loadRequestBodySpec(llmChatRequestData);
         requestBodySpec.contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.USER_AGENT, "reactive-ai-lite")
                 .acceptCharset(StandardCharsets.UTF_8);
-        if (llmRequestData.isStream()) {
+        if (llmChatRequestData.isStream()) {
             requestBodySpec.accept(MediaType.TEXT_EVENT_STREAM);
         } else {
             requestBodySpec.accept(MediaType.APPLICATION_JSON);
@@ -555,11 +441,11 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
         return requestBodySpec;
     }
 
-    protected Mono<ResponseSpec> toResponseSpec(LlmRequestData llmRequestData, ObjectNode body) {
+    protected Mono<ResponseSpec> toResponseSpec(LlmChatRequestData llmChatRequestData, ObjectNode body) {
         return Mono.create(sink -> {
             RequestBodySpec requestBodySpec;
             try {
-                requestBodySpec = this.initializeRequestBodySpec(llmRequestData);
+                requestBodySpec = this.initializeRequestBodySpec(llmChatRequestData);
                 if (Objects.nonNull(body)) {
                     requestBodySpec.bodyValue(body);
                 }

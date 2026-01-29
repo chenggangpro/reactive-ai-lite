@@ -27,6 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaCli
 import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties.ChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class OllamaLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OllamaClientProperties ollamaClientProperties) {
+    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OllamaClientProperties ollamaClientProperties, LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         ChatProvider chatProvider = ollamaClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -68,6 +69,7 @@ public class OllamaLlmClientProviderConfiguration {
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
                 .supportedModels(chatProvider.getLimitedModels())
+                .lLmProviderInterceptorRegistry(lLmProviderInterceptorRegistry)
                 .build();
     }
 }

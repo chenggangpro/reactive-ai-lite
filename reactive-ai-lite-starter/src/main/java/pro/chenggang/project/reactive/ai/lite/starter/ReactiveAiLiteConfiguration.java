@@ -18,13 +18,21 @@ package pro.chenggang.project.reactive.ai.lite.starter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import pro.chenggang.project.reactive.ai.lite.core.api.DefaultReactiveLlmClient;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults.DefaultLLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.logging.LlmProviderExecutionLoggingInterceptor;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.DefaultLlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
+import pro.chenggang.project.reactive.ai.lite.starter.properties.ReactiveAiClientProperties;
 
 /**
  * @author Cheng Gang
@@ -33,6 +41,24 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 @AutoConfiguration
 @AutoConfigureAfter(WebClientAutoConfiguration.class)
 public class ReactiveAiLiteConfiguration {
+
+    @ConfigurationProperties(prefix = ReactiveAiClientProperties.PREFIX)
+    @Bean
+    public ReactiveAiClientProperties reactiveAiClientProperties() {
+        return new ReactiveAiClientProperties();
+    }
+
+    @Bean
+    public LlmProviderExecutionLoggingInterceptor llmProviderExecutionLoggingInterceptor(ReactiveAiClientProperties reactiveAiClientProperties) {
+        return new LlmProviderExecutionLoggingInterceptor(reactiveAiClientProperties::isEnableLogging);
+    }
+
+    @ConditionalOnMissingBean
+    @Bean
+    public LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry(ObjectProvider<LlmProviderExecutionBeforeInterceptor> beforeInterceptorObjectProvider,
+                                                                         ObjectProvider<LlmProviderExecutionAfterInterceptor> afterInterceptorObjectProvider) {
+        return new DefaultLLmProviderInterceptorRegistry(beforeInterceptorObjectProvider.stream().toList(), afterInterceptorObjectProvider.stream().toList());
+    }
 
     @Bean
     public LlmProviderRegistry llmProviderRegistry(ObjectProvider<LlmProvider> objectProvider) {

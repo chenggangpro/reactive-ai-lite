@@ -35,11 +35,11 @@ import java.util.Set;
 @SuperBuilder
 public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
 
-    private final String baseUrl;
-    private final String endpoint;
-    private final boolean isDefault;
-    private final Set<String> profiles;
-    private final Set<String> supportedModels;
+    protected final String baseUrl;
+    protected final String endpoint;
+    protected final boolean isDefault;
+    protected final Set<String> profiles;
+    protected final Set<String> supportedModels;
 
     protected AbstractLlmProviderInfo(String baseUrl, String endpoint, boolean isDefault, @NonNull Set<String> profiles, Set<String> supportedModels) {
         this.baseUrl = baseUrl;
@@ -63,13 +63,23 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     @Override
-    public boolean isDefault() {
-        return this.isDefault;
+    public String baseUrl() {
+        return this.baseUrl;
+    }
+
+    @Override
+    public String endpoint() {
+        return this.endpoint;
     }
 
     @Override
     public Set<String> profiles() {
         return this.profiles;
+    }
+
+    @Override
+    public boolean isDefault() {
+        return this.isDefault;
     }
 
     @Override

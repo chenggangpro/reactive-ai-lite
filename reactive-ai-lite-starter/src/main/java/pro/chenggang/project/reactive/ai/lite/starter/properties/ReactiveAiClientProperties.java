@@ -13,30 +13,26 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.entity.values;
+package pro.chenggang.project.reactive.ai.lite.starter.properties;
 
 import lombok.Getter;
-import lombok.NonNull;
-import lombok.Value;
+import lombok.Setter;
 
 /**
  * @author Cheng Gang
  * @version 0.1.0
  */
 @Getter
-@Value(staticConstructor = "of")
-public class TraceId {
+@Setter
+public class ReactiveAiClientProperties {
 
-    String parentId;
+    /**
+     * The prefix for all reactive AI client properties in configuration files.
+     */
+    public static final String PREFIX = "reactive.ai.lite.client";
 
-    @NonNull
-    String currentId;
-
-    @Override
-    public String toString() {
-        if (parentId == null) {
-            return currentId;
-        }
-        return parentId + ":" + currentId;
-    }
+    /**
+     * Indicates whether logging is enabled for reactive AI clients.
+     */
+    private boolean enableLogging = true;
 }

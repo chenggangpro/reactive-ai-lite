@@ -48,12 +48,13 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.T
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmRequestData;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.Base64Attachment;
@@ -110,15 +111,18 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                                boolean isDefault,
                                @NonNull String name,
                                Set<String> supportedModels,
-                               @NonNull List<TokenCertification> certifications) {
-        super(certifications, (certificationMap) -> OpenaiLlmProviderInfo.builder()
-                .isDefault(isDefault)
-                .name(name)
-                .supportedModels(supportedModels)
-                .profiles(certificationMap.keySet())
-                .baseUrl(baseUrL)
-                .endpoint(chatCompletionEndpoint)
-                .build()
+                               @NonNull List<TokenCertification> certifications,
+                               @NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+        super(certifications,
+                (certificationMap) -> OpenaiLlmProviderInfo.builder()
+                        .isDefault(isDefault)
+                        .name(name)
+                        .supportedModels(supportedModels)
+                        .profiles(certificationMap.keySet())
+                        .baseUrl(baseUrL)
+                        .endpoint(chatCompletionEndpoint)
+                        .build(),
+                lLmProviderInterceptorRegistry
         );
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
@@ -126,13 +130,13 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected RequestBodySpec loadRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
+    protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
         throw new UnsupportedOperationException("This method is not supported for OpenAI chat provider.");
     }
 
     @Override
-    protected ObjectNode initializeRequestBody(@NonNull LlmRequestData llmRequestData) {
-        return OBJECT_MAPPER.valueToTree(this.buildRequest(llmRequestData));
+    protected ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
+        return OBJECT_MAPPER.valueToTree(this.buildRequest(llmChatRequestData));
     }
 
     @Override
@@ -612,10 +616,10 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
+    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
         AtomicBoolean certificationSet = new AtomicBoolean(false);
         RequestBodyUriSpec requestBodyUriSpec = this.webClient.post();
-        Optional<TokenCertification> optionalTokenCertification = llmRequestData.getTokenCertification();
+        Optional<TokenCertification> optionalTokenCertification = llmChatRequestData.getTokenCertification();
         if (optionalTokenCertification.isEmpty()) {
             throw new IllegalStateException("At least one token certification is required for the chat completion request.");
         }
@@ -631,7 +635,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         requestBodySpec.contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.USER_AGENT, "reactive-ai-lite")
                 .acceptCharset(StandardCharsets.UTF_8);
-        if (llmRequestData.isStream()) {
+        if (llmChatRequestData.isStream()) {
             requestBodySpec.accept(MediaType.TEXT_EVENT_STREAM);
         } else {
             requestBodySpec.accept(MediaType.APPLICATION_JSON);
@@ -663,10 +667,10 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 '}';
     }
 
-    protected OpenaiChatRequest buildRequest(LlmRequestData llmRequestData) {
+    protected OpenaiChatRequest buildRequest(LlmChatRequestData llmChatRequestData) {
         OpenaiChatRequestBuilder openaiChatRequestBuilder = OpenaiChatRequest.builder()
-                .model(llmRequestData.getModelName());
-        if (llmRequestData.getResponseJsonSchema().isEmpty() && llmRequestData.getStructuredOutputType().isEmpty()) {
+                .model(llmChatRequestData.getModelName());
+        if (llmChatRequestData.getResponseJsonSchema().isEmpty() && llmChatRequestData.getStructuredOutputType().isEmpty()) {
             openaiChatRequestBuilder.responseFormat(ResponseFormat.builder()
                     .type(Type.TEXT)
                     .build()
@@ -674,10 +678,10 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         } else {
             String jsonSchemaName = "custom_json_schema";
             Map<String, Object> jsonSchemaMap = Map.of();
-            if (llmRequestData.getResponseJsonSchema().isPresent()) {
-                jsonSchemaMap = JsonRelatedUtil.jsonToMap(llmRequestData.getResponseJsonSchema().get());
-            } else if (llmRequestData.getStructuredOutputType().isPresent()) {
-                var structuredOutputType = llmRequestData.getStructuredOutputType().get();
+            if (llmChatRequestData.getResponseJsonSchema().isPresent()) {
+                jsonSchemaMap = JsonRelatedUtil.jsonToMap(llmChatRequestData.getResponseJsonSchema().get());
+            } else if (llmChatRequestData.getStructuredOutputType().isPresent()) {
+                var structuredOutputType = llmChatRequestData.getStructuredOutputType().get();
                 jsonSchemaName = this.extractTypeName(structuredOutputType);
                 jsonSchemaMap = JsonRelatedUtil.jsonToMap(JsonSchemaUtil.generateForType(structuredOutputType));
             }
@@ -696,20 +700,20 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
             );
 
         }
-        llmRequestData.getTemperature().ifPresent(openaiChatRequestBuilder::temperature);
-        llmRequestData.getTopP().ifPresent(openaiChatRequestBuilder::topP);
-        if (llmRequestData.isStream() && llmRequestData.isIncludeUsage()) {
+        llmChatRequestData.getTemperature().ifPresent(openaiChatRequestBuilder::temperature);
+        llmChatRequestData.getTopP().ifPresent(openaiChatRequestBuilder::topP);
+        if (llmChatRequestData.isStream() && llmChatRequestData.isIncludeUsage()) {
             openaiChatRequestBuilder.streamOptions(INCLUDE_USAGE);
         }
-        llmRequestData.getReasoning().ifPresent(openaiChatRequestBuilder::reasoningEffort);
-        llmRequestData.getMaxCompletionTokens().ifPresent(openaiChatRequestBuilder::maxCompletionTokens);
-        llmRequestData.getToolChoice().ifPresent(openaiChatRequestBuilder::toolChoice);
-        var functionTools = buildFunctionTools(llmRequestData);
-        var systemMessage = buildSystemMessage(llmRequestData);
-        var userMessage = buildUserMessage(llmRequestData);
-        var historicalMessages = buildHistoricalMessages(llmRequestData);
-        var latestAssistantMessages = this.buildLatestAssistantMessages(llmRequestData);
-        var toolMessages = buildToolMessages(llmRequestData);
+        llmChatRequestData.getReasoning().ifPresent(openaiChatRequestBuilder::reasoningEffort);
+        llmChatRequestData.getMaxCompletionTokens().ifPresent(openaiChatRequestBuilder::maxCompletionTokens);
+        llmChatRequestData.getToolChoice().ifPresent(openaiChatRequestBuilder::toolChoice);
+        var functionTools = buildFunctionTools(llmChatRequestData);
+        var systemMessage = buildSystemMessage(llmChatRequestData);
+        var userMessage = buildUserMessage(llmChatRequestData);
+        var historicalMessages = buildHistoricalMessages(llmChatRequestData);
+        var latestAssistantMessages = this.buildLatestAssistantMessages(llmChatRequestData);
+        var toolMessages = buildToolMessages(llmChatRequestData);
         var allMessages = Stream.of(Stream.of(systemMessage),
                         historicalMessages.stream(),
                         latestAssistantMessages.stream(),
@@ -719,7 +723,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .flatMap(java.util.function.Function.identity())
                 .toList();
         return openaiChatRequestBuilder
-                .stream(llmRequestData.isStream())
+                .stream(llmChatRequestData.isStream())
                 .messages(allMessages)
                 .tools(functionTools)
                 .parallelToolCalls(true)
@@ -771,8 +775,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         return typeName.substring(typeName.lastIndexOf(".") + 1);
     }
 
-    protected List<FunctionTool> buildFunctionTools(LlmRequestData llmRequestData) {
-        List<ToolDefinition> toolDefinitions = llmRequestData.getToolDefinitions();
+    protected List<FunctionTool> buildFunctionTools(LlmChatRequestData llmChatRequestData) {
+        List<ToolDefinition> toolDefinitions = llmChatRequestData.getToolDefinitions();
         if (toolDefinitions.isEmpty()) {
             return List.of();
         }
@@ -790,8 +794,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected Optional<ChatCompletionMessage> buildLatestAssistantMessages(LlmRequestData llmRequestData) {
-        return llmRequestData.getLatestAssistantMessage()
+    protected Optional<ChatCompletionMessage> buildLatestAssistantMessages(LlmChatRequestData llmChatRequestData) {
+        return llmChatRequestData.getLatestAssistantMessage()
                 .map(latestAssistantMessage -> {
                     try {
                         return OBJECT_MAPPER.treeToValue(latestAssistantMessage, ChatCompletionMessage.class);
@@ -801,8 +805,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 });
     }
 
-    protected List<ChatCompletionMessage> buildToolMessages(LlmRequestData llmRequestData) {
-        List<LlmToolCallResponse> llmToolCallResponses = llmRequestData.getLlmToolCallResponse();
+    protected List<ChatCompletionMessage> buildToolMessages(LlmChatRequestData llmChatRequestData) {
+        List<LlmToolCallResponse> llmToolCallResponses = llmChatRequestData.getLlmToolCallResponse();
         if (llmToolCallResponses.isEmpty()) {
             return List.of();
         }
@@ -817,15 +821,15 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected ChatCompletionMessage buildSystemMessage(LlmRequestData llmRequestData) {
+    protected ChatCompletionMessage buildSystemMessage(LlmChatRequestData llmChatRequestData) {
         return ChatCompletionMessage.builder()
                 .role(Role.SYSTEM)
-                .rawContent(llmRequestData.getSystemMessage().text())
+                .rawContent(llmChatRequestData.getSystemMessage().text())
                 .build();
     }
 
-    protected List<ChatCompletionMessage> buildHistoricalMessages(LlmRequestData llmRequestData) {
-        return llmRequestData.getHistoricalMessages()
+    protected List<ChatCompletionMessage> buildHistoricalMessages(LlmChatRequestData llmChatRequestData) {
+        return llmChatRequestData.getHistoricalMessages()
                 .stream()
                 .flatMap(message -> {
                     if (message instanceof AssistantTextMessage assistantTextMessage) {
@@ -888,8 +892,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected ChatCompletionMessage buildUserMessage(LlmRequestData llmRequestData) {
-        Optional<MediaMessage> optionalMediaMessage = llmRequestData.getUserMediaMessage();
+    protected ChatCompletionMessage buildUserMessage(LlmChatRequestData llmChatRequestData) {
+        Optional<MediaMessage> optionalMediaMessage = llmChatRequestData.getUserMediaMessage();
         if (optionalMediaMessage.isPresent()) {
             MediaMessage mediaMessage = optionalMediaMessage.get();
             List<Attachment> attachments = mediaMessage.getAttachments();
@@ -924,7 +928,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         }
         return ChatCompletionMessage.builder()
                 .role(Role.USER)
-                .rawContent(llmRequestData.getUserTextMessage().text())
+                .rawContent(llmChatRequestData.getUserTextMessage().text())
                 .build();
     }
 

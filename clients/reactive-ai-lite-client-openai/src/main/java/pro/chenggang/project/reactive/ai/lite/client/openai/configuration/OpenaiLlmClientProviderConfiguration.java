@@ -29,6 +29,7 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiCli
 import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties.ChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class OpenaiLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OpenaiClientProperties openaiClientProperties) {
+    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OpenaiClientProperties openaiClientProperties, LLmProviderInterceptorRegistry llmProviderInterceptorRegistry) {
         ChatProvider chatProvider = openaiClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -79,6 +80,7 @@ public class OpenaiLlmClientProviderConfiguration {
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
                 .supportedModels(chatProvider.getLimitedModels())
+                .lLmProviderInterceptorRegistry(llmProviderInterceptorRegistry)
                 .build();
     }
 }

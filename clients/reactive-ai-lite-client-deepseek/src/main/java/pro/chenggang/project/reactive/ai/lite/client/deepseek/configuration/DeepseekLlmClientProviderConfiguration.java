@@ -27,6 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.client.deepseek.properties.Deepsee
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.properties.DeepseekClientProperties.ChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class DeepseekLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, DeepseekClientProperties deepseekClientProperties) {
+    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, DeepseekClientProperties deepseekClientProperties, LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         ChatProvider chatProvider = deepseekClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -68,6 +69,7 @@ public class DeepseekLlmClientProviderConfiguration {
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
                 .supportedModels(chatProvider.getLimitedModels())
+                .lLmProviderInterceptorRegistry(lLmProviderInterceptorRegistry)
                 .build();
     }
 }

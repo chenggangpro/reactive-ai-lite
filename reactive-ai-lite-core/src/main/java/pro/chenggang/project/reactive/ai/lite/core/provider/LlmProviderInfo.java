@@ -38,6 +38,20 @@ public interface LlmProviderInfo {
     String name();
 
     /**
+     * Returns the base URL for the LLM provider.
+     *
+     * @return the base URL as a String
+     */
+    String baseUrl();
+
+    /**
+     * Returns the endpoint for the LLM provider.
+     *
+     * @return the endpoint as a String
+     */
+    String endpoint();
+
+    /**
      * Returns the set of profiles supported by this LLM provider.
      * Profiles typically represent different configurations or environments
      * (e.g., development, production, testing).

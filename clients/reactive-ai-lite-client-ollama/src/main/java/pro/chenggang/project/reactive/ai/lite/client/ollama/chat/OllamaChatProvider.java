@@ -32,12 +32,13 @@ import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.FunctionTool.Fun
 import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.OllamaChatMessage;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.dto.OllamaChatRequest;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmRequestData;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.Base64Attachment;
@@ -98,15 +99,18 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                                  boolean isDefault,
                                  @NonNull String name,
                                  Set<String> supportedModels,
-                                 @NonNull List<TokenCertification> certifications) {
-        super(certifications, (certificationMap) -> OllamaLlmProviderInfo.builder()
-                .isDefault(isDefault)
-                .name(name)
-                .supportedModels(supportedModels)
-                .profiles(certificationMap.keySet())
-                .baseUrl(baseUrL)
-                .endpoint(chatCompletionEndpoint)
-                .build()
+                                 @NonNull List<TokenCertification> certifications,
+                                 @NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+        super(certifications,
+                (certificationMap) -> OllamaLlmProviderInfo.builder()
+                        .isDefault(isDefault)
+                        .name(name)
+                        .supportedModels(supportedModels)
+                        .profiles(certificationMap.keySet())
+                        .baseUrl(baseUrL)
+                        .endpoint(chatCompletionEndpoint)
+                        .build(),
+                lLmProviderInterceptorRegistry
         );
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
@@ -114,7 +118,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected RequestBodySpec loadRequestBodySpec(@NonNull LlmRequestData llmRequestData) {
+    protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
         return this.webClient.post()
                 .uri(uriBuilder -> {
                     uriBuilder.path(this.chatCompletionEndpoint);
@@ -123,8 +127,8 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected ObjectNode initializeRequestBody(@NonNull LlmRequestData llmRequestData) {
-        return OBJECT_MAPPER.valueToTree(this.buildRequest(llmRequestData));
+    protected ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
+        return OBJECT_MAPPER.valueToTree(this.buildRequest(llmChatRequestData));
     }
 
     @Override
@@ -589,36 +593,36 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
         return Mono.empty();
     }
 
-    protected OllamaChatRequest buildRequest(LlmRequestData llmRequestData) {
+    protected OllamaChatRequest buildRequest(LlmChatRequestData llmChatRequestData) {
         var ollamaChatRequestBuilder = OllamaChatRequest.builder()
-                .model(llmRequestData.getModelName());
-        if (llmRequestData.getResponseJsonSchema().isEmpty() && llmRequestData.getStructuredOutputType().isEmpty()) {
+                .model(llmChatRequestData.getModelName());
+        if (llmChatRequestData.getResponseJsonSchema().isEmpty() && llmChatRequestData.getStructuredOutputType().isEmpty()) {
             ollamaChatRequestBuilder.format("json");
         } else {
             Map<String, Object> jsonSchemaMap = Map.of();
-            if (llmRequestData.getResponseJsonSchema().isPresent()) {
-                jsonSchemaMap = JsonRelatedUtil.jsonToMap(llmRequestData.getResponseJsonSchema().get());
-            } else if (llmRequestData.getStructuredOutputType().isPresent()) {
-                var structuredOutputType = llmRequestData.getStructuredOutputType().get();
+            if (llmChatRequestData.getResponseJsonSchema().isPresent()) {
+                jsonSchemaMap = JsonRelatedUtil.jsonToMap(llmChatRequestData.getResponseJsonSchema().get());
+            } else if (llmChatRequestData.getStructuredOutputType().isPresent()) {
+                var structuredOutputType = llmChatRequestData.getStructuredOutputType().get();
                 jsonSchemaMap = JsonRelatedUtil.jsonToMap(JsonSchemaUtil.generateForType(structuredOutputType));
             }
             ollamaChatRequestBuilder.format(jsonSchemaMap);
         }
         Map<String, Object> options = new HashMap<>();
-        llmRequestData.getTemperature().ifPresent(temperature -> options.put("temperature", temperature));
-        llmRequestData.getTopP().ifPresent(topP -> options.put("top_p", topP));
-        llmRequestData.getReasoning().ifPresent(think -> {
+        llmChatRequestData.getTemperature().ifPresent(temperature -> options.put("temperature", temperature));
+        llmChatRequestData.getTopP().ifPresent(topP -> options.put("top_p", topP));
+        llmChatRequestData.getReasoning().ifPresent(think -> {
             if ("true".equalsIgnoreCase(think) || "false".equalsIgnoreCase(think)) {
                 ollamaChatRequestBuilder.think(Boolean.parseBoolean(think));
                 return;
             }
             ollamaChatRequestBuilder.think(think);
         });
-        var systemMessage = buildSystemMessage(llmRequestData);
-        var userMessage = buildUserMessage(llmRequestData);
-        var historicalMessages = buildHistoricalMessages(llmRequestData);
-        var latestAssistantMessages = this.buildLatestAssistantMessages(llmRequestData);
-        var toolMessages = buildToolMessages(llmRequestData);
+        var systemMessage = buildSystemMessage(llmChatRequestData);
+        var userMessage = buildUserMessage(llmChatRequestData);
+        var historicalMessages = buildHistoricalMessages(llmChatRequestData);
+        var latestAssistantMessages = this.buildLatestAssistantMessages(llmChatRequestData);
+        var toolMessages = buildToolMessages(llmChatRequestData);
         var allMessages = Stream.of(Stream.of(systemMessage),
                         historicalMessages.stream(),
                         latestAssistantMessages.stream(),
@@ -628,14 +632,14 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 .flatMap(java.util.function.Function.identity())
                 .toList();
         return ollamaChatRequestBuilder.options(options)
-                .stream(llmRequestData.isStream())
-                .tools(this.buildFunctionTools(llmRequestData))
+                .stream(llmChatRequestData.isStream())
+                .tools(this.buildFunctionTools(llmChatRequestData))
                 .messages(allMessages)
                 .build();
     }
 
-    protected List<FunctionTool> buildFunctionTools(LlmRequestData llmRequestData) {
-        List<ToolDefinition> toolDefinitions = llmRequestData.getToolDefinitions();
+    protected List<FunctionTool> buildFunctionTools(LlmChatRequestData llmChatRequestData) {
+        List<ToolDefinition> toolDefinitions = llmChatRequestData.getToolDefinitions();
         if (toolDefinitions.isEmpty()) {
             return List.of();
         }
@@ -653,8 +657,8 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected Optional<OllamaChatMessage> buildLatestAssistantMessages(LlmRequestData llmRequestData) {
-        return llmRequestData.getLatestAssistantMessage()
+    protected Optional<OllamaChatMessage> buildLatestAssistantMessages(LlmChatRequestData llmChatRequestData) {
+        return llmChatRequestData.getLatestAssistantMessage()
                 .map(latestAssistantMessage -> {
                     try {
                         return OBJECT_MAPPER.treeToValue(latestAssistantMessage, OllamaChatMessage.class);
@@ -664,8 +668,8 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 });
     }
 
-    protected List<OllamaChatMessage> buildToolMessages(LlmRequestData llmRequestData) {
-        List<LlmToolCallResponse> llmToolCallResponses = llmRequestData.getLlmToolCallResponse();
+    protected List<OllamaChatMessage> buildToolMessages(LlmChatRequestData llmChatRequestData) {
+        List<LlmToolCallResponse> llmToolCallResponses = llmChatRequestData.getLlmToolCallResponse();
         if (llmToolCallResponses.isEmpty()) {
             return List.of();
         }
@@ -680,15 +684,15 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected OllamaChatMessage buildSystemMessage(LlmRequestData llmRequestData) {
+    protected OllamaChatMessage buildSystemMessage(LlmChatRequestData llmChatRequestData) {
         return OllamaChatMessage.builder()
                 .role(Role.SYSTEM)
-                .content(llmRequestData.getSystemMessage().text())
+                .content(llmChatRequestData.getSystemMessage().text())
                 .build();
     }
 
-    protected List<OllamaChatMessage> buildHistoricalMessages(LlmRequestData llmRequestData) {
-        return llmRequestData.getHistoricalMessages()
+    protected List<OllamaChatMessage> buildHistoricalMessages(LlmChatRequestData llmChatRequestData) {
+        return llmChatRequestData.getHistoricalMessages()
                 .stream()
                 .flatMap(message -> {
                     if (message instanceof AssistantTextMessage assistantTextMessage) {
@@ -734,8 +738,8 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected OllamaChatMessage buildUserMessage(LlmRequestData llmRequestData) {
-        Optional<MediaMessage> optionalMediaMessage = llmRequestData.getUserMediaMessage();
+    protected OllamaChatMessage buildUserMessage(LlmChatRequestData llmChatRequestData) {
+        Optional<MediaMessage> optionalMediaMessage = llmChatRequestData.getUserMediaMessage();
         if (optionalMediaMessage.isPresent()) {
             MediaMessage mediaMessage = optionalMediaMessage.get();
             List<Attachment> attachments = mediaMessage.getAttachments();
@@ -755,7 +759,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
         }
         return OllamaChatMessage.builder()
                 .role(Role.USER)
-                .content(llmRequestData.getUserTextMessage().text())
+                .content(llmChatRequestData.getUserTextMessage().text())
                 .build();
     }
 }

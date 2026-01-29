@@ -1,5 +1,5 @@
 /*
- *    Copyright 2025-2026 the original author or authors.
+ *    Copyright 2025 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -13,30 +13,17 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.entity.values;
+package pro.chenggang.project.reactive.ai.lite.core.interceptor;
 
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Value;
+import reactor.core.publisher.Mono;
 
 /**
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
-@Getter
-@Value(staticConstructor = "of")
-public class TraceId {
+public interface LlmProviderInterceptorChain {
 
-    String parentId;
+    Mono<Void> next(LlmProviderExchange exchange);
 
-    @NonNull
-    String currentId;
-
-    @Override
-    public String toString() {
-        if (parentId == null) {
-            return currentId;
-        }
-        return parentId + ":" + currentId;
-    }
 }

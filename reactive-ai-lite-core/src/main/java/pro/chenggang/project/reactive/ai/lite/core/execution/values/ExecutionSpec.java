@@ -63,7 +63,7 @@ public class ExecutionSpec {
     private final Map<String, Object> parentAttributes;
     @NonNull
     @Builder.Default
-    private final Supplier<String> traceIdGenerator = () -> UUID.randomUUID().toString();
+    private final Supplier<String> traceIdGenerator = () -> UUID.randomUUID().toString().replace("-", "");
     private final Consumer<ExecutionContext> contextConfigure;
     private final BiPredicate<LlmProviderInfo, ExecutionContextView> providerFilter;
     private final BiFunction<ExecutionContextView, Set<String>, String> profilePicker;
