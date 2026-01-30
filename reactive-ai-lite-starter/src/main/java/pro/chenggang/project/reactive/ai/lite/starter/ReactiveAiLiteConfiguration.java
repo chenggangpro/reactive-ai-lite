@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.starter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
@@ -38,6 +39,7 @@ import pro.chenggang.project.reactive.ai.lite.starter.properties.ReactiveAiClien
  * @author Cheng Gang
  * @version 0.1.0
  */
+@Slf4j
 @AutoConfiguration
 @AutoConfigureAfter(WebClientAutoConfiguration.class)
 public class ReactiveAiLiteConfiguration {
@@ -50,7 +52,9 @@ public class ReactiveAiLiteConfiguration {
 
     @Bean
     public LlmProviderExecutionLoggingInterceptor llmProviderExecutionLoggingInterceptor(ReactiveAiClientProperties reactiveAiClientProperties) {
-        return new LlmProviderExecutionLoggingInterceptor(reactiveAiClientProperties::isEnableLogging);
+        LlmProviderExecutionLoggingInterceptor loggingInterceptor = new LlmProviderExecutionLoggingInterceptor(reactiveAiClientProperties::isEnableLogging);
+        log.info("Load LLM provider execution logging interceptor successfully");
+        return loggingInterceptor;
     }
 
     @ConditionalOnMissingBean
@@ -67,6 +71,8 @@ public class ReactiveAiLiteConfiguration {
 
     @Bean
     public ReactiveLlmClient reactiveLlmClient(LlmProviderRegistry llmProviderRegistry) {
-        return new DefaultReactiveLlmClient(llmProviderRegistry);
+        DefaultReactiveLlmClient reactiveLlmClient = new DefaultReactiveLlmClient(llmProviderRegistry);
+        log.info("Load reactive lite LLM client successfully");
+        return reactiveLlmClient;
     }
 }

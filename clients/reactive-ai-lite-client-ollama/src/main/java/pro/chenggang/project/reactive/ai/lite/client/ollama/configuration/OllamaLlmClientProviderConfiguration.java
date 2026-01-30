@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.client.ollama.configuration;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
@@ -38,6 +39,7 @@ import java.util.List;
  * @author Cheng Gang
  * @version 0.1.0
  */
+@Slf4j
 @AutoConfiguration
 @AutoConfigureAfter(WebClientAutoConfiguration.class)
 public class OllamaLlmClientProviderConfiguration {
@@ -61,7 +63,7 @@ public class OllamaLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        return OllamaChatProvider.builder()
+        OllamaChatProvider ollamaChatProvider = OllamaChatProvider.builder()
                 .name(OllamaLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
@@ -71,5 +73,7 @@ public class OllamaLlmClientProviderConfiguration {
                 .supportedModels(chatProvider.getLimitedModels())
                 .lLmProviderInterceptorRegistry(lLmProviderInterceptorRegistry)
                 .build();
+        log.info("Ollama LLM client provider initialized successfully");
+        return ollamaChatProvider;
     }
 }

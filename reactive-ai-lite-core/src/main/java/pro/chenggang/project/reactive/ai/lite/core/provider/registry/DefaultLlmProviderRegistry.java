@@ -60,6 +60,7 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
             }
         }
         this.providers = List.copyOf(validProviders);
+        log.info("Initialized {} LlmProvider instances.", providers.size());
     }
 
     @Override

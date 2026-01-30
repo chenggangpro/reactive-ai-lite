@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.client.openai.configuration;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
@@ -40,6 +41,7 @@ import java.util.List;
  * @author Cheng Gang
  * @version 0.1.0
  */
+@Slf4j
 @AutoConfiguration
 @AutoConfigureAfter(WebClientAutoConfiguration.class)
 public class OpenaiLlmClientProviderConfiguration {
@@ -72,7 +74,7 @@ public class OpenaiLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        return OpenaiChatProvider.builder()
+        OpenaiChatProvider openaiChatProvider = OpenaiChatProvider.builder()
                 .name(OpenaiLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
@@ -82,5 +84,7 @@ public class OpenaiLlmClientProviderConfiguration {
                 .supportedModels(chatProvider.getLimitedModels())
                 .lLmProviderInterceptorRegistry(llmProviderInterceptorRegistry)
                 .build();
+        log.info("OpenAI LLM client provider initialized successfully");
+        return openaiChatProvider;
     }
 }
