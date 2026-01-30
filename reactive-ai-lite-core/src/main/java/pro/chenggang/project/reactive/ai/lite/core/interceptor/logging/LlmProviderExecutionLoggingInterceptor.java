@@ -53,10 +53,12 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         TraceId traceId = llmRequestData.getTraceId();
         log.info(" ==> [Llm Execution] ({}) Client type : {}", traceId, attributes.get(LLM_CLIENT_TYPE_ATTR_KEY));
         log.info(" ==> [Llm Execution] ({}) Request endpoint : {}", traceId, llmProviderInfo.baseUrl() + llmProviderInfo.endpoint());
-        llmRequestData.getSummary()
-                .forEach(summaryContent -> {
-                    log.info(" ==> [Llm Execution] ({}) {}", traceId, summaryContent);
-                });
+        if (log.isDebugEnabled()) {
+            llmRequestData.getSummary()
+                    .forEach(summaryContent -> {
+                        log.debug(" ==> [Llm Execution] ({}) {}", traceId, summaryContent);
+                    });
+        }
         return chain.next(exchange);
     }
 
