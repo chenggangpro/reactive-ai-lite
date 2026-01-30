@@ -80,7 +80,7 @@
         <jackson-databind.version>2.19.4</jackson-databind.version>
         <reactive-ai-lite-core.version>0.1.0-SNAPSHOT</reactive-ai-lite-core.version>
         <!--tests-->
-        <logback.version>1.5.22</logback.version>
+        <logback.version>1.5.26</logback.version>
         <blockhound.version>1.0.15.RELEASE</blockhound.version>
         <junit.version>5.14.1</junit.version>
         <assertj.version>3.27.6</assertj.version>
