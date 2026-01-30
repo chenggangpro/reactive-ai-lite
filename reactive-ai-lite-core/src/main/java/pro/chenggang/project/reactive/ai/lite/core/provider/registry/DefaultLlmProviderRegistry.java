@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.provider.registry;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
@@ -24,7 +25,6 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,7 +45,9 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
     private final List<LlmProvider> providers;
 
     public DefaultLlmProviderRegistry(@NonNull List<LlmProvider> providers) {
-        Iterator<LlmProvider> iterator = providers.iterator();
+        if (CollectionUtils.isEmpty(providers)) {
+            throw new IllegalArgumentException("At least one LlmProvider is provided.");
+        }
         List<LlmProvider> validProviders = new ArrayList<>();
         for (LlmProvider llmProvider : providers) {
             LlmProviderInfo llmProviderInfo = llmProvider.info();
