@@ -29,7 +29,6 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.defaults.chat.ChatS
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
-import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec.ExecutionSpecBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
@@ -211,7 +210,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     }
 
     protected ExecutionSpec toExecutionSpec() {
-        ExecutionSpecBuilder builder = ExecutionSpec.builder();
+        var builder = ExecutionSpec.builder();
         if (Objects.nonNull(defaultExecutionContextSpec.getTraceIdGenerator())) {
             builder.traceIdGenerator(defaultExecutionContextSpec.getTraceIdGenerator());
         }

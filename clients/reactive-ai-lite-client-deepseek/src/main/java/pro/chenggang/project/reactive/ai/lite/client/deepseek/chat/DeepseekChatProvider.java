@@ -32,7 +32,6 @@ import org.springframework.web.reactive.function.client.WebClient.RequestBodySpe
 import org.springframework.web.reactive.function.client.WebClient.RequestBodyUriSpec;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.ChatCompletionMessage;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.DeepseekChatRequest;
-import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.DeepseekChatRequest.DeepseekChatRequestBuilder;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.DeepseekChatRequest.Thinking;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.FunctionTool;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.FunctionTool.Function;
@@ -651,7 +650,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
     }
 
     protected DeepseekChatRequest buildRequest(LlmChatRequestData llmChatRequestData) {
-        DeepseekChatRequestBuilder deepseekChatRequestBuilder = DeepseekChatRequest.builder()
+        var deepseekChatRequestBuilder = DeepseekChatRequest.builder()
                 .model(llmChatRequestData.getModelName());
         if (llmChatRequestData.getResponseJsonSchema().isEmpty() && llmChatRequestData.getStructuredOutputType().isEmpty()) {
             deepseekChatRequestBuilder.responseFormat(ResponseFormat.builder()

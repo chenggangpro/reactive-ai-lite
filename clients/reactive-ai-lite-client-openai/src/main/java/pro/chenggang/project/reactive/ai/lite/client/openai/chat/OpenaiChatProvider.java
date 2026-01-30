@@ -41,7 +41,6 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMe
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.FunctionTool;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.FunctionTool.Function;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.OpenaiChatRequest;
-import pro.chenggang.project.reactive.ai.lite.client.openai.dto.OpenaiChatRequest.OpenaiChatRequestBuilder;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.JsonSchema;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.Type;
@@ -668,7 +667,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     protected OpenaiChatRequest buildRequest(LlmChatRequestData llmChatRequestData) {
-        OpenaiChatRequestBuilder openaiChatRequestBuilder = OpenaiChatRequest.builder()
+        var openaiChatRequestBuilder = OpenaiChatRequest.builder()
                 .model(llmChatRequestData.getModelName());
         if (llmChatRequestData.getResponseJsonSchema().isEmpty() && llmChatRequestData.getStructuredOutputType().isEmpty()) {
             openaiChatRequestBuilder.responseFormat(ResponseFormat.builder()
