@@ -22,7 +22,11 @@ import reactor.core.publisher.Mono;
 
 /**
  * Defines the contract for a general, non-streaming execution of an LLM request.
- * This execution type returns a single response object wrapped in a {@link Mono}.
+ * <p>
+ * This execution type is designed for standard request-response scenarios where the
+ * entire generated output is received at once. It returns a single response object
+ * wrapped in a Project Reactor {@link Mono}.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -30,25 +34,39 @@ import reactor.core.publisher.Mono;
 public interface GeneralExecution extends LlmClientExecution {
 
     /**
-     * Executes the LLM request and returns a structured {@link GeneralResponse}.
+     * Executes the non-streaming LLM request and returns a standardized response object.
+     * <p>
+     * The returned {@link GeneralResponse} abstracts away provider-specific details,
+     * providing a unified interface to access messages, reasoning content, usage stats,
+     * and tool calls.
+     * </p>
      *
-     * @return A {@link Mono} emitting the structured response.
+     * @return a {@link Mono} emitting the parsed {@link GeneralResponse}
      */
     Mono<GeneralResponse> execute();
 
     /**
-     * Executes the LLM request and returns the raw, unprocessed response from the provider.
+     * Executes the non-streaming LLM request and returns the raw, unprocessed provider response.
+     * <p>
+     * This is useful when the calling code needs access to the exact JSON structure
+     * returned by the specific AI API (e.g., to extract non-standard fields).
+     * </p>
      *
-     * @return A {@link Mono} emitting the raw response.
+     * @return a {@link Mono} emitting the raw JSON response as a {@link RawResponse}
      */
     Mono<RawResponse> executeRaw();
 
     /**
-     * Executes the LLM request and converts the raw response to a custom type using the provided converter.
+     * Executes the non-streaming LLM request and converts the raw response to a custom type
+     * using the provided converter.
+     * <p>
+     * This is a convenience method that automatically maps the output of {@link #executeRaw()}
+     * using the provided {@link RawResponseConverter}.
+     * </p>
      *
-     * @param converter The converter to transform the {@link RawResponse} into the desired type.
-     * @param <R>       The target type of the response.
-     * @return A {@link Mono} emitting the converted response.
+     * @param converter the converter to transform the {@link RawResponse} into the desired type
+     * @param <R>       the target type of the conversion
+     * @return a {@link Mono} emitting the converted response
      */
     default <R> Mono<R> execute(RawResponseConverter<R> converter) {
         return executeRaw().map(converter::convert);

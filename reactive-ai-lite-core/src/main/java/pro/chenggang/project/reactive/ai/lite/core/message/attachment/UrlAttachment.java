@@ -13,19 +13,21 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
+package pro.chenggang.project.reactive.ai.lite.core.message.attachment;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.MimeType;
-import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
 
 /**
- * An implementation of {@link Attachment} for content referenced by a URL.
- * This is useful for including web-hosted images or other resources in a message
- * without embedding the data directly.
+ * An implementation of {@link Attachment} where the content is referenced by a URL.
+ * <p>
+ * This class is useful for including web-hosted images or other resources in a message
+ * without embedding the actual binary data directly, reducing the payload size. The
+ * underlying AI provider is responsible for fetching the resource from the URL.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -34,24 +36,52 @@ import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UrlAttachment implements Attachment {
 
+    /**
+     * The MIME type of the content located at the URL.
+     */
     @NonNull
     private final MimeType mimeType;
+
+    /**
+     * The URL pointing to the actual content.
+     */
     @NonNull
     private final String url;
 
+    /**
+     * The descriptive name or identifier for this attachment.
+     */
     @NonNull
     private final String name;
 
+    /**
+     * Retrieves the MIME type of the attachment.
+     *
+     * @return the {@link MimeType}
+     */
     @Override
     public MimeType mimeType() {
         return mimeType;
     }
 
+    /**
+     * Retrieves the name of the attachment.
+     *
+     * @return the name string
+     */
     @Override
     public String name() {
         return this.name;
     }
 
+    /**
+     * Retrieves the content of the attachment.
+     * <p>
+     * For a URL attachment, the content is the URL string itself.
+     * </p>
+     *
+     * @return the URL string
+     */
     @Override
     public String content() {
         return this.url;

@@ -21,7 +21,10 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Defines the types of Large Language Model (LLM) clients, each corresponding to a specific AI capability.
+ * <p>
  * This enum is used to categorize clients based on their primary function, such as chat, audio processing, etc.
+ * It provides a strong typing mechanism to ensure that appropriate capabilities are requested from providers.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0

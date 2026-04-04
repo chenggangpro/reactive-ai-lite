@@ -15,12 +15,13 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.message;
 
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
-
 /**
  * Represents a single message in a conversation with an AI model.
- * A message is the fundamental unit of data exchanged, containing content such as text.
- * This interface provides a common abstraction for different types of messages.
+ * <p>
+ * A message is the fundamental unit of data exchanged, containing content such as text,
+ * media, or tool interactions. This interface provides a common abstraction for different
+ * types of messages, allowing them to be processed generically.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -28,16 +29,22 @@ import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
 public interface Message {
 
     /**
-     * A constant representing an empty text message.
-     * Useful for initialization or as a default value.
+     * Returns the role of the message sender (e.g., "user", "assistant", "system").
+     *
+     * @return the role of the message sender
      */
-    TextMessage EMPTY_MESSAGE = TextMessage.of("");
+    String getRole();
 
     /**
-     * Returns the primary textual content of the message.
+     * Returns the actual concrete type of the message.
+     * <p>
+     * This is useful for safely downcasting the generic Message interface to a
+     * specific implementation (like TextMessage or ToolCallMessage) when specific
+     * processing is required based on the message type.
+     * </p>
      *
-     * @return The text content of the message.
+     * @return the actual class type of the message
      */
-    String text();
+    Class<? extends Message> getActualType();
 
 }

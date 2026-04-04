@@ -17,16 +17,17 @@ package pro.chenggang.project.reactive.ai.lite.core.spec;
 
 import lombok.NonNull;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.TraceId;
 
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * A specification for configuring the execution context of an AI operation.
+ * <p>
  * This interface provides a fluent API to set up tracing, attributes, and other
- * context-related properties before executing a request.
+ * context-related properties before executing a request. It serves as the initial
+ * stage in configuring an AI interaction.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -34,47 +35,40 @@ import java.util.function.Supplier;
 public interface ExecutionContextSpec {
 
     /**
-     * Sets the trace ID from a parent execution context. This is useful for linking
-     * a series of related AI calls together for observability and debugging.
+     * Sets attributes inherited from a parent execution context.
+     * <p>
+     * These attributes can carry metadata, correlation IDs, or shared state
+     * across related AI operations, facilitating distributed tracing and context propagation.
+     * </p>
      *
-     * @param parentTraceId The {@link TraceId} of the parent execution.
-     * @return This {@link ExecutionContextSpec} instance for method chaining.
+     * @param parentAttributes a map of attributes from the parent context
+     * @return this {@link ExecutionContextSpec} instance for method chaining
      */
-    ExecutionContextSpec parentTraceId(@NonNull TraceId parentTraceId);
+    ExecutionContextSpec parentAttributes(Map<String, Object> parentAttributes);
 
     /**
-     * Sets attributes inherited from a parent execution context. These attributes
-     * can carry metadata across related AI operations.
+     * Provides a mechanism for custom or advanced configuration of the
+     * execution context.
+     * <p>
+     * The provided consumer is invoked with the {@link ExecutionContext} instance
+     * after it has been initialized with the standard settings, allowing for arbitrary
+     * attribute manipulation.
+     * </p>
      *
-     * @param parentAttributes A map of attributes from the parent context.
-     * @return This {@link ExecutionContextSpec} instance for method chaining.
-     */
-    ExecutionContextSpec parentAttributes(@NonNull Map<String, Object> parentAttributes);
-
-    /**
-     * Registers a custom supplier for generating unique trace IDs. If not provided,
-     * a default generator will be used.
-     *
-     * @param traceIdGenerator A {@link Supplier} that returns a new trace ID as a String.
-     * @return This {@link ExecutionContextSpec} instance for method chaining.
-     */
-    ExecutionContextSpec traceIdGenerator(@NonNull Supplier<String> traceIdGenerator);
-
-    /**
-     * Provides a consumer to perform advanced or custom configuration on the
-     * {@link ExecutionContext} instance after it has been initialized with the
-     * other settings from this spec.
-     *
-     * @param contextConfigure A {@link Consumer} that accepts the {@link ExecutionContext} for further setup.
-     * @return This {@link ExecutionContextSpec} instance for method chaining.
+     * @param contextConfigure a {@link Consumer} that accepts the {@link ExecutionContext} for further setup
+     * @return this {@link ExecutionContextSpec} instance for method chaining
      */
     ExecutionContextSpec contextConfigure(@NonNull Consumer<ExecutionContext> contextConfigure);
 
     /**
-     * Returns the next specification in the fluent API chain for configuring
-     * provider-specific settings.
+     * Transitions from context configuration to provider specification.
+     * <p>
+     * This method returns the next specification in the fluent API chain,
+     * allowing for the selection and configuration of the specific AI provider
+     * to handle the request.
+     * </p>
      *
-     * @return A {@link ProviderSpec} instance.
+     * @return a {@link ProviderSpec} instance for further configuration
      */
     ProviderSpec providerSpec();
 }

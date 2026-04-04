@@ -22,10 +22,33 @@ import org.springframework.core.KotlinDetector;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Utility class for Jackson-related operations.
+ * <p>
+ * Provides helper methods for configuring Jackson ObjectMapper instances, such as
+ * dynamically discovering and instantiating available Jackson modules in the classpath.
+ * </p>
+ *
+ * @author Cheng Gang
+ * @version 0.1.0
+ */
 public abstract class JacksonUtils {
 
-
+    /**
+     * Discovers and instantiates common Jackson modules available in the classpath.
+     * <p>
+     * It attempts to load and instantiate the following modules:
+     * <ul>
+     *     <li>Jdk8Module (for Java 8 Optionals, etc.)</li>
+     *     <li>JavaTimeModule (for JSR-310 Java 8 Date/Time API)</li>
+     *     <li>ParameterNamesModule (for preserving parameter names)</li>
+     *     <li>KotlinModule (if Kotlin is detected on the classpath)</li>
+     * </ul>
+     * If a module's class is not found, it is silently ignored.
+     * </p>
+     *
+     * @return a list of instantiated Jackson {@link Module}s
+     */
     @SuppressWarnings("unchecked")
     public static List<Module> instantiateAvailableModules() {
         List<Module> modules = new ArrayList<>();

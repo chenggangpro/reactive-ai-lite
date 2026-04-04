@@ -15,29 +15,29 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.response;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
-import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
-import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallRequest;
-
-import java.util.List;
+import pro.chenggang.project.reactive.ai.lite.core.message.chunk.StreamDataChunk;
 
 /**
+ * Represents a standardized, parsed chunk of data emitted during a streaming LLM response.
+ * <p>
+ * This class extends {@link LlmResponse} to wrap a specific {@link StreamDataChunk},
+ * which encapsulates the actual type (e.g., text fragment, tool call request, usage stats)
+ * and content generated in this particular slide of the stream. It abstracts away
+ * the underlying Server-Sent Events (SSE) JSON structure from the framework's consumers.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @Getter
 @SuperBuilder
-public class StreamResponse {
+public class StreamResponse extends LlmResponse {
 
-    private final ExecutionContextView contextView;
-    private final StreamDataType dataType;
-    private final String messageContent;
-    private final JsonNode dataContent;
-    @Builder.Default
-    private final List<LlmToolCallRequest> toolCallList = List.of();
+    /**
+     * The parsed chunk of streaming data.
+     */
+    private final StreamDataChunk dataChunk;
 
 }

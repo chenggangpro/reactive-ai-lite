@@ -27,7 +27,6 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec;
  *
  * @author Cheng Gang
  * @version 0.1.0
- * @since 0.1.0
  */
 public interface ChatModule extends LlmModule {
 

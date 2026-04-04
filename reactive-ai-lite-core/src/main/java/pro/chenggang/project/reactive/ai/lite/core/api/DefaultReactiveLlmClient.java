@@ -21,14 +21,35 @@ import pro.chenggang.project.reactive.ai.lite.core.api.chat.DefaultChatModule;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 
 /**
+ * The default implementation of the {@link ReactiveLlmClient} interface.
+ * <p>
+ * This class provides the standard, out-of-the-box implementation for
+ * interacting with various LLM providers in a reactive manner. It relies
+ * on an {@link LlmProviderRegistry} to manage and access different
+ * provider implementations.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @RequiredArgsConstructor
 public class DefaultReactiveLlmClient implements ReactiveLlmClient {
 
+    /**
+     * The registry used to look up and manage available LLM providers.
+     */
     private final LlmProviderRegistry llmProviderRegistry;
 
+    /**
+     * Retrieves a new instance of the default chat module.
+     * <p>
+     * This method instantiates and returns a {@link DefaultChatModule},
+     * configuring it with the underlying {@link LlmProviderRegistry} to
+     * enable chat interactions.
+     * </p>
+     *
+     * @return a new {@link ChatModule} instance for chat operations
+     */
     @Override
     public ChatModule chat() {
         return new DefaultChatModule(llmProviderRegistry);

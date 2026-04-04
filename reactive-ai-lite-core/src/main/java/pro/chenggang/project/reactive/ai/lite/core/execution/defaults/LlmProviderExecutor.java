@@ -35,9 +35,13 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 /**
- * Orchestrates the execution of LLM tasks by selecting an appropriate provider and preparing the execution context.
- * This class uses an {@link ExecutionSpec} to determine how to load a provider from the {@link LlmProviderRegistry}
- * and then executes a given function with the selected provider and necessary execution information.
+ * Orchestrates the execution of LLM tasks by resolving the appropriate provider
+ * and preparing the runtime execution context.
+ * <p>
+ * This class uses an {@link ExecutionSpec} to determine how to dynamically look up
+ * a provider from the {@link LlmProviderRegistry}. Once the provider and context
+ * are resolved, it executes the given functional logic (e.g., executing a chat request).
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -46,21 +50,31 @@ import java.util.function.Predicate;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class LlmProviderExecutor {
 
+    /**
+     * The registry used to look up and manage available LLM providers.
+     */
     @NonNull
     private final LlmProviderRegistry llmProviderRegistry;
+
+    /**
+     * The specification containing all configurations and dynamic functions for this execution.
+     */
     @Getter
     @NonNull
     private final ExecutionSpec executionSpec;
 
     /**
      * Executes a chat-based operation.
-     * This method loads the appropriate {@link LlmChatProvider} based on the {@link ExecutionSpec},
-     * creates the {@link ExecutionInfo}, and then applies the provided execution logic.
+     * <p>
+     * This method resolves the runtime {@link ExecutionContext}, loads the appropriate
+     * {@link LlmChatProvider} based on the {@link ExecutionSpec}'s filtering rules,
+     * creates the finalized {@link ExecutionInfo}, and then applies the provided execution logic.
+     * </p>
      *
-     * @param specifiedExecution A {@link BiFunction} that defines the chat operation to be performed.
-     *                           It takes an {@link LlmChatProvider} and {@link ExecutionInfo} and returns a result.
-     * @param <T>                The type of the result returned by the execution.
-     * @return The result of the specified execution.
+     * @param specifiedExecution a {@link BiFunction} defining the specific chat operation to perform.
+     *                           It receives the resolved provider and execution info.
+     * @param <T>                the type of the result returned by the execution (e.g., Mono or Flux)
+     * @return the result of the specified execution
      */
     public <T> T executeChat(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, T> specifiedExecution) {
         ExecutionContext executionContext = this.executionSpec.newExecutionContext();
@@ -70,14 +84,18 @@ public class LlmProviderExecutor {
     }
 
     /**
-     * Loads an LLM provider from the registry based on the current {@link ExecutionSpec}.
-     * It handles selection of the default provider or a filtered provider based on the spec's configuration.
+     * Dynamically loads an LLM provider from the registry based on the current execution specification.
+     * <p>
+     * It evaluates whether to use the default provider for the required capability, or whether
+     * to apply a custom filter predicate against the available providers' metadata and the current context.
+     * </p>
      *
-     * @param executionContext The current execution context.
-     * @param providerLoader   A function to load a specific type of provider (e.g., chat, embedding) from the registry.
-     * @param <P>              The type of the {@link LlmProvider} to load.
-     * @return The loaded LLM provider.
+     * @param executionContext the current runtime execution context
+     * @param providerLoader   a function that interacts with the registry to find a provider matching a predicate
+     * @param <P>              the type of the {@link LlmProvider} to load
+     * @return the loaded LLM provider
      */
+    @SuppressWarnings("unchecked")
     public <P extends LlmProvider> P loadLlmProvider(@NonNull ExecutionContext executionContext, @NonNull BiFunction<LlmProviderRegistry, Predicate<LlmProviderInfo>, P> providerLoader) {
         Capability capability = executionSpec.getLlmClientType().getCapability();
         if (executionSpec.isDefaultProvider()) {

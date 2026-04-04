@@ -16,9 +16,9 @@
 package pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults;
 
 import lombok.extern.slf4j.Slf4j;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExchange;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorChain;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderRequestInterceptorChain;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -33,7 +33,7 @@ import java.util.Objects;
  * @since 0.1.0
  */
 @Slf4j
-public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderInterceptorChain {
+public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRequestInterceptorChain {
 
     private final LlmProviderExecutionBeforeInterceptor currentInterceptor;
     private final LlmProviderExecutionBeforeInterceptorChain next;
@@ -64,7 +64,7 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderIn
     }
 
     @Override
-    public Mono<Void> next(LlmProviderExchange exchange) {
+    public Mono<Void> next(LlmProviderRequestExchange exchange) {
         return Mono.defer(() -> {
             if (shouldIntercept()) {
                 return this.currentInterceptor.interceptBefore(exchange, this.next);

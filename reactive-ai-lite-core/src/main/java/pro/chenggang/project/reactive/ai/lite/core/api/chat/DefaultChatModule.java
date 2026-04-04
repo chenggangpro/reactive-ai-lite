@@ -22,7 +22,7 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultExecutionContextSpec;
 
 /**
- * Default implementation of the ChatModule interface.
+ * Default implementation of the {@link ChatModule} interface.
  * <p>
  * This class provides the standard chat module functionality for the reactive AI lite framework.
  * It manages the creation of execution contexts for chat-based LLM operations and maintains
@@ -35,13 +35,33 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultExecutio
 @RequiredArgsConstructor
 public class DefaultChatModule implements ChatModule {
 
+    /**
+     * The registry used to look up and manage available LLM providers.
+     */
     private final LlmProviderRegistry llmProviderRegistry;
 
+    /**
+     * Returns the type of LLM client associated with this module.
+     * <p>
+     * For this implementation, it always returns {@link LlmClientType#CHAT}.
+     * </p>
+     *
+     * @return the {@link LlmClientType} representing the client type, always {@link LlmClientType#CHAT}
+     */
     @Override
     public LlmClientType type() {
         return LlmClientType.CHAT;
     }
 
+    /**
+     * Creates a new default execution context for chat completion operations.
+     * <p>
+     * This method initializes and returns a new {@link DefaultExecutionContextSpec}
+     * configured with the CHAT client type and the current provider registry.
+     * </p>
+     *
+     * @return a new {@link ExecutionContextSpec} instance configured for chat operations
+     */
     @Override
     public ExecutionContextSpec newCompletionContext() {
         return DefaultExecutionContextSpec.of(type(), llmProviderRegistry);

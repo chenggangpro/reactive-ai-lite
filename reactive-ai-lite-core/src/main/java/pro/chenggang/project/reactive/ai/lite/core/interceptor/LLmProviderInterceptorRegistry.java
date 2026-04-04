@@ -15,20 +15,127 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.interceptor;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
+import lombok.RequiredArgsConstructor;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry.InterceptedDataInfo.InterceptedDataInfoBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+
 /**
+ * A central registry for managing and applying interceptors to LLM requests and responses.
+ * <p>
+ * This interface defines the contract for a component that wraps the core execution of an LLM
+ * request with a chain of interceptors. Interceptors can modify the request before it is sent
+ * (e.g., logging, adding headers, mutating the JSON body) and can inspect or modify the
+ * response after it is received (e.g., logging the response, extracting metadata).
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public interface LLmProviderInterceptorRegistry {
 
-    <T> Mono<T> interceptMono(@NonNull LlmClientType clientType, @NonNull LlmProviderInfo llmProviderInfo, @NonNull LlmChatRequestData llmChatRequestData, @NonNull Mono<T> monoExecution);
+    /**
+     * Intercepts a general (non-streaming) execution.
+     * <p>
+     * Applies the registered 'before' interceptors to the request data, executes the provided
+     * {@code generalExecution} Mono, and then applies the 'after' interceptors to the response data.
+     * </p>
+     *
+     * @param interceptedDataInfo the metadata and payload of the request
+     * @param generalExecution    the core execution logic that returns the raw JSON response
+     * @return a {@link Mono} emitting the intercepted and potentially modified JSON response
+     */
+    Mono<ObjectNode> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<ObjectNode> generalExecution);
 
-    <T> Flux<T> interceptFlux(@NonNull LlmClientType clientType, @NonNull LlmProviderInfo llmProviderInfo, @NonNull LlmChatRequestData llmChatRequestData, @NonNull Flux<T> fluxExecution);
+    /**
+     * Intercepts a streaming execution.
+     * <p>
+     * Applies the registered 'before' interceptors to the request data, executes the provided
+     * {@code streamExecution} Flux, and then applies the 'after' interceptors to each chunk
+     * emitted by the stream.
+     * </p>
+     *
+     * @param interceptedDataInfo the metadata and payload of the request
+     * @param streamExecution     the core execution logic that returns a stream of raw responses
+     * @return a {@link Flux} emitting the intercepted and potentially modified stream chunks
+     */
+    Flux<RawStreamResponse> interceptStream(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution);
+
+    /**
+     * Creates a new builder for constructing an {@link InterceptedDataInfo} instance.
+     *
+     * @return a new {@link InterceptedDataInfoBuilder}
+     */
+    static InterceptedDataInfoBuilder newInterceptedDataInfoBuilder() {
+        return InterceptedDataInfo.builder();
+    }
+
+    /**
+     * A data container holding all necessary context and payload information for interceptors
+     * to inspect or modify during an execution cycle.
+     *
+     * @author Cheng Gang
+     */
+    @Getter
+    @Builder
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    class InterceptedDataInfo {
+
+        /**
+         * The type of LLM client making the request (e.g., CHAT, IMAGE).
+         */
+        @NonNull
+        private final LlmClientType clientType;
+
+        /**
+         * The metadata of the LLM provider handling the request.
+         */
+        @NonNull
+        private final LlmProviderInfo llmProviderInfo;
+
+        /**
+         * A read-only view of the execution context, useful for passing correlation IDs or tracing data.
+         */
+        @NonNull
+        private final ExecutionContextView executionContextView;
+
+        /**
+         * The raw JSON request body that will be sent to the provider.
+         */
+        @NonNull
+        private final ObjectNode rawRequestBody;
+
+        /**
+         * A convenience method to trigger the interception of a general execution using this data info.
+         *
+         * @param lLmProviderInterceptorRegistry the registry to apply
+         * @param generalExecution               the core execution mono
+         * @return the intercepted Mono
+         */
+        public Mono<ObjectNode> interceptGeneral(@NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Mono<ObjectNode> generalExecution) {
+            return lLmProviderInterceptorRegistry.interceptGeneral(this, generalExecution);
+        }
+
+        /**
+         * A convenience method to trigger the interception of a stream execution using this data info.
+         *
+         * @param lLmProviderInterceptorRegistry the registry to apply
+         * @param streamExecution                the core execution flux
+         * @return the intercepted Flux
+         */
+        public Flux<RawStreamResponse> interceptStream(@NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Flux<RawStreamResponse> streamExecution) {
+            return lLmProviderInterceptorRegistry.interceptStream(this, streamExecution);
+        }
+    }
+
 }

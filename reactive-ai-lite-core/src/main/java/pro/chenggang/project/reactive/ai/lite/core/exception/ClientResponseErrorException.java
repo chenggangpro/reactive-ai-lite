@@ -21,22 +21,29 @@ import org.springframework.web.client.RestClientResponseException;
 import java.io.Serial;
 
 /**
- * Exception for LLM client response errors.
- * This exception is thrown when the underlying HTTP client receives an error response from the LLM service.
- * It wraps the original {@link RestClientResponseException}.
+ * Exception indicating an HTTP error response from an LLM service provider.
+ * <p>
+ * This exception is thrown when the underlying reactive WebClient receives an
+ * HTTP error status code (e.g., 4xx Client Error or 5xx Server Error) from the
+ * provider's API. It wraps the original Spring {@link RestClientResponseException}
+ * to provide access to the raw HTTP status, headers, and body if needed.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public class ClientResponseErrorException extends LlmClientException {
 
+    /**
+     * Unique serial version identifier.
+     */
     @Serial
     private static final long serialVersionUID = 3003050810499026975L;
 
     /**
-     * Constructs a new ClientResponseErrorException with the specified cause.
+     * Constructs a new ClientResponseErrorException wrapping the original HTTP error.
      *
-     * @param cause the {@link RestClientResponseException} that is the cause of this exception
+     * @param cause the {@link RestClientResponseException} representing the HTTP error response
      */
     public ClientResponseErrorException(@NonNull RestClientResponseException cause) {
         super("Llm client response error: " + cause.getMessage(), cause);

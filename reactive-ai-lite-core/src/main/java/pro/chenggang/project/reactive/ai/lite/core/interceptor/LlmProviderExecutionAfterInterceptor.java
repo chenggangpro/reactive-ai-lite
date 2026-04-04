@@ -15,10 +15,18 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.interceptor;
 
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderGeneralResponseExchange;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderStreamResponseExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * The Llm provider execution after interceptor.
+ * An interceptor that executes after the LLM provider has responded, but before
+ * the response is fully returned to the calling application.
+ * <p>
+ * Implementing this interface allows developers to inspect, log, or mutate the
+ * response data (either a single general response or individual stream chunks)
+ * returned by the LLM provider.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -26,14 +34,27 @@ import reactor.core.publisher.Mono;
 public interface LlmProviderExecutionAfterInterceptor extends LLmProviderExecutionInterceptor {
 
     /**
-     * Intercept the execution of a llm provider <i>after</i> its successful invocation.
-     * <p/>
-     * <li>This execution will invoke in <b>DESCENDING</b> order.</li>
+     * Intercepts a general, non-streaming response from the LLM provider.
+     * <p>
+     * Implementations must call {@code chain.next(exchange)} to continue the interception chain.
+     * </p>
      *
-     * @param exchange the current llm provider exchange
-     * @param chain    the chain
-     * @return the {@code Mono<Void>} to indicate when exchange processing is complete
+     * @param exchange the general response exchange containing response data and context
+     * @param chain    the response interceptor chain
+     * @return a {@link Mono} representing the asynchronous completion of this interceptor's work
      */
-    Mono<Void> interceptAfter(LlmProviderExchange exchange, LlmProviderInterceptorChain chain);
+    Mono<Void> interceptAfter(LlmProviderGeneralResponseExchange exchange, LlmProviderResponseInterceptorChain chain);
 
+    /**
+     * Intercepts a single chunk of a streaming response from the LLM provider.
+     * <p>
+     * This method is invoked for every chunk emitted in the SSE stream.
+     * Implementations must call {@code chain.next(exchange)} to continue the interception chain.
+     * </p>
+     *
+     * @param exchange the stream response exchange containing the chunk data and context
+     * @param chain    the response interceptor chain
+     * @return a {@link Mono} representing the asynchronous completion of this interceptor's work
+     */
+    Mono<Void> interceptAfterEach(LlmProviderStreamResponseExchange exchange, LlmProviderResponseInterceptorChain chain);
 }

@@ -119,7 +119,7 @@ public class OpenaiClientProperties implements InitializingBean {
         /**
          * A set of specific models that are allowed for chat completions. If not specified, all models are allowed.
          */
-        private Set<String> limitedModels;
+        private Set<String> limitedModels = Set.of();
     }
 
     /**

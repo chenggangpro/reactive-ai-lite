@@ -17,7 +17,6 @@ package pro.chenggang.project.reactive.ai.lite.core.api;
 
 import pro.chenggang.project.reactive.ai.lite.core.api.chat.ChatModule;
 
-
 /**
  * Reactive LLM (Large Language Model) client interface for interacting with AI services.
  * <p>
@@ -28,7 +27,6 @@ import pro.chenggang.project.reactive.ai.lite.core.api.chat.ChatModule;
  *
  * @author Cheng Gang
  * @version 0.1.0
- * @since 0.1.0
  */
 public interface ReactiveLlmClient {
 

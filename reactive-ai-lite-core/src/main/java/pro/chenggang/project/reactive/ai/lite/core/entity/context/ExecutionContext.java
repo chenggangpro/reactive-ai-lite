@@ -16,56 +16,54 @@
 package pro.chenggang.project.reactive.ai.lite.core.entity.context;
 
 import lombok.Getter;
-import lombok.NonNull;
-import pro.chenggang.project.reactive.ai.lite.core.entity.AttributesAbility;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.TraceId;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttributeMessage;
 
 /**
- * Represents the execution context for reactive AI operations.
+ * Represents the mutable execution context for reactive AI operations.
  * <p>
- * This class manages the execution state and attributes during AI operation processing.
- * It provides a thread-safe container for storing contextual information and maintains
- * a unique trace identifier for tracking purposes.
+ * This class manages the execution state and attributes during the lifecycle of an AI request.
+ * It acts as a thread-safe container for storing contextual metadata and shared data across
+ * interceptors and handlers. It also exposes a read-only {@link ExecutionContextView} to
+ * safely expose its data to configuration functions.
  * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
-public class ExecutionContext implements AttributesAbility {
+@Getter
+public class ExecutionContext extends AbstractAttributeMessage {
 
-    private final Map<String, Object> attributes = new ConcurrentHashMap<>();
-
-    @Getter
-    private final TraceId traceId;
-
-    @Getter
+    /**
+     * A read-only view of the attributes contained within this execution context.
+     * <p>
+     * This view is used to safely expose the context data to dynamic configuration
+     * functions without allowing modification of the underlying state.
+     * </p>
+     */
     private final ExecutionContextView contextView;
 
-    private ExecutionContext(@NonNull TraceId traceId) {
-        this.traceId = traceId;
-        this.contextView = new ExecutionContextView(this);
-    }
-
-    @Override
-    public Map<String, Object> getAttributes() {
-        return this.attributes;
+    /**
+     * Constructs a new {@link ExecutionContext}.
+     * <p>
+     * It initializes the attribute map (inherited from {@link AbstractAttributeMessage})
+     * and creates the corresponding read-only view.
+     * </p>
+     */
+    private ExecutionContext() {
+        this.contextView = new ExecutionContextView(this.getAttributes());
     }
 
     /**
-     * Creates a new ExecutionContext instance with the specified trace identifier.
+     * Creates a new instance of an {@link ExecutionContext}.
      * <p>
-     * This factory method is the primary way to instantiate an ExecutionContext.
-     * Each context is initialized with an empty attributes map and a read-only view.
+     * This factory method is the primary way to instantiate a fresh execution context
+     * at the beginning of an AI operation.
      * </p>
      *
-     * @param newTraceId the unique trace identifier for the new execution context, must not be null
-     * @return a new ExecutionContext instance initialized with the provided trace identifier
+     * @return a new, empty {@link ExecutionContext} instance
      */
-    public static ExecutionContext newContextWith(@NonNull TraceId newTraceId) {
-        return new ExecutionContext(newTraceId);
+    public static ExecutionContext newContext() {
+        return new ExecutionContext();
     }
 
 }

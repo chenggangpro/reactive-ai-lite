@@ -19,10 +19,11 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 
 
 /**
- * Interface for Large Language Model (LLM) providers.
+ * Base interface for all Large Language Model (LLM) providers in the framework.
  * <p>
- * This interface defines the contract for LLM provider implementations,
- * providing access to provider capabilities and information.
+ * This interface defines the core contract that all provider implementations must fulfill.
+ * It ensures that every provider can self-report its specific capabilities (e.g., chat, audio)
+ * and its configuration metadata, allowing the registry to manage and route requests appropriately.
  * </p>
  *
  * @author Cheng Gang
@@ -31,24 +32,26 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 public interface LlmProvider {
 
     /**
-     * Retrieves the capability of this LLM provider.
+     * Retrieves the primary capability of this LLM provider.
      * <p>
-     * The capability defines what features and operations are supported
-     * by this provider implementation.
+     * The capability defines what type of operations (e.g., CHAT, EMBEDDING) this specific
+     * provider implementation is designed to handle. This is used for routing requests to
+     * the correct provider type.
      * </p>
      *
-     * @return the {@link Capability} object representing the provider's capabilities
+     * @return the {@link Capability} representing the provider's primary function
      */
     Capability capability();
 
     /**
-     * Retrieves the information about this LLM provider.
+     * Retrieves metadata and configuration information about this LLM provider.
      * <p>
-     * The provider information includes metadata such as provider name,
-     * version, and other identifying details.
+     * The provider information includes details such as the provider's unique name,
+     * available configuration profiles, and other identifying attributes necessary for
+     * dynamic provider selection.
      * </p>
      *
-     * @return the {@link LlmProviderInfo} object containing provider information
+     * @return the {@link LlmProviderInfo} object containing provider metadata
      */
     LlmProviderInfo info();
 }

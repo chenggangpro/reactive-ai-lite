@@ -21,7 +21,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.lang.Nullable;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -36,6 +35,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
+ * Utility class for common tasks related to LLM provider interactions.
+ * <p>
+ * This class primarily provides standardized mechanisms for handling HTTP errors
+ * returned by AI provider APIs during reactive WebClient operations.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
@@ -43,10 +48,17 @@ public abstract class LlmProviderUtil {
 
 
     /**
-     * Handle client response error.
+     * Extracts and handles error responses from a WebClient {@link ClientResponse}.
+     * <p>
+     * This method reads the error response body, formats an error message including
+     * the HTTP status and body content, and maps the error to an appropriate
+     * {@link RestClientResponseException} (e.g., HttpClientErrorException for 4xx,
+     * HttpServerErrorException for 5xx). The resulting exception is then wrapped
+     * into a custom {@link ClientResponseErrorException} within the reactive stream.
+     * </p>
      *
-     * @param clientResponse the client response
-     * @return the mono
+     * @param clientResponse the HTTP client response representing the error
+     * @return a {@link Mono} emitting the mapped error exception
      */
     public static Mono<Throwable> handleClientResponseError(ClientResponse clientResponse) {
         return clientResponse.bodyToMono(new ParameterizedTypeReference<byte[]>() {})
@@ -93,10 +105,16 @@ public abstract class LlmProviderUtil {
                 .onErrorMap(RestClientResponseException.class, ClientResponseErrorException::new);
     }
 
-    protected static String getErrorMessage(int rawStatusCode,
-                                            String statusText,
-                                            @Nullable byte[] responseBody,
-                                            @Nullable Charset charset) {
+    /**
+     * Formats a human-readable error message combining the status code, status text, and response body.
+     *
+     * @param rawStatusCode the raw HTTP status code
+     * @param statusText    the HTTP status reason phrase
+     * @param responseBody  the raw byte array of the response body
+     * @param charset       the character set to use for decoding the body
+     * @return a formatted error message string
+     */
+    protected static String getErrorMessage(int rawStatusCode, String statusText, byte[] responseBody, Charset charset) {
         String preface = rawStatusCode + " " + statusText + ": ";
         if (ObjectUtils.isEmpty(responseBody)) {
             return preface + "[no body]";
@@ -107,6 +125,12 @@ public abstract class LlmProviderUtil {
         return preface + bodyText;
     }
 
+    /**
+     * Extracts the character set from the HTTP headers, if present.
+     *
+     * @param headers the HTTP headers to inspect
+     * @return the {@link Charset}, or null if not explicitly defined
+     */
     protected static Charset getCharset(HttpHeaders headers) {
         MediaType contentType = headers.getContentType();
         return (contentType != null ? contentType.getCharset() : null);

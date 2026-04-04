@@ -13,17 +13,25 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.interceptor;
+package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 
-import reactor.core.publisher.Mono;
+import pro.chenggang.project.reactive.ai.lite.core.entity.AttributesAbility;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 
 /**
+ * The Llm Provider Interceptor Exchange.
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
-public interface LlmProviderInterceptorChain {
+public interface LlmProviderExchange extends AttributesAbility {
 
-    Mono<Void> next(LlmProviderExchange exchange);
+    ExecutionContextView contextView();
+
+    LlmClientType clientType();
+
+    LlmProviderInfo llmProviderInfo();
 
 }

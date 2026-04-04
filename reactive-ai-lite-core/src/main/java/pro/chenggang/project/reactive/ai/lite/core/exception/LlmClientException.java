@@ -18,40 +18,47 @@ package pro.chenggang.project.reactive.ai.lite.core.exception;
 import java.io.Serial;
 
 /**
- * Base exception for LLM client-related errors.
- * This exception serves as the superclass for more specific exceptions that can be thrown by the LLM client.
+ * Base exception class for all errors related to the LLM client interactions.
+ * <p>
+ * This exception serves as the root superclass for more specific exceptions
+ * that can be thrown during configuration, processing, or network communication
+ * by the LLM client framework. It is an unchecked {@link RuntimeException}.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public class LlmClientException extends RuntimeException {
 
+    /**
+     * Unique serial version identifier.
+     */
     @Serial
     private static final long serialVersionUID = 6430987450515923414L;
 
     /**
      * Constructs a new LlmClientException with the specified detail message.
      *
-     * @param message the detail message.
+     * @param message the detail message describing the error
      */
     public LlmClientException(String message) {
         super(message);
     }
 
     /**
-     * Constructs a new LlmClientException with the specified detail message and cause.
+     * Constructs a new LlmClientException with the specified detail message and underlying cause.
      *
-     * @param message the detail message.
-     * @param cause   the cause.
+     * @param message the detail message describing the error
+     * @param cause   the underlying cause of the error
      */
     public LlmClientException(String message, Throwable cause) {
         super(message, cause);
     }
 
     /**
-     * Constructs a new LlmClientException with the specified cause.
+     * Constructs a new LlmClientException with the specified underlying cause.
      *
-     * @param cause the cause.
+     * @param cause the underlying cause of the error
      */
     public LlmClientException(Throwable cause) {
         super(cause);

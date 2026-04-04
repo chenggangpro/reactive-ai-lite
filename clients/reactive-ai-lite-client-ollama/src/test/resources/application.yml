@@ -4,4 +4,4 @@ server:
     connection-timeout: PT120S
 logging:
   level:
-    pro.chenggang: TRACE
+    pro.chenggang: DEBUG

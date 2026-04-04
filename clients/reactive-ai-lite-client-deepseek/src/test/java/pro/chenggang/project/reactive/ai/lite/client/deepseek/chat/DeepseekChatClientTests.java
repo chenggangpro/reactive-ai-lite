@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.client.openai.chat;
+package pro.chenggang.project.reactive.ai.lite.client.deepseek.chat;
 
 import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -27,11 +27,11 @@ import lombok.extern.jackson.Jacksonized;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
-import pro.chenggang.project.reactive.ai.lite.client.openai.OpenaiLlmClientTestApplicationTests;
+import pro.chenggang.project.reactive.ai.lite.client.deepseek.DeepseekLlmClientTestApplicationTests;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.TextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.tool.DefaultToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
+import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import reactor.test.StepVerifier;
 
 import java.util.List;
@@ -40,13 +40,15 @@ import java.util.List;
  * @author Cheng Gang
  * @version 0.1.0
  */
-public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
+public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTests {
 
     @Autowired
     ObjectMapper objectMapper;
 
     @Autowired
     ReactiveLlmClient reactiveLlmClient;
+
+    String model = "deepseek-reasoner";
 
     @Test
     void testChatGeneralExecute() {
@@ -56,10 +58,9 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")))
-                .textMessage((contextView -> TextMessage.of("192.168.64.1/24 网段范围?")))
-                .maxCompletionTokens(contextView -> 100)
+                .model(contextView -> model)
+                .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .general()
                 .execute()
                 .as(StepVerifier::create)
@@ -81,10 +82,9 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")))
-                .textMessage((contextView -> TextMessage.of("192.168.64.1/24 网段范围?")))
-                .maxCompletionTokens(contextView -> 50)
+                .model(contextView -> model)
+                .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .stream()
                 .execute()
                 .collectList()
@@ -107,10 +107,13 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")))
-                .textMessage((contextView -> TextMessage.of("192.168.64.1/24 网段范围?")))
-                .maxCompletionTokens(contextView -> 50)
+                .model(contextView -> model)
+                .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。\n"
+                        + "你的结果数据必须满足 JSON SCHEMA：" + JsonSchemaUtil.generateForType(ResultClass.class) + "  \n\n"
+                        + "示例：{\"min_range\": \"192.168.0.1\", \"max_range\": \"192.168.0.255\"}"
+                ))
+                .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
+                .maxCompletionTokens(contextView -> 1000)
                 .structured()
                 .execute(new ParameterizedTypeReference<ResultClass>() {})
                 .as(StepVerifier::create)
@@ -132,9 +135,9 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
-                .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
+                .model(contextView -> model)
+                .systemMessage((contextView -> "You are a helpful assistant"))
+                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
@@ -165,9 +168,9 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
-                .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
+                .model(contextView -> model)
+                .systemMessage((contextView -> "You are a helpful assistant"))
+                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
@@ -198,9 +201,9 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
-                .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
+                .model(contextView -> model)
+                .systemMessage((contextView -> "You are a helpful assistant"))
+                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
@@ -232,9 +235,9 @@ public class ChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> "gpt-4.1-nano")
-                .systemMessage((contextView -> TextMessage.of("You are a helpful assistant")))
-                .textMessage((contextView -> TextMessage.of("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")))
+                .model(contextView -> model)
+                .systemMessage((contextView -> "You are a helpful assistant"))
+                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")

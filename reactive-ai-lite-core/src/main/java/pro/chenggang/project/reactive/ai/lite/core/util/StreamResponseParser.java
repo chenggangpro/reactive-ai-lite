@@ -17,7 +17,6 @@ package pro.chenggang.project.reactive.ai.lite.core.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -28,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscription;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.option.ResponseDataType;
+import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -49,9 +48,11 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
 
 /**
  * A {@link BaseSubscriber} implementation that parses a stream of JSON string chunks from an AI model's response.
+ * <p>
  * This class is responsible for transforming a raw {@code Flux<String>} into a structured {@code Flux<RawStreamResponse>}.
  * It handles backpressure, aggregates related message parts (like tool calls), determines the data type of each chunk,
  * and emits them as discrete {@link RawStreamResponse} objects.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -61,33 +62,29 @@ public class StreamResponseParser extends BaseSubscriber<String> {
 
     protected static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
     private final Deque<ObjectNode> toolCallData = new ConcurrentLinkedDeque<>();
-    private final AtomicReference<ResponseDataType> currentDataType = new AtomicReference<>();
+    private final AtomicReference<StreamDataType> currentDataType = new AtomicReference<>();
     private final AtomicBoolean inParsing = new AtomicBoolean(false);
     private final AtomicBoolean cancelSignal = new AtomicBoolean(false);
     private final AtomicLong requestDataCount = new AtomicLong(0);
     private final Object monitor = new Object();
 
-    private final ArrayNode requestMessages;
     private final ExecutionContextView executionContextView;
     private final FluxSink<RawStreamResponse> sink;
-    private final Function<ObjectNode, StreamChunk[]> streamChunkParser;
+    private final Function<ObjectNode, JsonStreamChunkSlide[]> streamChunkParser;
     private final Function<List<ObjectNode>, ObjectNode> rawToolCallMerger;
 
     /**
      * Constructs a new StreamResponseParser.
      *
-     * @param requestMessages      The initial request messages sent to the AI model.
      * @param executionContextView A view of the current execution context.
      * @param sink                 The {@link FluxSink} to push parsed {@link RawStreamResponse} objects to.
      * @param streamChunkParser    A function to parse stream chunks from a JSON object.
      * @param rawToolCallMerger    A function to merge multiple tool call chunks into a single representative JSON object.
      */
-    public StreamResponseParser(@NonNull ArrayNode requestMessages,
-                                @NonNull ExecutionContextView executionContextView,
+    public StreamResponseParser(@NonNull ExecutionContextView executionContextView,
                                 @NonNull FluxSink<RawStreamResponse> sink,
-                                @NonNull Function<ObjectNode, StreamChunk[]> streamChunkParser,
+                                @NonNull Function<ObjectNode, JsonStreamChunkSlide[]> streamChunkParser,
                                 @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
-        this.requestMessages = requestMessages;
         this.executionContextView = executionContextView;
         this.sink = sink;
         this.streamChunkParser = streamChunkParser;
@@ -96,22 +93,23 @@ public class StreamResponseParser extends BaseSubscriber<String> {
 
     /**
      * A static factory method to create a {@link Flux} of {@link RawStreamResponse} from a raw stream of JSON strings.
+     * <p>
      * It sets up the reactive pipeline by creating a {@link StreamResponseParser} and connecting it to the upstream
      * and downstream fluxes.
+     * </p>
      *
-     * @param requestMessages      The initial request messages sent to the AI model.
      * @param executionContextView A view of the current execution context.
+     * @param rawStreamResponse    The raw stream of JSON strings from the provider.
      * @param streamChunkParser    A function to parse stream chunks from a JSON object.
      * @param rawToolCallMerger    A function to merge multiple tool call chunks into a single representative JSON object.
      * @return A new {@link Flux} that emits parsed {@link RawStreamResponse} objects.
      */
-    public static Flux<RawStreamResponse> parseStreamResponse(@NonNull ArrayNode requestMessages,
-                                                              @NonNull ExecutionContextView executionContextView,
+    public static Flux<RawStreamResponse> parseStreamResponse(@NonNull ExecutionContextView executionContextView,
                                                               @NonNull Flux<String> rawStreamResponse,
-                                                              @NonNull Function<ObjectNode, StreamChunk[]> streamChunkParser,
+                                                              @NonNull Function<ObjectNode, JsonStreamChunkSlide[]> streamChunkParser,
                                                               @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
         return Flux.create(fluxSink -> {
-            StreamResponseParser streamResponseParser = new StreamResponseParser(requestMessages, executionContextView, fluxSink, streamChunkParser, rawToolCallMerger);
+            StreamResponseParser streamResponseParser = new StreamResponseParser(executionContextView, fluxSink, streamChunkParser, rawToolCallMerger);
             fluxSink.onRequest(streamResponseParser::onSinkRequestData);
             fluxSink.onCancel(streamResponseParser::onSinkCancel);
             fluxSink.onDispose(streamResponseParser::onSinkDispose);
@@ -182,32 +180,30 @@ public class StreamResponseParser extends BaseSubscriber<String> {
             onSinkCancel();
             return;
         }
-        if (currentDataType.compareAndSet(null, ResponseDataType.REQUEST_MESSAGE)) {
-            this.sink.next(RawStreamResponse.builder()
-                    .contextView(this.executionContextView)
-                    .dataType(ResponseDataType.REQUEST_MESSAGE)
-                    .dataContent(requestMessages)
-                    .build()
-            );
-            this.requestDataCount.decrementAndGet();
-        }
-        StreamChunk[] streamChunks = streamChunkParser.apply(objectNode);
-        if (streamChunks.length == 0) {
+        JsonStreamChunkSlide[] jsonStreamChunkSlides = streamChunkParser.apply(objectNode);
+        if (jsonStreamChunkSlides.length == 0) {
             return;
         }
-        int maxIndex = streamChunks.length - 1;
-        for (int i = 0; i < streamChunks.length; i++) {
-            StreamChunk streamChunk = streamChunks[i];
-            ResponseDataType responseDataType = streamChunk.getResponseDataType();
+        int maxIndex = jsonStreamChunkSlides.length - 1;
+        for (int i = 0; i < jsonStreamChunkSlides.length; i++) {
+            JsonStreamChunkSlide jsonStreamChunkSlide = jsonStreamChunkSlides[i];
+            StreamDataType streamDataType = jsonStreamChunkSlide.getStreamDataType();
             // if value is role content then request next without checking remain count
-            if (ResponseDataType.ROLE.equals(responseDataType)) {
+            if (StreamDataType.ROLE.equals(streamDataType)) {
+                RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
+                        .contextView(this.executionContextView)
+                        .dataType(StreamDataType.ROLE)
+                        .dataContent(objectNode)
+                        .build();
+                this.sink.next(rawStreamResponse);
+                this.requestDataCount.decrementAndGet();
                 toolCallData.add(objectNode);
                 if (i == maxIndex) {
                     request(1);
                 }
                 continue;
             }
-            if (ResponseDataType.TOOL_CALL.equals(currentDataType.get()) && !ResponseDataType.TOOL_CALL.equals(responseDataType)) {
+            if (StreamDataType.TOOL_CALL.equals(currentDataType.get()) && !StreamDataType.TOOL_CALL.equals(streamDataType)) {
                 List<ObjectNode> rawToolCalls = new ArrayList<>();
                 while (!toolCallData.isEmpty()) {
                     rawToolCalls.add(toolCallData.poll());
@@ -215,7 +211,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
                 ObjectNode allToolCalls = rawToolCallMerger.apply(rawToolCalls);
                 RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
                         .contextView(this.executionContextView)
-                        .dataType(ResponseDataType.TOOL_CALL)
+                        .dataType(StreamDataType.TOOL_CALL)
                         .dataContent(allToolCalls)
                         .build();
                 this.sink.next(rawStreamResponse);
@@ -225,12 +221,12 @@ public class StreamResponseParser extends BaseSubscriber<String> {
                 }
                 continue;
             }
-            currentDataType.set(responseDataType);
+            currentDataType.set(streamDataType);
             // answer content or reasoning content
-            if (ResponseDataType.ANSWER_CONTENT.equals(responseDataType) || ResponseDataType.REASONING_CONTENT.equals(responseDataType)) {
+            if (StreamDataType.ANSWER_CONTENT.equals(streamDataType) || StreamDataType.REASONING_CONTENT.equals(streamDataType)) {
                 RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
                         .contextView(this.executionContextView)
-                        .dataType(responseDataType)
+                        .dataType(streamDataType)
                         .dataContent(objectNode)
                         .build();
                 this.sink.next(rawStreamResponse);
@@ -241,7 +237,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
                 continue;
             }
             // tool call content
-            if (ResponseDataType.TOOL_CALL.equals(responseDataType)) {
+            if (StreamDataType.TOOL_CALL.equals(streamDataType)) {
                 toolCallData.add(objectNode);
                 if (i == maxIndex) {
                     request(1);
@@ -251,7 +247,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
             // others content
             RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
                     .contextView(this.executionContextView)
-                    .dataType(responseDataType)
+                    .dataType(streamDataType)
                     .dataContent(objectNode)
                     .build();
             this.sink.next(rawStreamResponse);
@@ -278,7 +274,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
             }
         }
         // if there is tool call content left
-        if (ResponseDataType.TOOL_CALL.equals(currentDataType.get()) && !toolCallData.isEmpty()) {
+        if (StreamDataType.TOOL_CALL.equals(currentDataType.get()) && !toolCallData.isEmpty()) {
             List<ObjectNode> rawToolCalls = new ArrayList<>();
             while (!toolCallData.isEmpty()) {
                 rawToolCalls.add(toolCallData.poll());
@@ -286,7 +282,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
             ObjectNode allToolCalls = rawToolCallMerger.apply(rawToolCalls);
             RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
                     .contextView(this.executionContextView)
-                    .dataType(ResponseDataType.TOOL_CALL)
+                    .dataType(StreamDataType.TOOL_CALL)
                     .dataContent(allToolCalls)
                     .build();
             this.sink.next(rawStreamResponse);
@@ -355,14 +351,19 @@ public class StreamResponseParser extends BaseSubscriber<String> {
         }
     }
 
+    /**
+     * Represents a single slide or fragment of parsed JSON stream data.
+     *
+     * @author Cheng Gang
+     */
     @Getter
     @Builder
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class StreamChunk {
+    public static class JsonStreamChunkSlide {
         /**
          * The response data type.
          */
-        private final ResponseDataType responseDataType;
+        private final StreamDataType streamDataType;
         /**
          * The response data content.
          */

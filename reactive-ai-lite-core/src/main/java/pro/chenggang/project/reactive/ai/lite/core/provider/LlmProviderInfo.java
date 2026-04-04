@@ -21,9 +21,13 @@ import java.util.Set;
 
 
 /**
- * Interface representing information about a Large Language Model (LLM) provider.
- * This interface defines the contract for LLM provider implementations, including
- * provider identification, profile management, and model support capabilities.
+ * Provides static metadata and configuration details about an LLM provider.
+ * <p>
+ * This interface allows the framework to interrogate a provider about its identity,
+ * its connection endpoints, and the profiles and models it supports without having
+ * to invoke an actual request. This is crucial for dynamic provider selection and
+ * routing.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -31,53 +35,72 @@ import java.util.Set;
 public interface LlmProviderInfo {
 
     /**
-     * Returns the name of the LLM provider.
+     * Returns the unique name or identifier of the LLM provider.
+     * <p>
+     * E.g., "openai", "anthropic", "ollama". This is often used in configuration
+     * files or when explicitly selecting a provider by name.
+     * </p>
      *
      * @return the provider name as a String
      */
     String name();
 
     /**
-     * Returns the base URL for the LLM provider.
+     * Returns the base URL for the LLM provider's API.
+     * <p>
+     * E.g., "https://api.openai.com/v1".
+     * </p>
      *
      * @return the base URL as a String
      */
     String baseUrl();
 
     /**
-     * Returns the endpoint for the LLM provider.
+     * Returns the specific API endpoint used for requests related to this provider's capability.
+     * <p>
+     * E.g., "/chat/completions". This is appended to the base URL to form the full
+     * request URI.
+     * </p>
      *
-     * @return the endpoint as a String
+     * @return the endpoint path as a String
      */
     String endpoint();
 
     /**
-     * Returns the set of profiles supported by this LLM provider.
-     * Profiles typically represent different configurations or environments
-     * (e.g., development, production, testing).
+     * Returns the set of configuration profiles supported by this LLM provider.
+     * <p>
+     * Profiles represent different sets of credentials or environments configured for
+     * the same provider (e.g., "default", "production", "testing"). A provider must
+     * have at least one profile (usually "default") to be usable.
+     * </p>
      *
      * @return a Set of profile names supported by this provider
      */
     Set<String> profiles();
 
     /**
-     * Checks whether this provider supports the specified model.
-     * The default implementation returns true, indicating that all models
-     * are supported unless overridden by the implementing class.
+     * Checks whether this provider instance supports the specified AI model.
+     * <p>
+     * Some providers restrict access to certain models, or different instances of the
+     * same provider (e.g., different self-hosted Ollama instances) might have different
+     * models loaded. The default implementation assumes the provider supports all requested models.
+     * </p>
      *
-     * @param modelName the name of the model to check for support, must not be null
-     * @return true if the model is supported, false otherwise
+     * @param modelName the name of the model to check, must not be null
+     * @return {@code true} if the model is supported, {@code false} otherwise
      */
     default boolean supportModel(@NonNull String modelName) {
         return true;
     }
 
     /**
-     * Indicates whether this provider is the default provider.
-     * The default implementation returns false, meaning the provider
-     * is not the default unless explicitly overridden.
+     * Indicates whether this provider is the primary or default choice within its capability category.
+     * <p>
+     * When multiple providers offer the same capability (e.g., CHAT), the framework uses
+     * this flag to select the default one when no specific provider is requested.
+     * </p>
      *
-     * @return true if this is the default provider, false otherwise
+     * @return {@code true} if this is the default provider, {@code false} otherwise
      */
     default boolean isDefault() {
         return false;

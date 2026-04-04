@@ -4,13 +4,14 @@ server:
     connection-timeout: PT120S
 logging:
   level:
-    pro.chenggang: TRACE
+    pro.chenggang: DEBUG
 reactive:
   ai:
     lite:
       client:
         openai:
           chat-provider:
+            base-url: http://127.0.0.1:8000
             certifications:
-              - token: YOUR_OPENAI_API_KEY
+              - token: Z46r-1hmn-zZkC-Mws2-Mhwj-G2sD-z0
                 default: true

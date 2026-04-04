@@ -24,9 +24,12 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import java.util.function.Predicate;
 
 /**
- * A registry for managing and accessing Large Language Model (LLM) providers.
- * This interface defines methods for retrieving providers based on their capabilities
- * and other criteria.
+ * A central registry for managing, discovering, and retrieving configured LLM providers.
+ * <p>
+ * This interface acts as the entry point for the framework to find the appropriate
+ * provider implementation based on the required capability or dynamically evaluated
+ * selection criteria.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -34,18 +37,26 @@ import java.util.function.Predicate;
 public interface LlmProviderRegistry {
 
     /**
-     * Retrieves the default provider for a specific {@link Capability}.
+     * Retrieves the default provider associated with a specific capability.
+     * <p>
+     * If multiple providers support the given capability, this method returns the one
+     * explicitly marked as default or, if none are marked, the first available provider.
+     * </p>
      *
-     * @param capability The capability for which to find the default provider. Must not be null.
-     * @return The default {@link LlmProvider}.
+     * @param capability the {@link Capability} (e.g., CHAT, EMBEDDING) for which to find the provider
+     * @return the default {@link LlmProvider} supporting the requested capability
      */
     LlmProvider getDefaultProvider(@NonNull Capability capability);
 
     /**
-     * Finds and returns a chat provider that matches the given filter.
+     * Finds and returns an {@link LlmChatProvider} that matches the given dynamic filter.
+     * <p>
+     * This method evaluates the provided predicate against the {@link LlmProviderInfo} of
+     * all registered chat providers. It returns the first provider that satisfies the condition.
+     * </p>
      *
-     * @param providerFilter A {@link Predicate} to apply to the {@link LlmProviderInfo} of each provider. Must not be null.
-     * @return The first {@link LlmChatProvider} that matches the filter.
+     * @param providerFilter a {@link Predicate} used to evaluate each provider's info
+     * @return the first {@link LlmChatProvider} that matches the filter
      */
     LlmChatProvider getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter);
 

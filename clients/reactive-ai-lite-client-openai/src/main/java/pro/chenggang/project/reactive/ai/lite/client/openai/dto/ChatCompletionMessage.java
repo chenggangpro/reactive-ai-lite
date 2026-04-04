@@ -42,12 +42,12 @@ import java.util.List;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class ChatCompletionMessage {
 
-    @JsonProperty("content")
-    private final Object rawContent;
     @JsonProperty("role")
     private final Role role;
     @JsonProperty("name")
     private final String name;
+    @JsonProperty("content")
+    private final Object rawContent;
     @JsonProperty("tool_call_id")
     private final String toolCallId;
     @JsonProperty("tool_calls")

@@ -32,31 +32,50 @@ import java.lang.reflect.Type;
 import java.util.stream.Stream;
 
 /**
+ * Utility class for generating JSON schemas from Java types.
+ * <p>
+ * This class uses the Victools JSON Schema Generator to dynamically create JSON schemas
+ * corresponding to Java classes or parameterized types. These schemas are commonly used
+ * to describe tool input parameters or structured output formats to AI models.
+ * </p>
  *
+ * @author Cheng Gang
+ * @version 0.1.0
  */
 public final class JsonSchemaUtil {
 
     private static final SchemaGenerator TYPE_SCHEMA_GENERATOR;
 
     /*
-     * Initialize JSON Schema generators.
+     * Initialize JSON Schema generators with standard presets and Jackson integration.
      */
     static {
         Module jacksonModule = new JacksonModule(JacksonOption.RESPECT_JSONPROPERTY_REQUIRED);
-        SchemaGeneratorConfigBuilder schemaGeneratorConfigBuilder = new SchemaGeneratorConfigBuilder(
-                SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)
+        SchemaGeneratorConfig subtypeConfig = new SchemaGeneratorConfigBuilder(SchemaVersion.DRAFT_2020_12,
+                OptionPreset.PLAIN_JSON
+        )
                 .with(jacksonModule)
                 .with(Option.EXTRA_OPEN_API_FORMAT_VALUES)
-                .with(Option.PLAIN_DEFINITION_KEYS);
-        SchemaGeneratorConfig typeSchemaGeneratorConfig = schemaGeneratorConfigBuilder.build();
-        TYPE_SCHEMA_GENERATOR = new SchemaGenerator(typeSchemaGeneratorConfig);
-        SchemaGeneratorConfig subtypeSchemaGeneratorConfig = schemaGeneratorConfigBuilder
+                .with(Option.STANDARD_FORMATS)
+                .with(Option.PLAIN_DEFINITION_KEYS)
                 .without(Option.SCHEMA_VERSION_INDICATOR)
                 .build();
+
+        TYPE_SCHEMA_GENERATOR = new SchemaGenerator(subtypeConfig);
     }
 
     /**
-     * Generate a JSON Schema for a class type.
+     * Generates a JSON Schema for the given Java type.
+     * <p>
+     * This method analyzes the provided {@link Type} and produces a JSON string representing
+     * its schema according to JSON Schema Draft 2020-12. It applies any specified
+     * {@link SchemaOption}s to modify the resulting schema.
+     * </p>
+     *
+     * @param type          the Java type to generate the schema for
+     * @param schemaOptions optional settings to customize the generated schema
+     * @return a formatted JSON string representing the schema
+     * @throws IllegalArgumentException if the type is null
      */
     public static String generateForType(Type type, SchemaOption... schemaOptions) {
         Assert.notNull(type, "type cannot be null");
@@ -68,6 +87,12 @@ public final class JsonSchemaUtil {
         return schema.toPrettyString();
     }
 
+    /**
+     * Processes and applies the specified schema options to the generated schema object.
+     *
+     * @param schemaOptions the options to apply
+     * @param schema        the generated schema node
+     */
     private static void processSchemaOptions(SchemaOption[] schemaOptions, ObjectNode schema) {
         if (Stream.of(schemaOptions)
                 .noneMatch(option -> option == SchemaOption.ALLOW_ADDITIONAL_PROPERTIES_BY_DEFAULT)) {
@@ -78,7 +103,15 @@ public final class JsonSchemaUtil {
         }
     }
 
-    // Based on the method in ModelOptionsUtils.
+    /**
+     * Recursively traverses the JSON schema node and converts all "type" property values to uppercase.
+     * <p>
+     * This is sometimes required for compatibility with specific AI providers that expect
+     * uppercase type indicators in the schema.
+     * </p>
+     *
+     * @param node the JSON node to traverse and modify
+     */
     public static void convertTypeValuesToUpperCase(ObjectNode node) {
         if (node.isObject()) {
             node.properties().forEach(entry -> {
@@ -86,7 +119,7 @@ public final class JsonSchemaUtil {
                 if (value.isObject()) {
                     convertTypeValuesToUpperCase((ObjectNode) value);
                 } else if (value.isArray()) {
-                    value.elements().forEachRemaining(element -> {
+                    value.forEach(element -> {
                         if (element.isObject() || element.isArray()) {
                             convertTypeValuesToUpperCase((ObjectNode) element);
                         }
@@ -97,7 +130,7 @@ public final class JsonSchemaUtil {
                 }
             });
         } else if (node.isArray()) {
-            node.elements().forEachRemaining(element -> {
+            node.forEach(element -> {
                 if (element.isObject() || element.isArray()) {
                     convertTypeValuesToUpperCase((ObjectNode) element);
                 }
@@ -106,17 +139,20 @@ public final class JsonSchemaUtil {
     }
 
     /**
-     * Options for generating JSON Schemas.
+     * Options for customizing the generation of JSON Schemas.
+     *
+     * @author Cheng Gang
      */
     public enum SchemaOption {
 
         /**
-         * Allow an object to contain additional key/values not defined in the schema.
+         * By default, the generator sets "additionalProperties" to false. This option overrides
+         * that behavior, allowing the described object to contain arbitrary additional properties.
          */
         ALLOW_ADDITIONAL_PROPERTIES_BY_DEFAULT,
 
         /**
-         * Convert all "type" values to upper case.
+         * Converts the values of "type" fields in the schema to uppercase (e.g., "string" becomes "STRING").
          */
         UPPER_CASE_TYPE_VALUES
 

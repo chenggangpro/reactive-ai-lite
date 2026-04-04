@@ -31,9 +31,13 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
- * The default implementation of {@link LlmProviderRegistry}.
- * This class manages a collection of {@link LlmProvider} instances, allowing for the retrieval of
- * default providers by capability and the selection of specific providers based on custom filters.
+ * The standard, default implementation of the {@link LlmProviderRegistry}.
+ * <p>
+ * This class manages a collection of initialized {@link LlmProvider} instances.
+ * Upon instantiation, it categorizes providers by their capability and determines
+ * the default provider for each capability based on the {@link LlmProviderInfo#isDefault()} flag.
+ * It provides efficient lookup methods to resolve providers at runtime.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -41,12 +45,30 @@ import java.util.function.Predicate;
 @Slf4j
 public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
 
+    /**
+     * A map storing the default provider assigned to each capability.
+     */
     private final Map<Capability, LlmProvider> defaultProviderContainer = new HashMap<>();
+
+    /**
+     * An immutable list of all successfully registered and validated providers.
+     */
     private final List<LlmProvider> providers;
 
+    /**
+     * Constructs a new {@link DefaultLlmProviderRegistry}.
+     * <p>
+     * Iterates through the provided list of LLM providers. Providers with null info
+     * are skipped. For valid providers, if their info is marked as default, they are
+     * registered as the default for their specific capability (the first one encountered wins).
+     * </p>
+     *
+     * @param providers the list of {@link LlmProvider} instances injected or configured
+     * @throws IllegalArgumentException if the provided list is empty or null
+     */
     public DefaultLlmProviderRegistry(@NonNull List<LlmProvider> providers) {
         if (CollectionUtils.isEmpty(providers)) {
-            throw new IllegalArgumentException("At least one LlmProvider is provided.");
+            throw new IllegalArgumentException("At least one LlmProvider must be provided.");
         }
         List<LlmProvider> validProviders = new ArrayList<>();
         for (LlmProvider llmProvider : providers) {
@@ -60,9 +82,16 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
             }
         }
         this.providers = List.copyOf(validProviders);
-        log.info("Initialized {} LlmProvider instances.", providers.size());
+        log.info("Initialized {} LlmProvider instances.", validProviders.size());
     }
 
+    /**
+     * Retrieves the default provider associated with the specified capability.
+     *
+     * @param capability the {@link Capability} required
+     * @return the default {@link LlmProvider} for that capability
+     * @throws IllegalArgumentException if no default provider is registered for the capability
+     */
     @Override
     public LlmProvider getDefaultProvider(@NonNull Capability capability) {
         LlmProvider llmProvider = defaultProviderContainer.get(capability);
@@ -72,12 +101,24 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
         return llmProvider;
     }
 
+    /**
+     * Finds and returns a chat provider that matches the given predicate filter.
+     * <p>
+     * This iterates through all registered providers, filtering only for those with
+     * the {@link Capability#CHAT} capability, and tests them against the provided filter.
+     * The first provider to match is returned.
+     * </p>
+     *
+     * @param providerFilter the predicate used to evaluate each provider's metadata
+     * @return the matched {@link LlmChatProvider}
+     * @throws IllegalStateException if no chat provider matches the filter criteria
+     */
     @Override
     public LlmChatProvider getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter) {
         return this.providers.stream()
                 .filter(llmProvider -> Capability.CHAT.equals(llmProvider.capability()) && providerFilter.test(llmProvider.info()))
                 .findFirst()
                 .map(LlmChatProvider.class::cast)
-                .orElseThrow(() -> new IllegalStateException("No LlmProvider found that matches the given filter"));
+                .orElseThrow(() -> new IllegalStateException("No LlmChatProvider found that matches the given filter."));
     }
 }

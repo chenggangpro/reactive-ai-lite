@@ -13,25 +13,19 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.entity.values;
+package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 
-import java.util.List;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
+ * The Llm Provider Interceptor Exchange.
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
-public interface LlmRequestData {
+public interface LlmProviderRequestExchange extends LlmProviderExchange {
 
-    /**
-     * Get the trace ID associated with the LLM request data.
-     * @return
-     */
-    TraceId getTraceId();
+    String RAW_REQUEST_BODY_ATTRIBUTE_KEY = LlmProviderRequestExchange.class.getName() + ".raw-request-body";
 
-    /**
-     * Get the summary of the LLM request data.
-     * @return the summary of the LLM request data as a String
-     */
-    List<String> getSummary();
+    ObjectNode rawRequestBody();
 }

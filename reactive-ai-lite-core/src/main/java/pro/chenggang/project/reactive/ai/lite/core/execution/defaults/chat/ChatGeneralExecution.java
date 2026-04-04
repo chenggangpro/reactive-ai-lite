@@ -26,13 +26,29 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 import reactor.core.publisher.Mono;
 
 /**
+ * The standard implementation of {@link GeneralExecution} for LLM chat operations.
+ * <p>
+ * This class orchestrates a standard, non-streaming chat request. It relies on
+ * the {@link LlmProviderExecutor} to resolve the appropriate {@link LlmChatProvider}
+ * dynamically based on the execution context and configuration specification.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public class ChatGeneralExecution implements GeneralExecution {
 
+    /**
+     * The executor responsible for resolving the provider and executing the request.
+     */
     private final LlmProviderExecutor llmProviderExecutor;
 
+    /**
+     * Constructs a new {@link ChatGeneralExecution}.
+     *
+     * @param llmProviderRegistry the registry for looking up providers
+     * @param executionSpec       the execution specification
+     */
     private ChatGeneralExecution(@NonNull LlmProviderRegistry llmProviderRegistry, @NonNull ExecutionSpec executionSpec) {
         this.llmProviderExecutor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(llmProviderRegistry)
@@ -40,20 +56,42 @@ public class ChatGeneralExecution implements GeneralExecution {
                 .build();
     }
 
+    /**
+     * Factory method for creating a new {@link ChatGeneralExecution}.
+     *
+     * @param llmProviderRegistry the registry for looking up providers
+     * @param executionSpec       the execution specification
+     * @return a new {@link GeneralExecution} instance
+     */
     public static GeneralExecution of(@NonNull LlmProviderRegistry llmProviderRegistry, @NonNull ExecutionSpec executionSpec) {
         return new ChatGeneralExecution(llmProviderRegistry, executionSpec);
     }
 
+    /**
+     * Retrieves the underlying execution specification.
+     *
+     * @return the execution spec
+     */
     @Override
     public ExecutionSpec executionSpec() {
         return this.llmProviderExecutor.getExecutionSpec();
     }
 
+    /**
+     * Executes the general chat request and returns a parsed response.
+     *
+     * @return a {@link Mono} of a {@link GeneralResponse}
+     */
     @Override
     public Mono<GeneralResponse> execute() {
         return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneral);
     }
 
+    /**
+     * Executes the general chat request and returns a raw JSON response.
+     *
+     * @return a {@link Mono} of a {@link RawResponse}
+     */
     @Override
     public Mono<RawResponse> executeRaw() {
         return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneralRaw);

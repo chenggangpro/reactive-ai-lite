@@ -21,15 +21,29 @@ import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import java.util.Set;
 
 /**
+ * A marker interface defining the common contract for an interceptor that modifies
+ * or inspects the execution flow of an LLM provider request.
+ * <p>
+ * Interceptors implement Spring's {@link Ordered} interface to define their relative
+ * position in the execution chain. They can specify which types of LLM clients they
+ * support (e.g., CHAT only, or all types) so that the framework can dynamically route
+ * requests through the appropriate interceptors.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public interface LLmProviderExecutionInterceptor extends Ordered {
 
     /**
-     * Return the supported client types for this interceptor.
+     * Declares the set of client types that this interceptor supports.
+     * <p>
+     * An interceptor will only be applied to requests originating from a client type
+     * included in this set. Returning an empty or null set usually indicates that it
+     * supports no clients (and effectively disables the interceptor).
+     * </p>
      *
-     * @return the set of supported client types
+     * @return a {@link Set} of {@link LlmClientType}s this interceptor can process
      */
     Set<LlmClientType> supportedClient();
 

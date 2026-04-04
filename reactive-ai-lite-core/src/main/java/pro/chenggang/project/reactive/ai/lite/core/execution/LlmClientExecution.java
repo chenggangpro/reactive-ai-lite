@@ -18,8 +18,12 @@ package pro.chenggang.project.reactive.ai.lite.core.execution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
 
 /**
- * Represents a contract for LLM client executions, providing access to the underlying execution specification.
- * Implementations of this interface are responsible for defining how an LLM operation is configured and executed.
+ * Base interface for all types of LLM client executions (e.g., general, streaming, structured).
+ * <p>
+ * This interface establishes a common contract for execution handlers, ensuring that
+ * all handlers can expose their underlying configuration specification. It serves as
+ * the root for the execution strategy hierarchy.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -27,10 +31,14 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpe
 public interface LlmClientExecution {
 
     /**
-     * Returns the {@link ExecutionSpec} that configures this LLM client execution.
-     * The specification contains details about the provider, model, and other options.
+     * Returns the {@link ExecutionSpec} that configures this specific LLM execution.
+     * <p>
+     * The specification contains all the dynamically evaluated or statically configured
+     * details necessary to build the final request to the provider, such as the model name,
+     * temperature, messages, and selected profiles.
+     * </p>
      *
-     * @return The execution specification.
+     * @return the execution specification driving this handler
      */
     ExecutionSpec executionSpec();
 }

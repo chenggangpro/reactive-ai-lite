@@ -28,8 +28,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Provider interface for LLM chat capabilities, supporting various execution modes including
- * general responses, streaming, and structured outputs.
+ * Provider interface specifically tailored for LLM chat capabilities.
+ * <p>
+ * This interface extends {@link LlmProvider} to provide methods for executing various
+ * types of chat requests against an underlying AI service. It supports general single-turn
+ * requests, streaming responses, and structured output generation. Implementations of this
+ * interface handle the actual HTTP communication and protocol specifics for different AI providers.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -38,6 +43,9 @@ public interface LlmChatProvider extends LlmProvider {
 
     /**
      * Returns the capability type of this provider.
+     * <p>
+     * For chat providers, this always returns {@link Capability#CHAT}.
+     * </p>
      *
      * @return the {@link Capability#CHAT} capability
      */
@@ -47,15 +55,23 @@ public interface LlmChatProvider extends LlmProvider {
     }
 
     /**
-     * Executes a general chat request and returns a processed response.
+     * Executes a general chat request and returns a processed, unified response.
+     * <p>
+     * The response is parsed and converted into a standard {@link GeneralResponse}
+     * format, abstracting away provider-specific JSON structures.
+     * </p>
      *
      * @param executionInfo the execution information containing the request details
-     * @return a {@link Mono} emitting the general response
+     * @return a {@link Mono} emitting the unified general response
      */
     Mono<GeneralResponse> executeGeneral(@NonNull ExecutionInfo executionInfo);
 
     /**
-     * Executes a general chat request and returns the raw, unprocessed response.
+     * Executes a general chat request and returns the raw, unprocessed provider response.
+     * <p>
+     * This is useful when the calling code needs access to the exact JSON structure
+     * returned by the specific AI API.
+     * </p>
      *
      * @param executionInfo the execution information containing the request details
      * @return a {@link Mono} emitting the raw response
@@ -63,15 +79,22 @@ public interface LlmChatProvider extends LlmProvider {
     Mono<RawResponse> executeGeneralRaw(@NonNull ExecutionInfo executionInfo);
 
     /**
-     * Executes a streaming chat request and returns processed stream responses.
+     * Executes a streaming chat request and returns a flux of processed stream responses.
+     * <p>
+     * The response stream is parsed, and individual chunks (like text fragments or tool calls)
+     * are emitted as standard {@link StreamResponse} objects.
+     * </p>
      *
      * @param executionInfo the execution information containing the request details
-     * @return a {@link Flux} emitting stream responses as they arrive
+     * @return a {@link Flux} emitting parsed stream responses as they arrive
      */
     Flux<StreamResponse> executeStream(@NonNull ExecutionInfo executionInfo);
 
     /**
-     * Executes a streaming chat request and returns raw, unprocessed stream responses.
+     * Executes a streaming chat request and returns a flux of raw, unprocessed stream chunks.
+     * <p>
+     * This is useful for intercepting or logging the exact SSE stream data sent by the provider.
+     * </p>
      *
      * @param executionInfo the execution information containing the request details
      * @return a {@link Flux} emitting raw stream responses as they arrive
@@ -79,51 +102,69 @@ public interface LlmChatProvider extends LlmProvider {
     Flux<RawStreamResponse> executeStreamRaw(@NonNull ExecutionInfo executionInfo);
 
     /**
-     * Executes a structured chat request and returns a response deserialized to the specified type.
+     * Executes a structured chat request and returns a response deserialized into the specified class type.
+     * <p>
+     * The provider implementation is responsible for instructing the model to output JSON
+     * matching the schema of the provided class, and then parsing that JSON into an instance.
+     * </p>
      *
-     * @param <R> the type of the result object
+     * @param <R>           the type of the result object
      * @param executionInfo the execution information containing the request details
-     * @param resultType the class type to deserialize the response into
+     * @param resultType    the class type to deserialize the response into
      * @return a {@link Mono} emitting the structured response containing the deserialized result
      */
     <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType);
 
     /**
-     * Executes a structured chat request and returns a response deserialized to the specified parameterized type.
+     * Executes a structured chat request and returns a response deserialized into a parameterized type.
+     * <p>
+     * This method is used when the desired output type involves generics (e.g., {@code List<MyObject>}).
+     * </p>
      *
-     * @param <R> the type of the result object
+     * @param <R>           the type of the result object
      * @param executionInfo the execution information containing the request details
-     * @param resultType the parameterized type reference to deserialize the response into
+     * @param resultType    the parameterized type reference to deserialize the response into
      * @return a {@link Mono} emitting the structured response containing the deserialized result
      */
     <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType);
 
     /**
-     * Executes a structured chat request with a custom JSON schema and returns the raw response.
+     * Executes a structured chat request using a custom JSON schema string and returns the raw response.
+     * <p>
+     * The provider will force the model's output to conform to the provided JSON schema.
+     * </p>
      *
-     * @param executionInfo the execution information containing the request details
-     * @param responseJsonSchema the JSON schema defining the expected response structure
+     * @param executionInfo      the execution information containing the request details
+     * @param responseJsonSchema the raw JSON schema string defining the expected response structure
      * @return a {@link Mono} emitting the raw response
      */
     Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull String responseJsonSchema);
 
     /**
-     * Executes a structured chat request for the specified type and returns the raw response.
+     * Executes a structured chat request based on the schema of a class type and returns the raw response.
+     * <p>
+     * The framework will generate a JSON schema from the class, send it to the provider,
+     * and return the unparsed JSON string response.
+     * </p>
      *
-     * @param <R> the type of the result object
+     * @param <R>           the type of the result object
      * @param executionInfo the execution information containing the request details
-     * @param resultType the class type used to generate the response schema
-     * @return a {@link Mono} emitting the raw response
+     * @param resultType    the class type used to generate the response schema
+     * @return a {@link Mono} emitting the raw response containing the JSON string
      */
     <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType);
 
     /**
-     * Executes a structured chat request for the specified parameterized type and returns the raw response.
+     * Executes a structured chat request based on the schema of a parameterized type and returns the raw response.
+     * <p>
+     * The framework will generate a JSON schema from the parameterized type, send it to the provider,
+     * and return the unparsed JSON string response.
+     * </p>
      *
-     * @param <R> the type of the result object
+     * @param <R>           the type of the result object
      * @param executionInfo the execution information containing the request details
-     * @param resultType the parameterized type reference used to generate the response schema
-     * @return a {@link Mono} emitting the raw response
+     * @param resultType    the parameterized type reference used to generate the response schema
+     * @return a {@link Mono} emitting the raw response containing the JSON string
      */
     <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType);
 

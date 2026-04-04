@@ -22,8 +22,12 @@ import reactor.core.publisher.Flux;
 
 /**
  * Defines the contract for a streaming execution of an LLM request.
- * This execution type is designed for scenarios where the response is delivered as a stream of events,
- * wrapped in a {@link Flux}. It is ideal for handling real-time or chunked data from the LLM provider.
+ * <p>
+ * This execution type is designed for scenarios where the response is delivered
+ * as a continuous stream of events (e.g., Server-Sent Events), wrapped in a Project Reactor
+ * {@link Flux}. It is ideal for handling real-time or chunked text generation, allowing
+ * applications to display responses to users before the entire completion is finished.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -31,28 +35,38 @@ import reactor.core.publisher.Flux;
 public interface StreamExecution extends LlmClientExecution {
 
     /**
-     * Executes the streaming LLM request and returns a structured stream of {@link StreamResponse} objects.
-     * Each item in the stream represents a part of the overall response.
+     * Executes the streaming LLM request and returns a standardized flux of parsed response chunks.
+     * <p>
+     * Each item in the stream represents a categorized part of the overall response
+     * (e.g., a text token, a tool call snippet, or final usage metrics) abstracted
+     * away from the provider's specific JSON schema.
+     * </p>
      *
-     * @return A {@link Flux} that emits structured response chunks as they are received.
+     * @return a {@link Flux} emitting structured {@link StreamResponse} objects
      */
     Flux<StreamResponse> execute();
 
     /**
-     * Executes the streaming LLM request and returns the raw, unprocessed stream of events from the provider.
-     * This is useful for accessing provider-specific data or for custom processing.
+     * Executes the streaming LLM request and returns the raw, unprocessed stream of JSON events.
+     * <p>
+     * This is useful for accessing provider-specific, non-standard fields or for
+     * performing custom parsing logic outside the framework's standard abstractions.
+     * </p>
      *
-     * @return A {@link Flux} that emits raw response chunks as {@link RawStreamResponse} objects.
+     * @return a {@link Flux} emitting raw JSON chunks as {@link RawStreamResponse} objects
      */
     Flux<RawStreamResponse> executeRaw();
 
     /**
-     * Executes the streaming LLM request and converts each raw response chunk to a custom type using the provided converter.
-     * This default method simplifies the process of transforming the raw data stream into a desired format.
+     * Executes the streaming LLM request and applies a custom converter to each raw chunk.
+     * <p>
+     * This is a convenience method that automatically maps the output of {@link #executeRaw()}
+     * using the provided {@link RawStreamResponseConverter}.
+     * </p>
      *
-     * @param converter The converter to apply to each {@link RawStreamResponse} in the stream.
-     * @param <R>       The target type of the converted response chunks.
-     * @return A {@link Flux} that emits the converted response chunks.
+     * @param converter the converter to transform each {@link RawStreamResponse}
+     * @param <R>       the target type of the conversion
+     * @return a {@link Flux} emitting the converted chunks
      */
     default <R> Flux<R> execute(RawStreamResponseConverter<R> converter) {
         return executeRaw().map(converter::convert);

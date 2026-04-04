@@ -22,8 +22,12 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import java.io.Serial;
 
 /**
- * Exception thrown when a specified profile for an LLM provider cannot be found.
- * This occurs if the requested profile name does not match any of the available profiles for the provider.
+ * Exception thrown when a valid configuration profile cannot be resolved for a provider.
+ * <p>
+ * This occurs during request execution if the dynamic profile selection logic
+ * (the picker function) returns null, or if it returns a profile name that does
+ * not exist in the provider's registered {@link pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification}s.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -31,17 +35,26 @@ import java.io.Serial;
 @Getter
 public class NoProfileFoundLlmClientException extends LlmClientException {
 
+    /**
+     * Unique serial version identifier.
+     */
     @Serial
     private static final long serialVersionUID = 3598018502894298913L;
 
+    /**
+     * The provider info against which the profile lookup failed.
+     */
     private final LlmProviderInfo llmProviderInfo;
 
+    /**
+     * The name of the profile that was requested but not found (may be null).
+     */
     private final String pickedProfile;
 
     /**
-     * Constructs a new NoProfileFoundLlmClientException when the picked profile is null.
+     * Constructs a new exception indicating that the profile selection logic yielded null.
      *
-     * @param llmProviderInfo The information about the LLM provider.
+     * @param llmProviderInfo the metadata of the provider that was selected
      */
     public NoProfileFoundLlmClientException(@NonNull LlmProviderInfo llmProviderInfo) {
         super("No profile found for LLM provider: " + llmProviderInfo.name() + ". Cause the picked profile is null. Available profiles: " + llmProviderInfo.profiles());
@@ -50,10 +63,10 @@ public class NoProfileFoundLlmClientException extends LlmClientException {
     }
 
     /**
-     * Constructs a new NoProfileFoundLlmClientException with the specified provider info and picked profile.
+     * Constructs a new exception indicating that a specific requested profile does not exist.
      *
-     * @param llmProviderInfo The information about the LLM provider.
-     * @param pickedProfile   The name of the profile that was not found.
+     * @param llmProviderInfo the metadata of the provider
+     * @param pickedProfile   the specific profile name that could not be resolved
      */
     public NoProfileFoundLlmClientException(@NonNull LlmProviderInfo llmProviderInfo, @NonNull String pickedProfile) {
         super("No profile found for LLM provider: " + llmProviderInfo.name() + ". Picked profile: " + pickedProfile + ". Available profiles: " + llmProviderInfo.profiles());

@@ -13,22 +13,23 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
+package pro.chenggang.project.reactive.ai.lite.core.message.attachment;
 
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.MimeType;
-import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
 
 import java.nio.charset.Charset;
 import java.util.Objects;
 
 /**
  * An implementation of the {@link Attachment} interface that represents media content encoded in Base64.
- * This class is designed to create a data URI, which allows embedding media directly within a message payload.
- * It uses a builder pattern for easy and readable instantiation.
+ * <p>
+ * This class is designed to embed media directly within a message payload by formatting
+ * the content as a data URI scheme. It uses a builder pattern for easy instantiation.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -42,34 +43,55 @@ public class Base64Attachment implements Attachment {
      */
     @NonNull
     private final MimeType mimeType;
+
     /**
      * The character set of the content, optional and typically used for text-based MIME types.
      */
     private final Charset charset;
+
     /**
      * A descriptive name for the attachment. Must not be null.
      */
     @NonNull
     private final String name;
+
     /**
-     * The Base64-encoded string representing the media content. Must not be null.
+     * The Base64-encoded string representing the raw media content. Must not be null.
      */
     @NonNull
     private final String base64Content;
 
+    /**
+     * Retrieves the MIME type of the attachment.
+     *
+     * @return the {@link MimeType}
+     */
     @Override
     public MimeType mimeType() {
         return mimeType;
     }
 
+    /**
+     * Retrieves the name of the attachment.
+     *
+     * @return the name string
+     */
     @Override
     public String name() {
         return this.name;
     }
 
+    /**
+     * Retrieves the content of the attachment formatted as a data URI.
+     * <p>
+     * The format follows the standard data URI scheme:
+     * {@code data:[<mime_type>][;charset=<charset>];base64,<base64_encoded_data>}
+     * </p>
+     *
+     * @return the data URI string containing the Base64 content
+     */
     @Override
     public String content() {
-        // data:[<audio_mime_type>][;charset=<charset>][;base64],<base64_encoded_data>
         StringBuilder builder = new StringBuilder("data:");
         builder.append(mimeType.toString());
         if (Objects.nonNull(charset)) {

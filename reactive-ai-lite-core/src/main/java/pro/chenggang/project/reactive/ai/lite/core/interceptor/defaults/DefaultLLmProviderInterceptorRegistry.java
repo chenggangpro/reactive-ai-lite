@@ -15,13 +15,16 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl.DefaultLlmProviderGeneralResponseExchange;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl.DefaultLlmProviderRequestExchange;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl.DefaultLlmProviderStreamResponseExchange;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
-import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -34,10 +37,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults.LlmChatProviderExchange.newExchange;
-import static pro.chenggang.project.reactive.ai.lite.core.interceptor.logging.LlmProviderExecutionLoggingInterceptor.LLM_CLIENT_TYPE_ATTR_KEY;
+import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange.RAW_REQUEST_BODY_ATTRIBUTE_KEY;
 
 /**
+ * The default implementation of LLM provider interceptor registry.
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
@@ -52,25 +56,75 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
     }
 
     @Override
-    public <T> Mono<T> interceptMono(@NonNull LlmClientType clientType, @NonNull LlmProviderInfo llmProviderInfo, @NonNull LlmChatRequestData llmChatRequestData, @NonNull Mono<T> monoExecution) {
+    public Mono<ObjectNode> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<ObjectNode> generalExecution) {
         return Mono.deferContextual(contextView -> Mono.justOrEmpty(contextView)
                 .defaultIfEmpty(Context.empty())
                 .flatMap(context -> {
                     return Mono.usingWhen(
-                                    initializeAttributes(clientType),
-                                    attributes -> {
-                                        return Mono.justOrEmpty(this.beforeInterceptorChainMap.get(clientType))
+                                    initializeResourceData(interceptedDataInfo),
+                                    resourceData -> {
+                                        InterceptedDataInfo resourceDataInfo = resourceData.getT1();
+                                        return Mono.justOrEmpty(this.beforeInterceptorChainMap.get(resourceDataInfo.getClientType()))
                                                 .flatMap(chain -> {
-                                                    return Mono.defer(() -> {
-                                                        LlmChatProviderExchange exchange = newExchange(llmProviderInfo, llmChatRequestData, attributes);
-                                                        return chain.next(exchange);
-                                                    });
+                                                    return Mono.fromCallable(() -> {
+                                                                return DefaultLlmProviderRequestExchange.builder()
+                                                                        .clientType(resourceDataInfo.getClientType())
+                                                                        .attributes(resourceData.getT2())
+                                                                        .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                        .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                        .rawRequestBody(resourceDataInfo.getRawRequestBody())
+                                                                        .build();
+                                                            })
+                                                            .flatMap(chain::next);
                                                 })
-                                                .then(monoExecution);
+                                                .then(generalExecution)
+                                                .doOnNext(rawResponseData -> resourceData.getT2().put(RAW_REQUEST_BODY_ATTRIBUTE_KEY, rawResponseData));
                                     },
-                                    attributes -> invokeOnComplete(clientType, llmProviderInfo, llmChatRequestData, attributes),
-                                    (attributes, err) -> invokeOnError(clientType, llmProviderInfo, llmChatRequestData, attributes, err),
-                                    attributes -> invokeOnCancel(clientType, llmProviderInfo, llmChatRequestData, attributes)
+                                    resourceData -> {
+                                        InterceptedDataInfo resourceDataInfo = resourceData.getT1();
+                                        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
+                                                .flatMap(afterChain -> {
+                                                    return Mono.fromCallable(() -> DefaultLlmProviderGeneralResponseExchange.builder()
+                                                                    .clientType(resourceDataInfo.getClientType())
+                                                                    .attributes(resourceData.getT2())
+                                                                    .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_REQUEST_BODY_ATTRIBUTE_KEY))
+                                                                    .build())
+                                                            .flatMap(afterChain::next);
+                                                })
+                                                .then(Mono.defer(() -> Mono.fromRunnable(resourceData.getT2()::clear)));
+                                    },
+                                    (resourceData, err) -> {
+                                        InterceptedDataInfo resourceDataInfo = resourceData.getT1();
+                                        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
+                                                .flatMap(afterChain -> {
+                                                    return Mono.fromCallable(() -> DefaultLlmProviderGeneralResponseExchange.builder()
+                                                                    .clientType(resourceDataInfo.getClientType())
+                                                                    .attributes(resourceData.getT2())
+                                                                    .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_REQUEST_BODY_ATTRIBUTE_KEY))
+                                                                    .error(err)
+                                                                    .build())
+                                                            .flatMap(afterChain::next);
+                                                })
+                                                .then(Mono.defer(() -> Mono.fromRunnable(resourceData.getT2()::clear)));
+                                    },
+                                    resourceData -> {
+                                        InterceptedDataInfo resourceDataInfo = resourceData.getT1();
+                                        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
+                                                .flatMap(afterChain -> {
+                                                    return Mono.fromCallable(() -> DefaultLlmProviderGeneralResponseExchange.builder()
+                                                                    .clientType(resourceDataInfo.getClientType())
+                                                                    .attributes(resourceData.getT2())
+                                                                    .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .build())
+                                                            .flatMap(afterChain::next);
+                                                })
+                                                .then(Mono.defer(() -> Mono.fromRunnable(resourceData.getT2()::clear)));
+                                    }
                             )
                             .contextWrite(context);
                 })
@@ -78,25 +132,63 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
     }
 
     @Override
-    public <T> Flux<T> interceptFlux(@NonNull LlmClientType clientType, @NonNull LlmProviderInfo llmProviderInfo, @NonNull LlmChatRequestData llmChatRequestData, @NonNull Flux<T> fluxExecution) {
+    public Flux<RawStreamResponse> interceptStream(@NonNull LLmProviderInterceptorRegistry.InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution) {
         return Flux.deferContextual(contextView -> Mono.justOrEmpty(contextView)
                 .defaultIfEmpty(Context.empty())
                 .flatMapMany(context -> {
                     return Flux.usingWhen(
-                                    initializeAttributes(clientType),
-                                    attributes -> {
-                                        return Mono.justOrEmpty(this.beforeInterceptorChainMap.get(clientType))
+                                    initializeResourceData(interceptedDataInfo),
+                                    resourceData -> {
+                                        InterceptedDataInfo resourceDataInfo = resourceData.getT1();
+                                        return Mono.justOrEmpty(this.beforeInterceptorChainMap.get(resourceDataInfo.getClientType()))
                                                 .flatMap(chain -> {
-                                                    return Mono.defer(() -> {
-                                                        LlmChatProviderExchange exchange = newExchange(llmProviderInfo, llmChatRequestData, attributes);
-                                                        return chain.next(exchange);
-                                                    });
+                                                    return Mono.fromCallable(() -> {
+                                                                return DefaultLlmProviderRequestExchange.builder()
+                                                                        .clientType(resourceDataInfo.getClientType())
+                                                                        .attributes(resourceData.getT2())
+                                                                        .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                        .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                        .rawRequestBody(resourceDataInfo.getRawRequestBody())
+                                                                        .build();
+                                                            })
+                                                            .flatMap(chain::next);
                                                 })
-                                                .thenMany(fluxExecution);
+                                                .thenMany(Flux.defer(() -> {
+                                                    return streamExecution.publish(rawStreamResponseFlux -> {
+                                                        Mono<RawStreamResponse> interceptorExecution = Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
+                                                                .flatMap(afterChain -> {
+                                                                    return Mono.fromCallable(() -> DefaultLlmProviderStreamResponseExchange.builder()
+                                                                                    .clientType(resourceDataInfo.getClientType())
+                                                                                    .attributes(resourceData.getT2())
+                                                                                    .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                                    .rawStreamResponse(rawStreamResponseFlux)
+                                                                                    .build())
+                                                                            .flatMap(afterChain::next);
+                                                                })
+                                                                .cast(RawStreamResponse.class);
+                                                        return Flux.just(interceptorExecution, rawStreamResponseFlux)
+                                                                .flatMap(Flux::from);
+                                                    });
+                                                }));
                                     },
-                                    attributes -> invokeOnComplete(clientType, llmProviderInfo, llmChatRequestData, attributes),
-                                    (attributes, err) -> invokeOnError(clientType, llmProviderInfo, llmChatRequestData, attributes, err),
-                                    attributes -> invokeOnCancel(clientType, llmProviderInfo, llmChatRequestData, attributes)
+                                    resourceData -> Mono.defer(() -> Mono.fromRunnable(resourceData.getT2()::clear)),
+                                    (resourceData, err) -> {
+                                        InterceptedDataInfo resourceDataInfo = resourceData.getT1();
+                                        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
+                                                .flatMap(afterChain -> {
+                                                    return Mono.fromCallable(() -> DefaultLlmProviderStreamResponseExchange.builder()
+                                                                    .clientType(resourceDataInfo.getClientType())
+                                                                    .attributes(resourceData.getT2())
+                                                                    .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
+                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .error(err)
+                                                                    .build())
+                                                            .flatMap(afterChain::next);
+                                                })
+                                                .then(Mono.defer(() -> Mono.fromRunnable(resourceData.getT2()::clear)));
+                                    },
+                                    resourceData -> Mono.defer(() -> Mono.fromRunnable(resourceData.getT2()::clear))
                             )
                             .contextWrite(context);
                 })
@@ -147,38 +239,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                 ));
     }
 
-    private Mono<Map<String, Object>> initializeAttributes(LlmClientType clientType) {
-        return Mono.fromSupplier(() -> {
-            Map<String, Object> attributes = new ConcurrentHashMap<>();
-            attributes.put(LLM_CLIENT_TYPE_ATTR_KEY, clientType);
-            return attributes;
-        });
-    }
-
-    private Mono<Void> invokeOnComplete(LlmClientType clientType, LlmProviderInfo llmProviderInfo, LlmChatRequestData llmChatRequestData, Map<String, Object> attributes) {
-        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(clientType))
-                .flatMap(afterChain -> {
-                    LlmChatProviderExchange exchange = newExchange(llmProviderInfo, llmChatRequestData, attributes);
-                    return afterChain.next(exchange);
-                })
-                .then(Mono.defer(() -> Mono.fromRunnable(attributes::clear)));
-    }
-
-    private Mono<Void> invokeOnError(LlmClientType clientType, LlmProviderInfo llmProviderInfo, LlmChatRequestData llmChatRequestData, Map<String, Object> attributes, Throwable err) {
-        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(clientType))
-                .flatMap(afterChain -> {
-                    LlmChatProviderExchange exchange = newExchange(llmProviderInfo, llmChatRequestData, attributes, err);
-                    return afterChain.next(exchange);
-                })
-                .then(Mono.defer(() -> Mono.fromRunnable(attributes::clear)));
-    }
-
-    private Mono<Void> invokeOnCancel(LlmClientType clientType, LlmProviderInfo llmProviderInfo, LlmChatRequestData llmChatRequestData, Map<String, Object> attributes) {
-        return Mono.justOrEmpty(this.afterInterceptorChainMap.get(clientType))
-                .flatMap(afterChain -> {
-                    LlmChatProviderExchange exchange = newExchange(llmProviderInfo, llmChatRequestData, attributes);
-                    return afterChain.next(exchange);
-                })
-                .then(Mono.defer(() -> Mono.fromRunnable(attributes::clear)));
+    private Mono<Tuple2<InterceptedDataInfo, Map<String, Object>>> initializeResourceData(InterceptedDataInfo interceptedDataInfo) {
+        return Mono.fromSupplier(() -> Tuples.of(interceptedDataInfo, new ConcurrentHashMap<>()));
     }
 }

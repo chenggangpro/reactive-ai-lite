@@ -27,6 +27,7 @@ import lombok.extern.jackson.Jacksonized;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Cheng Gang
@@ -52,4 +53,31 @@ public class OllamaChatMessage {
     private final String toolName;
     @JsonProperty("thinking")
     private final String thinking;
+
+    @JsonInclude(Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
+    @Builder
+    @Jacksonized
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ToolCall {
+
+        @JsonProperty("function")
+        private final ToolCallFunction function;
+
+        @JsonInclude(Include.NON_NULL)
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        @Getter
+        @Builder
+        @Jacksonized
+        @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+        public static class ToolCallFunction {
+            @JsonProperty("name")
+            private final String name;
+            @JsonProperty("arguments")
+            private final Map<String, Object> arguments;
+            @JsonProperty("index")
+            private final Integer index;
+        }
+    }
 }

@@ -18,10 +18,16 @@ package pro.chenggang.project.reactive.ai.lite.core.execution.converter;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 
 /**
- * A functional interface for converting a {@link RawStreamResponse} into a specific streamable response type.
- * This is typically used to deserialize the raw data from a streaming API into a concrete object.
+ * A functional interface for converting a generic, unparsed {@link RawStreamResponse}
+ * into a specific, application-defined response type.
+ * <p>
+ * This is typically used within the fluent streaming execution API (like
+ * {@link pro.chenggang.project.reactive.ai.lite.core.execution.StreamExecution#execute(RawStreamResponseConverter)})
+ * to allow developers to supply custom parsing logic for individual JSON chunks emitted
+ * by the provider's Server-Sent Events (SSE) stream.
+ * </p>
  *
- * @param <STREAM_RESPONSE> The target type of the stream response.
+ * @param <STREAM_RESPONSE> the target type of the converted stream response
  * @author Cheng Gang
  * @version 0.1.0
  */
@@ -29,10 +35,10 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamR
 public interface RawStreamResponseConverter<STREAM_RESPONSE> {
 
     /**
-     * Converts the given raw stream response into the target stream response type.
+     * Converts the given raw stream response chunk into the target type.
      *
-     * @param rawStreamResponse The raw stream response to convert.
-     * @return The converted stream response.
+     * @param rawStreamResponse the raw stream chunk containing the unparsed JSON body
+     * @return the converted response of type {@code STREAM_RESPONSE}
      */
     STREAM_RESPONSE convert(RawStreamResponse rawStreamResponse);
 

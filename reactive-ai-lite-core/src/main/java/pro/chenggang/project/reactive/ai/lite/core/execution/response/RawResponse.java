@@ -15,15 +15,29 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.response;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 
 /**
+ * Represents the raw, unparsed JSON response body returned by the LLM provider.
+ * <p>
+ * This class extends {@link LlmResponse} to include the raw provider-specific
+ * JSON payload as a Jackson {@link ObjectNode}. It is primarily used when
+ * developers need to bypass standard parsing to access experimental features,
+ * non-standard metadata, or handle specific provider quirks directly.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @Getter
 @SuperBuilder
 public class RawResponse extends LlmResponse {
+
+    /**
+     * The raw, unparsed JSON body received from the provider.
+     */
+    private final ObjectNode responseBody;
 
 }

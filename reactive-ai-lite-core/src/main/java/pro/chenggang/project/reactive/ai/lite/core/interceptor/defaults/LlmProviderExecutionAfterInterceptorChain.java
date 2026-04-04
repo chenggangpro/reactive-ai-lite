@@ -16,9 +16,10 @@
 package pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults;
 
 import lombok.extern.slf4j.Slf4j;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExchange;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorChain;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderGeneralResponseExchange;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderStreamResponseExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.Objects;
  * @version 0.1.0
  */
 @Slf4j
-public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderInterceptorChain {
+public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderResponseInterceptorChain {
 
     private final LlmProviderExecutionAfterInterceptor currentInterceptor;
     private final LlmProviderExecutionAfterInterceptorChain next;
@@ -62,8 +63,17 @@ public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderInt
         this.next = next;
     }
 
+    private boolean shouldIntercept() {
+        return this.currentInterceptor != null && this.next != null;
+    }
+
     @Override
-    public Mono<Void> next(LlmProviderExchange exchange) {
+    public String toString() {
+        return getClass().getSimpleName() + "[currentInterceptor=" + this.currentInterceptor + "]";
+    }
+
+    @Override
+    public Mono<Void> next(LlmProviderGeneralResponseExchange exchange) {
         return Mono.defer(() -> {
             if (shouldIntercept()) {
                 return this.currentInterceptor.interceptAfter(exchange, this.next);
@@ -72,12 +82,13 @@ public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderInt
         });
     }
 
-    private boolean shouldIntercept() {
-        return this.currentInterceptor != null && this.next != null;
-    }
-
     @Override
-    public String toString() {
-        return getClass().getSimpleName() + "[currentInterceptor=" + this.currentInterceptor + "]";
+    public Mono<Void> next(LlmProviderStreamResponseExchange exchange) {
+        return Mono.defer(() -> {
+            if (shouldIntercept()) {
+                return this.currentInterceptor.interceptAfterEach(exchange, this.next);
+            }
+            return Mono.empty();
+        });
     }
 }

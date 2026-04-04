@@ -60,42 +60,51 @@
 
     <modules>
         <module>reactive-ai-lite-core</module>
-        <module>clients/reactive-ai-lite-client-openai</module>
-        <module>clients/reactive-ai-lite-client-ollama</module>
-        <module>clients/reactive-ai-lite-client-deepseek</module>
+        <module>./clients/reactive-ai-lite-client-openai</module>
+        <module>./clients/reactive-ai-lite-client-ollama</module>
+        <module>./clients/reactive-ai-lite-client-deepseek</module>
         <module>reactive-ai-lite-starter</module>
     </modules>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!--dependencies-->
-        <spring-boot.version>3.5.9</spring-boot.version>
-        <reactor-bom.version>2024.0.13</reactor-bom.version>
+        <spring-boot.version>3.5.12</spring-boot.version>
+        <spring-cloud.version>2025.0.1</spring-cloud.version>
+        <reactor-bom.version>2024.0.16</reactor-bom.version>
         <lombok.version>1.18.42</lombok.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <mcp-bom.version>0.17.0</mcp-bom.version>
+        <mcp-bom.version>1.1.0</mcp-bom.version>
         <jsonschema.version>4.38.0</jsonschema.version>
         <jackson-databind.version>2.19.4</jackson-databind.version>
         <reactive-ai-lite-core.version>0.1.0-SNAPSHOT</reactive-ai-lite-core.version>
         <!--tests-->
-        <logback.version>1.5.26</logback.version>
-        <blockhound.version>1.0.15.RELEASE</blockhound.version>
-        <junit.version>5.14.1</junit.version>
-        <assertj.version>3.27.6</assertj.version>
+        <logback.version>1.5.32</logback.version>
+        <blockhound.version>1.0.16.RELEASE</blockhound.version>
+        <junit.version>5.14.3</junit.version>
+        <assertj.version>3.27.7</assertj.version>
         <!--plugins-->
         <javadoc.opts>-Xdoclint:none</javadoc.opts>
         <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
         <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
-        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <error-prone.version>2.36.0</error-prone.version>
         <license-maven-plugin.version>5.0.0</license-maven-plugin.version>
-        <versions-maven-plugin.version>2.20.1</versions-maven-plugin.version>
+        <versions-maven-plugin.version>2.21.0</versions-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-        <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
@@ -281,7 +290,7 @@
                         <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
                         <arg>-XDcompilePolicy=simple</arg>
                         <arg>--should-stop=ifError=FLOW</arg>
-                        <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode</arg>
+                        <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -Xep:MissingOverride:ERROR</arg>
                     </compilerArgs>
                     <annotationProcessorPaths>
                         <path>

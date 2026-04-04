@@ -26,13 +26,29 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 import reactor.core.publisher.Flux;
 
 /**
+ * The standard implementation of {@link StreamExecution} for LLM chat operations.
+ * <p>
+ * This class orchestrates a streaming chat request by delegating the dynamic
+ * provider resolution to an {@link LlmProviderExecutor} and invoking the appropriate
+ * streaming methods on the resolved {@link LlmChatProvider}.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public class ChatStreamExecution implements StreamExecution {
 
+    /**
+     * The executor responsible for resolving the provider and executing the request.
+     */
     private final LlmProviderExecutor llmProviderExecutor;
 
+    /**
+     * Constructs a new {@link ChatStreamExecution}.
+     *
+     * @param llmProviderRegistry the registry for looking up providers
+     * @param executionSpec       the execution specification
+     */
     private ChatStreamExecution(@NonNull LlmProviderRegistry llmProviderRegistry, @NonNull ExecutionSpec executionSpec) {
         this.llmProviderExecutor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(llmProviderRegistry)
@@ -40,20 +56,42 @@ public class ChatStreamExecution implements StreamExecution {
                 .build();
     }
 
+    /**
+     * Factory method for creating a new {@link ChatStreamExecution}.
+     *
+     * @param llmProviderRegistry the registry for looking up providers
+     * @param executionSpec       the execution specification
+     * @return a new {@link ChatStreamExecution} instance
+     */
     public static ChatStreamExecution of(@NonNull LlmProviderRegistry llmProviderRegistry, @NonNull ExecutionSpec executionSpec) {
         return new ChatStreamExecution(llmProviderRegistry, executionSpec);
     }
 
+    /**
+     * Retrieves the underlying execution specification.
+     *
+     * @return the execution spec
+     */
     @Override
     public ExecutionSpec executionSpec() {
         return this.llmProviderExecutor.getExecutionSpec();
     }
 
+    /**
+     * Executes the streaming chat request and returns parsed responses.
+     *
+     * @return a {@link Flux} of {@link StreamResponse}s
+     */
     @Override
     public Flux<StreamResponse> execute() {
         return llmProviderExecutor.executeChat(LlmChatProvider::executeStream);
     }
 
+    /**
+     * Executes the streaming chat request and returns raw JSON responses.
+     *
+     * @return a {@link Flux} of {@link RawStreamResponse}s
+     */
     @Override
     public Flux<RawStreamResponse> executeRaw() {
         return llmProviderExecutor.executeChat(LlmChatProvider::executeStreamRaw);

@@ -17,8 +17,18 @@ package pro.chenggang.project.reactive.ai.lite.core.execution.response;
 
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
+import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 
 /**
+ * Represents the final, deserialized object resulting from a structured chat request.
+ * <p>
+ * This class inherits usage and metadata fields from {@link ExtractedLlmResponse}.
+ * It provides both the raw parsed {@link AssistantTextMessage} (which contains the
+ * original JSON string emitted by the model) as well as the strongly-typed Java
+ * object that the string was deserialized into.
+ * </p>
+ *
+ * @param <T> the type of the deserialized structured content
  * @author Cheng Gang
  * @version 0.1.0
  */
@@ -26,7 +36,14 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class StructuredResponse<T> extends ExtractedLlmResponse {
 
+    /**
+     * The parsed assistant message containing the raw JSON output string.
+     */
+    private final AssistantTextMessage assistantTextMessage;
+
+    /**
+     * The strongly-typed object automatically deserialized from the model's JSON output.
+     */
     private final T structuredContent;
-    private final String reasoningContent;
 
 }

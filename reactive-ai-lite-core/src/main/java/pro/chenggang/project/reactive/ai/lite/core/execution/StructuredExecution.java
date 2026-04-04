@@ -23,9 +23,12 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.Structured
 import reactor.core.publisher.Mono;
 
 /**
- * Defines the contract for an LLM execution that returns a structured, typed response.
- * This interface is used when the LLM is expected to generate output that conforms to a specific schema,
- * such as a JSON object that can be deserialized into a Plain Old Java Object (POJO).
+ * Defines the contract for an LLM execution that mandates a structured, typed JSON response.
+ * <p>
+ * This interface is used when the AI model is expected to generate output that strictly
+ * conforms to a specific schema, allowing the framework to automatically deserialize
+ * the response into a Plain Old Java Object (POJO) or a specific collection type.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -33,81 +36,92 @@ import reactor.core.publisher.Mono;
 public interface StructuredExecution extends LlmClientExecution {
 
     /**
-     * Executes the request and deserializes the LLM's response into an object of the specified class.
+     * Executes the request and deserializes the LLM's JSON response into an object of the specified class.
+     * <p>
+     * The framework will typically generate a JSON schema from the provided class to guide
+     * the model's output generation.
+     * </p>
      *
-     * @param resultType The class to which the response should be mapped.
-     * @param <R>        The target type.
-     * @return A {@link Mono} emitting a {@link StructuredResponse} containing the deserialized object.
+     * @param resultType the class to which the JSON response should be mapped
+     * @param <R>        the target object type
+     * @return a {@link Mono} emitting a {@link StructuredResponse} containing the deserialized object
      */
     <R> Mono<StructuredResponse<R>> execute(@NonNull Class<R> resultType);
 
     /**
-     * Executes the request and deserializes the LLM's response into a generic type, such as {@code List<String>}.
+     * Executes the request and deserializes the LLM's JSON response into a parameterized generic type.
+     * <p>
+     * This is useful when the expected output is a collection, such as {@code List<String>}
+     * or {@code Map<String, MyObject>}.
+     * </p>
      *
-     * @param resultType A {@link ParameterizedTypeReference} representing the target generic type.
-     * @param <R>        The target generic type.
-     * @return A {@link Mono} emitting a {@link StructuredResponse} containing the deserialized object.
+     * @param resultType a {@link ParameterizedTypeReference} representing the target generic type
+     * @param <R>        the target generic type
+     * @return a {@link Mono} emitting a {@link StructuredResponse} containing the deserialized object
      */
     <R> Mono<StructuredResponse<R>> execute(@NonNull ParameterizedTypeReference<R> resultType);
 
     /**
-     * Executes the request, instructing the LLM to generate a response that conforms to the provided JSON schema.
+     * Executes the request by passing an explicit JSON schema to the model, returning the raw response.
+     * <p>
+     * This instructs the LLM to generate a response that conforms to the provided schema,
+     * but bypasses automatic deserialization, giving you access to the raw JSON string.
+     * </p>
      *
-     * @param responseJsonSchema A string containing the JSON schema for the expected response.
-     * @return A {@link Mono} emitting the raw, unprocessed response from the provider.
+     * @param responseJsonSchema a string containing the JSON schema for the expected response
+     * @return a {@link Mono} emitting the raw, unprocessed {@link RawResponse}
      */
     Mono<RawResponse> executeRaw(@NonNull String responseJsonSchema);
 
     /**
-     * Executes the request, instructing the LLM to generate a response that can be mapped to the specified class.
-     * The implementation will typically generate a JSON schema from the class to guide the LLM.
+     * Executes the request using a schema generated from the specified class, returning the raw response.
      *
-     * @param resultType The class representing the desired structure.
-     * @param <R>        The target type.
-     * @return A {@link Mono} emitting the raw, unprocessed response from the provider.
+     * @param resultType the class representing the desired schema structure
+     * @param <R>        the target type
+     * @return a {@link Mono} emitting the raw, unprocessed {@link RawResponse}
      */
     <R> Mono<RawResponse> executeRaw(@NonNull Class<R> resultType);
 
     /**
-     * Executes the request, instructing the LLM to generate a response that can be mapped to the specified generic type.
+     * Executes the request using a schema generated from the specified parameterized type, returning the raw response.
      *
-     * @param resultType A {@link ParameterizedTypeReference} representing the desired structure.
-     * @param <R>        The target generic type.
-     * @return A {@link Mono} emitting the raw, unprocessed response from the provider.
+     * @param resultType a {@link ParameterizedTypeReference} representing the desired schema structure
+     * @param <R>        the target generic type
+     * @return a {@link Mono} emitting the raw, unprocessed {@link RawResponse}
      */
     <R> Mono<RawResponse> executeRaw(@NonNull ParameterizedTypeReference<R> resultType);
 
     /**
-     * Executes the request with a JSON schema and converts the raw response to a custom type.
+     * Executes the request with an explicit JSON schema and converts the raw response using a custom converter.
      *
-     * @param responseJsonSchema The JSON schema for the expected response.
-     * @param converter          The converter to transform the {@link RawResponse}.
-     * @param <R>                The target type of the converted response.
-     * @return A {@link Mono} emitting the converted response.
+     * @param responseJsonSchema the JSON schema for the expected response
+     * @param converter          the converter to transform the {@link RawResponse}
+     * @param <R>                the target type of the converted response
+     * @return a {@link Mono} emitting the manually converted response
      */
     default <R> Mono<R> execute(@NonNull String responseJsonSchema, @NonNull RawResponseConverter<R> converter) {
         return executeRaw(responseJsonSchema).map(converter::convert);
     }
 
     /**
-     * Executes the request with a target class and converts the raw response to a custom type.
+     * Executes the request with a class-based schema and converts the raw response using a custom converter.
      *
-     * @param resultType The class representing the desired structure.
-     * @param converter  The converter to transform the {@link RawResponse}.
-     * @param <R>        The target type of the converted response.
-     * @return A {@link Mono} emitting the converted response.
+     * @param resultType the class representing the desired schema structure
+     * @param converter  the converter to transform the {@link RawResponse}
+     * @param <R>        the target type of the converted response
+     * @return a {@link Mono} emitting the manually converted response
      */
     default <R> Mono<R> execute(@NonNull Class<R> resultType, @NonNull RawResponseConverter<R> converter) {
         return executeRaw(resultType).map(converter::convert);
     }
 
     /**
-     * Executes the request with a target generic type and converts the raw response to a custom type.
+     * Executes the request with a parameterized type schema and converts the raw response using a custom converter.
      *
-     * @param resultType A {@link ParameterizedTypeReference} for the desired structure.
-     * @param converter  The converter to transform the {@link RawResponse}.
-     * @param <R>        The target type of the converted response.
-     * @return A {@link Mono} emitting the converted response.
+     * @param resultType a {@link ParameterizedTypeReference} for the desired schema structure
+     * @param converter  the converter to transform the {@link RawResponse}
+     * @param <R>        the target type of the converted response
+     * @return a {@link Mono} emitting the manually converted response
      */
     default <R> Mono<R> execute(@NonNull ParameterizedTypeReference<R> resultType, @NonNull RawResponseConverter<R> converter) {
         return executeRaw(resultType).map(converter::convert);

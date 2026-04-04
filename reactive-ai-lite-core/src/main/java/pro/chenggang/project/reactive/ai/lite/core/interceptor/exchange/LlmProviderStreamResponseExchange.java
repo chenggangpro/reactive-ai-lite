@@ -13,30 +13,19 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.entity.values;
+package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Value;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
+import reactor.core.publisher.Flux;
 
 /**
+ * The Llm Provider Interceptor Exchange.
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
-@Getter
-@Value(staticConstructor = "of")
-public class TraceId {
+public interface LlmProviderStreamResponseExchange extends LlmProviderResponseExchange {
 
-    String parentId;
+    Flux<RawStreamResponse> rawStreamResponse();
 
-    @NonNull
-    String currentId;
-
-    @Override
-    public String toString() {
-        if (parentId == null) {
-            return currentId;
-        }
-        return parentId + ":" + currentId;
-    }
 }

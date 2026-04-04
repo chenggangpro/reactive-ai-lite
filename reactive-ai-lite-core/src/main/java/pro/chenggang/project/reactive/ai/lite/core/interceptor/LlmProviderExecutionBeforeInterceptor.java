@@ -15,10 +15,15 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.interceptor;
 
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange;
 import reactor.core.publisher.Mono;
 
 /**
- * The Llm provider execution before interceptor.
+ * An interceptor that executes before the LLM request is sent to the provider.
+ * <p>
+ * Implementing this interface allows developers to inspect, log, or mutate the
+ * outbound request data (such as the JSON body or headers) before it leaves the application.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -26,14 +31,15 @@ import reactor.core.publisher.Mono;
 public interface LlmProviderExecutionBeforeInterceptor extends LLmProviderExecutionInterceptor {
 
     /**
-     * Intercept the execution of a Llm provider <i>before</i> its invocation.
-     * <p/>
-     * <li>This execution will invoke in <b>ASCENDING</b> order.</li>
+     * Intercepts the outbound request to the LLM provider.
+     * <p>
+     * Implementations must call {@code chain.next(exchange)} to continue the interception chain.
+     * </p>
      *
-     * @param exchange the current llm provider exchange
-     * @param chain    the chain
-     * @return the {@code Mono<Void>} to indicate when exchange processing is complete
+     * @param exchange the request exchange containing the outbound data and context
+     * @param chain    the request interceptor chain
+     * @return a {@link Mono} representing the asynchronous completion of this interceptor's work
      */
-    Mono<Void> interceptBefore(LlmProviderExchange exchange, LlmProviderInterceptorChain chain);
+    Mono<Void> interceptBefore(LlmProviderRequestExchange exchange, LlmProviderRequestInterceptorChain chain);
 
 }

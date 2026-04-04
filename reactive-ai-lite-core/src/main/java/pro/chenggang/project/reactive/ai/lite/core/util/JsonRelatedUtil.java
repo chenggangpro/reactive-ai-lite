@@ -26,11 +26,31 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.util.Map;
 
 /**
+ * Utility class for common JSON operations across the framework.
+ * <p>
+ * This class provides a pre-configured Jackson {@link ObjectMapper} instance tailored
+ * for robustness in handling potentially malformed or unexpected responses from AI providers.
+ * It also offers convenient methods for common serialization and deserialization tasks,
+ * such as converting JSON strings directly to Maps.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public abstract class JsonRelatedUtil {
 
+    /**
+     * A global, pre-configured {@link ObjectMapper} instance.
+     * <p>
+     * This instance is configured to:
+     * <ul>
+     *     <li>Ignore unknown properties during deserialization.</li>
+     *     <li>Not fail when serializing empty beans.</li>
+     *     <li>Register standard modules (like JDK8, JavaTime) via {@link JacksonUtils}.</li>
+     *     <li>Accept empty strings as null objects.</li>
+     * </ul>
+     * </p>
+     */
     public static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
@@ -40,15 +60,30 @@ public abstract class JsonRelatedUtil {
 
     static {
         // Configure coercion for empty strings to null for Enum types
-        // This fixes the issue where empty string finish_reason values cause
-        // deserialization failures
+        // This fixes issues where AI providers return empty strings for enum
+        // fields (like finish_reason) instead of omitting the field.
         OBJECT_MAPPER.coercionConfigFor(Enum.class).setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
     }
 
+    /**
+     * Parses a JSON string into a {@code Map<String, Object>} using the global {@link #OBJECT_MAPPER}.
+     *
+     * @param json the JSON string to parse
+     * @return a Map representation of the JSON data
+     * @throws RuntimeException if deserialization fails
+     */
     public static Map<String, Object> jsonToMap(String json) {
         return jsonToMap(json, OBJECT_MAPPER);
     }
 
+    /**
+     * Parses a JSON string into a {@code Map<String, Object>} using the provided {@link ObjectMapper}.
+     *
+     * @param json         the JSON string to parse
+     * @param objectMapper the object mapper to use for parsing
+     * @return a Map representation of the JSON data
+     * @throws RuntimeException if deserialization fails
+     */
     public static Map<String, Object> jsonToMap(String json, ObjectMapper objectMapper) {
         try {
             return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});

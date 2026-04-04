@@ -21,8 +21,10 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.StructuredExecution
 
 /**
  * Defines the contract for chat operations, offering different execution strategies.
+ * <p>
  * This interface serves as an entry point to specify how a chat request should be executed,
  * providing access to general, streaming, and structured response handlers.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -31,26 +33,34 @@ public interface ChatSpec {
 
     /**
      * Returns the execution handler for a general chat request.
-     * This is typically used for standard, non-streaming request/response interactions.
+     * <p>
+     * This is typically used for standard, non-streaming request/response interactions
+     * where the entire response is received at once.
+     * </p>
      *
-     * @return A {@link GeneralExecution} instance.
+     * @return a {@link GeneralExecution} instance for handling standard chat requests
      */
     GeneralExecution general();
 
     /**
      * Returns the execution handler for a streaming chat request.
-     * This is used when the response from the AI model is expected to be a stream of data.
+     * <p>
+     * This is used when the response from the AI model is expected to be a stream of data,
+     * allowing for real-time processing of the response as it arrives.
+     * </p>
      *
-     * @return A {@link StreamExecution} instance.
+     * @return a {@link StreamExecution} instance for handling streaming chat requests
      */
     StreamExecution stream();
 
     /**
      * Returns the execution handler for a structured chat request.
+     * <p>
      * This is used when the response is expected to be in a specific structured format (e.g., JSON)
-     * that can be mapped to a POJO.
+     * that can be automatically mapped to a plain old Java object (POJO).
+     * </p>
      *
-     * @return A {@link StructuredExecution} instance.
+     * @return a {@link StructuredExecution} instance for handling structured chat requests
      */
     StructuredExecution structured();
 }

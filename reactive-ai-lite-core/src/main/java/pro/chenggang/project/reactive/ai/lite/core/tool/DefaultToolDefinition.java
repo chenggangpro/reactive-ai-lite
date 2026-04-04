@@ -16,178 +16,88 @@
 package pro.chenggang.project.reactive.ai.lite.core.tool;
 
 import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
-import org.springframework.util.StringUtils;
-import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
-import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil.SchemaOption;
-
-import java.lang.reflect.Type;
-import java.util.Objects;
+import lombok.extern.jackson.Jacksonized;
 
 /**
  * A default, immutable implementation of the {@link ToolDefinition} interface.
+ * <p>
  * This class provides a concrete representation of a tool's metadata, including its name,
- * description, and input parameter schema. Instances are created using the associated
- * {@link DefaultToolDefinitionBuilder}.
+ * description, and input parameter schema. It is designed to be immutable and thread-safe,
+ * built using Lombok's {@code @Builder} for easy instantiation and configured for JSON
+ * serialization/deserialization.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
-@ToString
+@Jacksonized
+@Builder
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultToolDefinition implements ToolDefinition {
 
-    @ToString.Include
-    private final String identifier;
-    @ToString.Include
+    /**
+     * The unique name of the tool.
+     */
     private final String name;
-    @ToString.Include
+
+    /**
+     * A description of what the tool does and when it should be used.
+     */
     private final String description;
+
+    /**
+     * The JSON schema defining the required input structure for the tool.
+     */
     private final String inputSchema;
+
+    /**
+     * Flag indicating whether the model should strictly adhere to the input schema.
+     */
     private final Boolean strict;
 
+    /**
+     * Gets the name of the tool.
+     *
+     * @return the unique name of the tool
+     */
     @Override
     public String name() {
         return this.name;
     }
 
+    /**
+     * Gets a human-readable description of what the tool does.
+     *
+     * @return the description of the tool
+     */
     @Override
     public String description() {
         return this.description;
     }
 
+    /**
+     * Gets the JSON schema that defines the input parameters for the tool.
+     * <p>
+     * If no schema was provided during construction, this returns an empty JSON object "{}".
+     * </p>
+     *
+     * @return a string representation of the JSON schema, never null
+     */
     @Override
     public String inputSchema() {
-        return this.inputSchema;
+        return this.inputSchema == null ? "{}" : this.inputSchema;
     }
 
+    /**
+     * Specifies whether the AI model should strictly adhere to the provided input schema.
+     *
+     * @return {@code true} for strict adherence, {@code false} to disable, or {@code null} to use provider defaults
+     */
     @Override
     public Boolean strict() {
         return this.strict;
     }
 
-    @Override
-    public String identifier() {
-        return StringUtils.hasText(this.identifier) ? this.identifier : this.name;
-    }
-
-    /**
-     * Creates a new builder instance for constructing a {@link DefaultToolDefinition}.
-     *
-     * @return A new {@link DefaultToolDefinitionBuilder}.
-     */
-    public static DefaultToolDefinitionBuilder builder() {
-        return new DefaultToolDefinitionBuilder();
-    }
-
-    /**
-     * A builder for creating instances of {@link DefaultToolDefinition}.
-     * It allows for fluent configuration of the tool's properties and can generate
-     * the input schema from either a raw JSON string or a Java {@link Type}.
-     */
-    @NoArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class DefaultToolDefinitionBuilder {
-
-        private String name;
-        private String description;
-        private String inputSchema;
-        private Type inputSchemaType;
-        private SchemaOption[] schemaOptions;
-        private Boolean strict;
-        private String identifier;
-
-        /**
-         * Sets the identifier of the tool. If no identifier is provided, the name will be used.
-         *
-         * @param identifier the identifier of the tool.
-         * @return This builder instance for chaining.
-         */
-        public DefaultToolDefinitionBuilder identifier(@NonNull String identifier) {
-            this.identifier = identifier;
-            return this;
-        }
-
-        /**
-         * Sets the name of the tool.
-         *
-         * @param name The name of the tool.
-         * @return This builder instance for chaining.
-         */
-        public DefaultToolDefinitionBuilder name(@NonNull String name) {
-            this.name = name;
-            return this;
-        }
-
-        /**
-         * Sets the description of the tool.
-         *
-         * @param description A human-readable description of the tool's purpose.
-         * @return This builder instance for chaining.
-         */
-        public DefaultToolDefinitionBuilder description(@NonNull String description) {
-            this.description = description;
-            return this;
-        }
-
-        /**
-         * Sets the input schema directly from a JSON string.
-         *
-         * @param inputSchema A string containing the JSON schema for the tool's parameters.
-         * @return This builder instance for chaining.
-         */
-        public DefaultToolDefinitionBuilder inputSchema(@NonNull String inputSchema) {
-            this.inputSchema = inputSchema;
-            return this;
-        }
-
-        /**
-         * Sets the input schema by specifying a Java {@link Type}. The JSON schema will be
-         * generated automatically from this type.
-         *
-         * @param inputSchemaType The Java type (e.g., a class or ParameterizedType) to generate the schema from.
-         * @param schemaOptions   Optional settings to customize schema generation.
-         * @return This builder instance for chaining.
-         */
-        public DefaultToolDefinitionBuilder inputSchemaType(@NonNull Type inputSchemaType, SchemaOption... schemaOptions) {
-            this.inputSchemaType = inputSchemaType;
-            if (Objects.nonNull(schemaOptions)) {
-                this.schemaOptions = schemaOptions;
-            }
-            return this;
-        }
-
-        /**
-         * Sets whether the model should strictly follow the function's schema.
-         *
-         * @param strict If {@code true}, the model is constrained to generate arguments matching the schema.
-         * @return This builder instance for chaining.
-         */
-        public DefaultToolDefinitionBuilder strict(@NonNull Boolean strict) {
-            this.strict = strict;
-            return this;
-        }
-
-        /**
-         * Builds and returns a new {@link DefaultToolDefinition} instance.
-         * <p>
-         * It requires either {@code inputSchema} or {@code inputSchemaType} to be set.
-         * If {@code inputSchemaType} is provided, it will generate the schema automatically.
-         *
-         * @return A new, configured {@link DefaultToolDefinition}.
-         * @throws IllegalArgumentException if neither {@code inputSchema} nor {@code inputSchemaType} is provided.
-         */
-        public DefaultToolDefinition build() {
-            if (Objects.nonNull(this.inputSchema)) {
-                return new DefaultToolDefinition(identifier, name, description, inputSchema, strict);
-            }
-            if (Objects.nonNull(this.inputSchemaType)) {
-                String inputSchema = JsonSchemaUtil.generateForType(inputSchemaType, schemaOptions);
-                return new DefaultToolDefinition(identifier, name, description, inputSchema, strict);
-            }
-            throw new IllegalArgumentException("Either inputSchema or inputSchemaType must be provided.");
-        }
-    }
 }

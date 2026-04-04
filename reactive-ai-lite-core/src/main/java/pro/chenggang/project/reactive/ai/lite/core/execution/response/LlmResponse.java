@@ -15,8 +15,6 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.response;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +22,14 @@ import lombok.experimental.SuperBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 
 /**
+ * Base abstract class representing a response from a Large Language Model (LLM) execution.
+ * <p>
+ * This class serves as the root of the response hierarchy for all types of LLM interactions
+ * (e.g., general, streaming, structured). It ensures that every response object carries
+ * a read-only view of the execution context that generated it, allowing downstream consumers
+ * to access metadata, correlation IDs, or other attributes associated with the request.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
@@ -32,10 +38,13 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class LlmResponse {
 
+    /**
+     * A read-only view of the execution context that was used to generate this response.
+     * <p>
+     * This allows tracing back the response to the specific request configurations
+     * and attributes present at execution time.
+     * </p>
+     */
     protected final ExecutionContextView contextView;
-
-    protected final ArrayNode rawRequestMessages;
-
-    protected final ObjectNode rawResponse;
 
 }

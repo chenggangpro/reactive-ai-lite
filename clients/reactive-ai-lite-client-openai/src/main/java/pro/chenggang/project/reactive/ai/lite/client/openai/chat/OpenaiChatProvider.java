@@ -33,11 +33,13 @@ import org.springframework.web.reactive.function.client.WebClient.RequestBodySpe
 import org.springframework.web.reactive.function.client.WebClient.RequestBodyUriSpec;
 import pro.chenggang.project.reactive.ai.lite.client.openai.certification.OrganizationTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage;
+import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.ChatCompletionFunction;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.ImageUrl;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.InputAudio;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.InputAudio.Format;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.InputFile;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.MediaContent;
+import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ChatCompletionMessage.ToolCall;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.FunctionTool;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.FunctionTool.Function;
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.OpenaiChatRequest;
@@ -47,29 +49,40 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.T
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.usage.Usage;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
+import pro.chenggang.project.reactive.ai.lite.core.exception.ResponseMessageExtractFailedException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
-import pro.chenggang.project.reactive.ai.lite.core.message.Attachment;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.AssistantTextMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.Base64Attachment;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.MediaMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.ToolResponseMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.defaults.UrlAttachment;
-import pro.chenggang.project.reactive.ai.lite.core.option.ResponseDataType;
+import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.Message;
+import pro.chenggang.project.reactive.ai.lite.core.message.TextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage.AssistantToolCall;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage.AssistantToolCallFunction;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Attachment;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.UrlAttachment;
+import pro.chenggang.project.reactive.ai.lite.core.message.chunk.RawStreamDataChunk;
+import pro.chenggang.project.reactive.ai.lite.core.message.chunk.TextStreamDataChunk;
+import pro.chenggang.project.reactive.ai.lite.core.message.chunk.ToolCallStreamDataChunk;
+import pro.chenggang.project.reactive.ai.lite.core.message.chunk.UsageStreamDataChunk;
+import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultAssistantTextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultToolCallMessage;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.AbstractLlmChatProvider;
-import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallRequest;
-import pro.chenggang.project.reactive.ai.lite.core.tool.LlmToolCallResponse;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
-import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.StreamChunk;
+import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.JsonStreamChunkSlide;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -128,6 +141,33 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
     }
 
+    protected Integer extractPromptTokenUsage(ObjectNode rawUsage) {
+        JsonNode jsonNode = rawUsage.at("/prompt_tokens");
+        if (!jsonNode.isMissingNode() && (jsonNode.isIntegralNumber() || jsonNode.isInt())) {
+            return jsonNode.intValue();
+        }
+        return 0;
+    }
+
+    protected Integer extractCompletionTokenUsage(ObjectNode rawUsage) {
+        JsonNode jsonNode = rawUsage.at("/completion_tokens");
+        if (!jsonNode.isMissingNode() && (jsonNode.isIntegralNumber() || jsonNode.isInt())) {
+            return jsonNode.intValue();
+        }
+        return 0;
+    }
+
+    protected Integer extractOtherTokenUsage(ObjectNode rawUsage) {
+        Integer promptTokenUsage = this.extractPromptTokenUsage(rawUsage);
+        Integer completionTokenUsage = this.extractCompletionTokenUsage(rawUsage);
+        int totalTokenUsage = 0;
+        JsonNode jsonNode = rawUsage.at("/total_tokens");
+        if (!jsonNode.isMissingNode() && (jsonNode.isIntegralNumber() || jsonNode.isInt())) {
+            totalTokenUsage = jsonNode.intValue();
+        }
+        return totalTokenUsage - promptTokenUsage - completionTokenUsage;
+    }
+
     @Override
     protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
         throw new UnsupportedOperationException("This method is not supported for OpenAI chat provider.");
@@ -139,24 +179,19 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected ArrayNode extractRequestMessages(@NonNull ObjectNode requestBody) {
-        return (ArrayNode) requestBody.get("messages");
-    }
-
-    @Override
-    protected StreamChunk[] extractStreamChunks(@NonNull ObjectNode rawResponseData) {
+    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull ObjectNode rawResponseData) {
         JsonNode usageNode = rawResponseData.at("/usage");
         if (!usageNode.isMissingNode() && usageNode.isObject()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.USAGE)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.USAGE)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
         JsonNode finishNode = rawResponseData.at("/choices/0/finish_reason");
         if (!finishNode.isMissingNode() && !finishNode.isNull()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.FINISHED)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.FINISHED)
                     .dataContent(rawResponseData)
                     .build()
             };
@@ -164,46 +199,46 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         JsonNode deltaNode = rawResponseData.at("/choices/0/delta");
         if (deltaNode.isMissingNode() || !deltaNode.isObject()) {
             log.debug("Missing or invalid delta node in raw response data : {}", rawResponseData);
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.UNKNOWN)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.UNKNOWN)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
         if (deltaNode.has("role")) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.ROLE)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.ROLE)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
         JsonNode reasoningContentNode = deltaNode.at("/reasoning_content");
         if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual() && !reasoningContentNode.isNull()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.REASONING_CONTENT)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.REASONING_CONTENT)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
         JsonNode contentNode = deltaNode.at("/content");
         if (!contentNode.isMissingNode() && contentNode.isTextual() && !contentNode.isNull()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.ANSWER_CONTENT)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.ANSWER_CONTENT)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
         JsonNode toolCallsNode = deltaNode.at("/tool_calls");
         if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
-            return new StreamChunk[]{StreamChunk.builder()
-                    .responseDataType(ResponseDataType.TOOL_CALL)
+            return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                    .streamDataType(StreamDataType.TOOL_CALL)
                     .dataContent(rawResponseData)
                     .build()
             };
         }
         log.debug("Unrecognized delta node in raw response data : {}", rawResponseData);
-        return new StreamChunk[]{StreamChunk.builder()
-                .responseDataType(ResponseDataType.UNKNOWN)
+        return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
+                .streamDataType(StreamDataType.UNKNOWN)
                 .dataContent(rawResponseData)
                 .build()
         };
@@ -299,318 +334,354 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
 
     @Override
     protected Mono<GeneralResponse> extraGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse) {
-        ObjectNode rawResponseBody = rawResponse.getRawResponse();
-        return Mono.just(GeneralResponse.builder()
-                        .rawResponse(rawResponseBody)
-                        .contextView(rawResponse.getContextView())
-                        .rawRequestMessages(rawResponse.getRawRequestMessages())
-                )
-                .map(builder -> {
+        return Mono.fromCallable(rawResponse::getResponseBody)
+                .handle((rawResponseBody, syncSink) -> {
+                    var generalResponseBuilder = GeneralResponse.builder()
+                            .contextView(rawResponse.getContextView());
                     JsonNode messageNode = rawResponseBody.at("/choices/0/message");
-                    if (!messageNode.isMissingNode() && messageNode.isObject()) {
-                        builder.responseMessage((ObjectNode) messageNode);
+                    if (messageNode.isMissingNode() || !messageNode.isObject()) {
+                        log.error("Failed to extract response message from response body. Response body: {}", rawResponseBody.toPrettyString());
+                        syncSink.error(new ResponseMessageExtractFailedException(rawResponseBody));
+                        return;
                     }
+                    JsonNode usageNode = rawResponseBody.at("/usage");
+                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
+                        Usage usage = Usage.newUsageBuilder((ObjectNode) usageNode)
+                                .promptTokensExtractor(this::extractPromptTokenUsage)
+                                .completionTokensExtractor(this::extractCompletionTokenUsage)
+                                .otherTokensExtractor(this::extractOtherTokenUsage)
+                                .build();
+                        generalResponseBuilder.usage(usage);
+                    }
+                    String answerContent = null;
                     JsonNode contentNode = messageNode.at("/content");
                     if (!contentNode.isMissingNode() && contentNode.isTextual()) {
-                        builder.answerContent(contentNode.asText());
+                        answerContent = contentNode.asText();
                     }
+                    String reasoningContent = null;
                     JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
                     if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
-                        builder.reasoningContent(reasoningContentNode.asText());
+                        reasoningContent = reasoningContentNode.asText();
                     }
                     JsonNode toolCallsNode = messageNode.at("/tool_calls");
                     if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
                         ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, toolCallsArrayNode);
-                        builder.toolCallList(llmToolCallRequests);
+                        List<AssistantToolCall> toolCalls = null;
+                        try {
+                            toolCalls = this.parseToolCallList(toolDefinitions, toolCallsArrayNode);
+                        } catch (Exception e) {
+                            syncSink.error(e);
+                            return;
+                        }
+                        ToolCallMessage toolCallMessage = DefaultToolCallMessage.builder()
+                                .toolCalls(toolCalls)
+                                .content(answerContent)
+                                .reasoningContent(reasoningContent)
+                                .build();
+                        GeneralResponse generalResponse = generalResponseBuilder.assistantTextMessage(toolCallMessage)
+                                .build();
+                        syncSink.next(generalResponse);
+                        return;
                     }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        builder.usages((ObjectNode) usageNode);
-                    }
-                    return builder.build();
+                    AssistantTextMessage assistantTextMessage = DefaultAssistantTextMessage.builder()
+                            .content(answerContent)
+                            .reasoningContent(reasoningContent)
+                            .build();
+                    GeneralResponse generalResponse = generalResponseBuilder.assistantTextMessage(assistantTextMessage)
+                            .build();
+                    syncSink.next(generalResponse);
                 });
     }
 
-    private List<LlmToolCallRequest> parseToolCallRequestList(@NonNull List<ToolDefinition> toolDefinitions, @NonNull ArrayNode toolCallsArrayNode) {
+    private List<AssistantToolCall> parseToolCallList(@NonNull List<ToolDefinition> toolDefinitions, @NonNull ArrayNode toolCallsArrayNode) {
         Map<String, ToolDefinition> toolDefinitionMapByIdentifier = toolDefinitions.stream()
                 .collect(Collectors.toMap(
-                        ToolDefinition::identifier,
+                        ToolDefinition::name,
                         java.util.function.Function.identity(),
                         (o1, o2) -> o1,
                         HashMap::new
                 ));
-        return toolCallsArrayNode.valueStream()
-                .filter(jsonNode -> jsonNode.isObject() && !jsonNode.isNull() && jsonNode.has("function") && jsonNode.get("function").isObject())
-                .map(jsonNode -> {
-                    ObjectNode toolCallObjectNode = (ObjectNode) jsonNode;
-                    ObjectNode functionNode = (ObjectNode) toolCallObjectNode.get("function");
-                    String arguments = functionNode.get("arguments").toString();
-                    JsonNode args = null;
-                    if (StringUtils.hasText(arguments)) {
-                        try {
-                            args = OBJECT_MAPPER.readTree(arguments);
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    String toolIdentifier = functionNode.get("name").asText();
-                    if (Objects.isNull(toolIdentifier)) {
-                        throw new IllegalStateException("The tool name which in tool-calling response is missing.");
-                    }
-                    if (!toolDefinitionMapByIdentifier.containsKey(toolIdentifier)) {
-                        throw new IllegalStateException("The tool identifier of tool-calling response '" + toolIdentifier + "' is not found in the tool definitions.");
-                    }
-                    ToolDefinition toolDefinition = toolDefinitionMapByIdentifier.get(toolIdentifier);
-                    return LlmToolCallRequest.builder()
-                            .identifier(toolIdentifier)
-                            .id(toolCallObjectNode.get("id").asText())
-                            .type(toolCallObjectNode.get("type").asText())
-                            .name(toolDefinition.name())
-                            .rawArgs(arguments)
-                            .args(args)
-                            .build();
-                })
-                .toList();
+        int index = 0;
+        List<AssistantToolCall> toolCallList = new ArrayList<>();
+        for (JsonNode jsonNode : toolCallsArrayNode) {
+            if (!jsonNode.isObject() || jsonNode.isNull() || !jsonNode.has("function") || !jsonNode.get("function").isObject()) {
+                continue;
+            }
+            ObjectNode toolCallObjectNode = (ObjectNode) jsonNode;
+            ObjectNode functionNode = (ObjectNode) toolCallObjectNode.get("function");
+            String arguments = functionNode.get("arguments").toString();
+            String toolName = functionNode.get("name").asText();
+            if (!toolDefinitionMapByIdentifier.containsKey(toolName)) {
+                throw new IllegalStateException("The tool identifier of tool-calling response '" + toolName + "' is not found in the tool definitions.");
+            }
+            AssistantToolCallFunction toolCallFunction = AssistantToolCallFunction.builder()
+                    .name(toolName)
+                    .arguments(arguments)
+                    .build();
+            ToolDefinition toolDefinition = toolDefinitionMapByIdentifier.get(toolName);
+            AssistantToolCall toolCall = AssistantToolCall.builder()
+                    .index(index++)
+                    .id(toolCallObjectNode.get("id").asText())
+                    .type(toolCallObjectNode.get("type").asText())
+                    .toolDefinition(toolDefinition)
+                    .function(toolCallFunction)
+                    .build();
+            toolCallList.add(toolCall);
+        }
+        return List.copyOf(toolCallList);
     }
 
     @Override
     protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull Class<R> resultType) {
-        ObjectNode rawResponseBody = rawResponse.getRawResponse();
-        return Mono.just(StructuredResponse.<R>builder()
-                        .rawResponse(rawResponseBody)
-                        .contextView(rawResponse.getContextView())
-                        .rawRequestMessages(rawResponse.getRawRequestMessages())
-                )
-                .map(builder -> {
-                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
-                    if (!messageNode.isMissingNode() && messageNode.isObject()) {
-                        builder.responseMessage((ObjectNode) messageNode);
+        return this.extractStructuredResponseContentInternal(
+                toolDefinitions,
+                rawResponse,
+                content -> {
+                    try {
+                        return OBJECT_MAPPER.readValue(content, resultType);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
                     }
-                    JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
-                    if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
-                        builder.reasoningContent(reasoningContentNode.asText());
+                },
+                contentNode -> {
+                    try {
+                        return OBJECT_MAPPER.treeToValue(contentNode, resultType);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
                     }
-                    JsonNode toolCallsNode = messageNode.at("/tool_calls");
-                    if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
-                        ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, toolCallsArrayNode);
-                        builder.toolCallList(llmToolCallRequests);
-                    }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        builder.usages((ObjectNode) usageNode);
-                    }
-                    return builder;
-                })
-                .handle((builder, sink) -> {
-                    JsonNode contentNode = rawResponseBody.at("/choices/0/message/content");
-                    if (contentNode.isMissingNode() || contentNode.isNull()) {
-                        sink.next(builder.build());
-                        sink.complete();
-                        return;
-                    }
-                    if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
-                        R value;
-                        String content = contentNode.asText();
-                        try {
-                            value = OBJECT_MAPPER.readValue(contentNode.asText(), resultType);
-                        } catch (Exception e) {
-                            log.error("Failed to parse content as {}: {}", resultType, contentNode.asText(), e);
-                            sink.error(e);
-                            return;
-                        }
-                        sink.next(builder.structuredContent(value).build());
-                        sink.complete();
-                        return;
-                    }
-                    if (contentNode.isObject() || contentNode.isArray()) {
-                        R value;
-                        try {
-                            value = OBJECT_MAPPER.treeToValue(contentNode, resultType);
-                        } catch (Exception e) {
-                            log.error("Failed to parse content as {}: {}", resultType, contentNode, e);
-                            sink.error(e);
-                            return;
-                        }
-                        sink.next(builder.structuredContent(value).build());
-                        sink.complete();
-                        return;
-                    }
-                    log.warn("Unable to parse json ( {} ) for type {}", contentNode, resultType);
-                    sink.next(builder.build());
-                    sink.complete();
-                });
+                }
+        );
     }
 
     @Override
     protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
                                                                                @NonNull RawResponse rawResponse,
                                                                                @NonNull ParameterizedTypeReference<R> resultType) {
-        ObjectNode rawResponseBody = rawResponse.getRawResponse();
-        return Mono.just(StructuredResponse.<R>builder()
-                        .rawResponse(rawResponseBody)
-                        .contextView(rawResponse.getContextView())
-                        .rawRequestMessages(rawResponse.getRawRequestMessages())
-                )
-                .map(builder -> {
-                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
-                    if (!messageNode.isMissingNode() && messageNode.isObject()) {
-                        builder.responseMessage((ObjectNode) messageNode);
+        return this.extractStructuredResponseContentInternal(toolDefinitions,
+                rawResponse,
+                content -> {
+                    try {
+                        return OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
+                                    @Override
+                                    public java.lang.reflect.Type getType() {
+                                        return resultType.getType();
+                                    }
+                                }
+                        );
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
                     }
+                },
+                contentNode -> {
+                    try {
+                        return OBJECT_MAPPER.treeToValue(contentNode, new TypeReference<R>() {
+                                    @Override
+                                    public java.lang.reflect.Type getType() {
+                                        return resultType.getType();
+                                    }
+                                }
+                        );
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        );
+    }
+
+    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContentInternal(@NonNull List<ToolDefinition> toolDefinitions,
+                                                                                       @NonNull RawResponse rawResponse,
+                                                                                       @NonNull java.util.function.Function<String, R> textValueConverter,
+                                                                                       @NonNull java.util.function.Function<JsonNode, R> jsonValueConverter) {
+        return Mono.fromCallable(rawResponse::getResponseBody)
+                .handle((rawResponseBody, syncSink) -> {
+                    var structuredResponseBuilder = StructuredResponse.<R>builder()
+                            .contextView(rawResponse.getContextView());
+                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
+                    if (messageNode.isMissingNode() || !messageNode.isObject()) {
+                        log.error("Failed to extract response message from response body. Response body: {}", rawResponseBody.toPrettyString());
+                        syncSink.error(new ResponseMessageExtractFailedException(rawResponseBody));
+                        return;
+                    }
+                    JsonNode usageNode = rawResponseBody.at("/usage");
+                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
+                        Usage usage = Usage.newUsageBuilder((ObjectNode) usageNode)
+                                .promptTokensExtractor(this::extractPromptTokenUsage)
+                                .completionTokensExtractor(this::extractCompletionTokenUsage)
+                                .otherTokensExtractor(this::extractOtherTokenUsage)
+                                .build();
+                        structuredResponseBuilder.usage(usage);
+                    }
+                    String answerContent = null;
+                    R structuredValue = null;
+                    JsonNode contentNode = messageNode.at("/content");
+                    if (!contentNode.isMissingNode() && contentNode.isTextual()) {
+                        answerContent = contentNode.asText();
+                        if (StringUtils.hasText(answerContent)) {
+                            try {
+                                structuredValue = textValueConverter.apply(answerContent);
+                            } catch (Exception e) {
+                                log.error("Failed to parse content : {}", answerContent, e);
+                                syncSink.error(e);
+                                return;
+                            }
+                        }
+                    } else if (contentNode.isObject() || contentNode.isArray()) {
+                        try {
+                            answerContent = contentNode.toString();
+                            structuredValue = jsonValueConverter.apply(contentNode);
+                        } catch (Exception e) {
+                            log.error("Failed to parse content: {}", contentNode, e);
+                            syncSink.error(e);
+                            return;
+                        }
+                    }
+                    structuredResponseBuilder.structuredContent(structuredValue);
+                    String reasoningContent = null;
                     JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
                     if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
-                        builder.reasoningContent(reasoningContentNode.asText());
+                        reasoningContent = reasoningContentNode.asText();
                     }
                     JsonNode toolCallsNode = messageNode.at("/tool_calls");
                     if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
                         ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, toolCallsArrayNode);
-                        builder.toolCallList(llmToolCallRequests);
-                    }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        builder.usages((ObjectNode) usageNode);
-                    }
-                    return builder;
-                })
-                .handle((builder, sink) -> {
-                    JsonNode contentNode = rawResponseBody.at("/choices/0/message/content");
-                    if (contentNode.isMissingNode() || contentNode.isNull()) {
-                        sink.next(builder.build());
-                        sink.complete();
-                        return;
-                    }
-                    if (contentNode.isTextual() && StringUtils.hasText(contentNode.asText())) {
-                        R value;
-                        String content = contentNode.asText();
+                        List<AssistantToolCall> toolCalls = null;
                         try {
-                            value = OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
-                                        @Override
-                                        public java.lang.reflect.Type getType() {
-                                            return resultType.getType();
-                                        }
-                                    }
-                            );
+                            toolCalls = this.parseToolCallList(toolDefinitions, toolCallsArrayNode);
                         } catch (Exception e) {
-                            log.error("Failed to parse content as {}: {}", resultType.getType(), content, e);
-                            sink.error(e);
+                            syncSink.error(e);
                             return;
                         }
-                        sink.next(builder.structuredContent(value).build());
-                        sink.complete();
+                        ToolCallMessage toolCallMessage = DefaultToolCallMessage.builder()
+                                .toolCalls(toolCalls)
+                                .content(answerContent)
+                                .reasoningContent(reasoningContent)
+                                .build();
+                        StructuredResponse<R> structuredResponse = structuredResponseBuilder.assistantTextMessage(toolCallMessage)
+                                .build();
+                        syncSink.next(structuredResponse);
                         return;
                     }
-                    if (contentNode.isObject() || contentNode.isArray()) {
-                        R value;
-                        try {
-                            value = OBJECT_MAPPER.treeToValue(contentNode, new TypeReference<R>() {
-                                        @Override
-                                        public java.lang.reflect.Type getType() {
-                                            return resultType.getType();
-                                        }
-                                    }
-                            );
-                        } catch (Exception e) {
-                            log.error("Failed to parse content as {}: {}", resultType.getType(), contentNode.asText(), e);
-                            sink.error(e);
-                            return;
-                        }
-                        sink.next(builder.structuredContent(value).build());
-                        sink.complete();
-                        return;
-                    }
-                    log.warn("Unable to parse json ( {} ) for type {}", contentNode, resultType);
-                    sink.next(builder.build());
-                    sink.complete();
+                    AssistantTextMessage assistantTextMessage = DefaultAssistantTextMessage.builder()
+                            .content(answerContent)
+                            .reasoningContent(reasoningContent)
+                            .build();
+                    StructuredResponse<R> structuredResponse = structuredResponseBuilder.assistantTextMessage(assistantTextMessage)
+                            .build();
+                    syncSink.next(structuredResponse);
                 });
     }
 
     @Override
     protected Mono<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
-        ResponseDataType responseDataType = rawStreamResponse.getDataType();
-        if (ResponseDataType.UNKNOWN.equals(responseDataType)) {
-            return Mono.empty();
+        StreamDataType streamDataType = rawStreamResponse.getDataType();
+        ObjectNode dataContent = rawStreamResponse.getDataContent();
+        ExecutionContextView contextView = rawStreamResponse.getContextView();
+        if (StreamDataType.UNKNOWN.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                RawStreamDataChunk rawStreamDataChunk = RawStreamDataChunk.builder()
+                        .value(dataContent)
+                        .build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(rawStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.FINISHED.equals(responseDataType)) {
-            return Mono.empty();
+        if (StreamDataType.ROLE.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                var chunkBuilder = TextStreamDataChunk.builder()
+                        .dataType(StreamDataType.ROLE);
+                JsonNode roleNode = dataContent.at("/choices/0/delta/role");
+                if (!roleNode.isMissingNode() && roleNode.isTextual()) {
+                    chunkBuilder.value(roleNode.asText());
+                }
+                TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(textStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.ROLE.equals(responseDataType)) {
-            return Mono.empty();
+        if (StreamDataType.ANSWER_CONTENT.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                var chunkBuilder = TextStreamDataChunk.builder()
+                        .dataType(StreamDataType.ANSWER_CONTENT);
+                JsonNode contentNode = dataContent.at("/choices/0/delta/content");
+                if (!contentNode.isMissingNode() && !contentNode.isNull() && contentNode.isTextual()) {
+                    chunkBuilder.value(contentNode.asText());
+                }
+                TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(textStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.REQUEST_MESSAGE.equals(responseDataType)) {
-            return Mono.just(StreamResponse.builder()
-                    .dataType(StreamDataType.REQUEST_MESSAGE)
-                    .dataContent(rawStreamResponse.getDataContent())
-                    .contextView(rawStreamResponse.getContextView())
-                    .build()
-            );
+        if (StreamDataType.REASONING_CONTENT.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                var chunkBuilder = TextStreamDataChunk.builder()
+                        .dataType(StreamDataType.REASONING_CONTENT);
+                JsonNode contentNode = dataContent.at("/choices/0/delta/reasoning_content");
+                if (!contentNode.isMissingNode() && !contentNode.isNull() && contentNode.isTextual()) {
+                    chunkBuilder.value(contentNode.asText());
+                }
+                TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(textStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.ANSWER_CONTENT.equals(responseDataType)) {
-            ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
-            JsonNode deltaNode = dataContent.at("/choices/0/delta");
-            if (deltaNode.isMissingNode() || deltaNode.isNull()) {
-                return Mono.empty();
-            }
-            JsonNode contentNode = dataContent.at("/choices/0/delta/content");
-            if (contentNode.isMissingNode() || contentNode.isNull() || !contentNode.isTextual()) {
-                return Mono.empty();
-            }
-            return Mono.just(StreamResponse.builder()
-                    .dataType(StreamDataType.ANSWER_CONTENT)
-                    .dataContent(deltaNode)
-                    .messageContent(contentNode.asText())
-                    .contextView(rawStreamResponse.getContextView())
-                    .build()
-            );
+        if (StreamDataType.TOOL_CALL.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                var chunkBuilder = ToolCallStreamDataChunk.builder();
+                JsonNode toolCallsNode = dataContent.at("/tool_calls");
+                if (!toolCallsNode.isMissingNode() && !toolCallsNode.isNull() && toolCallsNode.isArray()) {
+                    List<AssistantToolCall> toolCalls = this.parseToolCallList(toolDefinitions, (ArrayNode) toolCallsNode);
+                    chunkBuilder.toolCalls(toolCalls);
+                }
+                ToolCallStreamDataChunk callStreamDataChunk = chunkBuilder.build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(callStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.REASONING_CONTENT.equals(responseDataType)) {
-            ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
-            JsonNode deltaNode = dataContent.at("/choices/0/delta");
-            if (deltaNode.isMissingNode() || deltaNode.isNull()) {
-                return Mono.empty();
-            }
-            JsonNode reasoningContentNode = dataContent.at("/choices/0/delta/reasoning_content");
-            if (reasoningContentNode.isMissingNode() || reasoningContentNode.isNull() || !reasoningContentNode.isTextual()) {
-                return Mono.empty();
-            }
-            return Mono.just(StreamResponse.builder()
-                    .dataType(StreamDataType.ANSWER_CONTENT)
-                    .dataContent(deltaNode)
-                    .messageContent(reasoningContentNode.asText())
-                    .contextView(rawStreamResponse.getContextView())
-                    .build()
-            );
+        if (StreamDataType.USAGE.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                var chunkBuilder = UsageStreamDataChunk.builder();
+                JsonNode usageNode = dataContent.at("/usage");
+                if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
+                    Usage usage = Usage.newUsageBuilder((ObjectNode) usageNode)
+                            .promptTokensExtractor(this::extractPromptTokenUsage)
+                            .completionTokensExtractor(this::extractCompletionTokenUsage)
+                            .otherTokensExtractor(this::extractOtherTokenUsage)
+                            .build();
+                    chunkBuilder.usage(usage);
+                }
+                UsageStreamDataChunk usageStreamDataChunk = chunkBuilder.build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(usageStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.USAGE.equals(responseDataType)) {
-            ObjectNode dataContent = (ObjectNode) rawStreamResponse.getDataContent();
-            JsonNode usageNode = dataContent.at("/usage");
-            if (usageNode.isMissingNode() || usageNode.isNull()) {
-                return Mono.empty();
-            }
-            return Mono.just(StreamResponse.builder()
-                    .dataType(StreamDataType.USAGE)
-                    .dataContent(usageNode)
-                    .contextView(rawStreamResponse.getContextView())
-                    .build()
-            );
+        if (StreamDataType.FINISHED.equals(streamDataType)) {
+            return Mono.fromCallable(() -> {
+                var chunkBuilder = TextStreamDataChunk.builder()
+                        .dataType(StreamDataType.FINISHED);
+                JsonNode finishReasonNode = dataContent.at("/choices/0/finish_reason");
+                if (!finishReasonNode.isMissingNode() && finishReasonNode.isTextual()) {
+                    chunkBuilder.value(finishReasonNode.asText());
+                }
+                TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
+                return StreamResponse.builder()
+                        .contextView(contextView)
+                        .dataChunk(textStreamDataChunk)
+                        .build();
+            });
         }
-        if (ResponseDataType.TOOL_CALL.equals(responseDataType)) {
-            JsonNode dataContent = rawStreamResponse.getDataContent();
-            JsonNode toolCallsNode = dataContent.at("/tool_calls");
-            if (toolCallsNode.isMissingNode() || toolCallsNode.isNull() || !toolCallsNode.isArray()) {
-                return Mono.empty();
-            }
-            List<LlmToolCallRequest> llmToolCallRequests = this.parseToolCallRequestList(toolDefinitions, (ArrayNode) toolCallsNode);
-            return Mono.just(StreamResponse.builder()
-                    .dataType(StreamDataType.TOOL_CALL)
-                    .dataContent(toolCallsNode)
-                    .toolCallList(llmToolCallRequests)
-                    .contextView(rawStreamResponse.getContextView())
-                    .build()
-            );
-        }
-        log.warn("Unsupported response data type: {}", responseDataType);
+        log.warn("Unsupported response data type: {}, this raw response slice will be discard", streamDataType);
         return Mono.empty();
     }
 
@@ -707,15 +778,15 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         llmChatRequestData.getReasoning().ifPresent(openaiChatRequestBuilder::reasoningEffort);
         llmChatRequestData.getMaxCompletionTokens().ifPresent(openaiChatRequestBuilder::maxCompletionTokens);
         llmChatRequestData.getToolChoice().ifPresent(openaiChatRequestBuilder::toolChoice);
-        var functionTools = buildFunctionTools(llmChatRequestData);
-        var systemMessage = buildSystemMessage(llmChatRequestData);
-        var userMessage = buildUserMessage(llmChatRequestData);
-        var historicalMessages = buildHistoricalMessages(llmChatRequestData);
-        var latestAssistantMessages = this.buildLatestAssistantMessages(llmChatRequestData);
-        var toolMessages = buildToolMessages(llmChatRequestData);
+        var functionTools = buildFunctionTools(llmChatRequestData.getToolDefinitions());
+        var systemMessage = buildSystemMessage(llmChatRequestData.getSystemMessage());
+        var userMessage = llmChatRequestData.getUserMediaMessage()
+                .map(mediaMessage -> buildMediaMessage(Role.USER, mediaMessage))
+                .orElseGet(() -> this.buildTextMessage(Role.USER, llmChatRequestData.getUserTextMessage()));
+        var historicalMessages = buildHistoricalMessages(llmChatRequestData.getHistoricalMessages());
+        var toolMessages = buildToolMessages(llmChatRequestData.getToolResultMessages());
         var allMessages = Stream.of(Stream.of(systemMessage),
                         historicalMessages.stream(),
-                        latestAssistantMessages.stream(),
                         toolMessages.stream(),
                         toolMessages.isEmpty() ? Stream.of(userMessage) : Stream.<ChatCompletionMessage>empty()
                 )
@@ -774,8 +845,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         return typeName.substring(typeName.lastIndexOf(".") + 1);
     }
 
-    protected List<FunctionTool> buildFunctionTools(LlmChatRequestData llmChatRequestData) {
-        List<ToolDefinition> toolDefinitions = llmChatRequestData.getToolDefinitions();
+    protected List<FunctionTool> buildFunctionTools(List<ToolDefinition> toolDefinitions) {
         if (toolDefinitions.isEmpty()) {
             return List.of();
         }
@@ -783,7 +853,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .map(toolDefinition -> FunctionTool.builder()
                         .type(FunctionTool.Type.FUNCTION)
                         .function(Function.builder()
-                                .name(toolDefinition.identifier())
+                                .name(toolDefinition.name())
                                 .description(toolDefinition.description())
                                 .parameters(JsonRelatedUtil.jsonToMap(toolDefinition.inputSchema()))
                                 .strict(toolDefinition.strict())
@@ -793,141 +863,122 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 .toList();
     }
 
-    protected Optional<ChatCompletionMessage> buildLatestAssistantMessages(LlmChatRequestData llmChatRequestData) {
-        return llmChatRequestData.getLatestAssistantMessage()
-                .map(latestAssistantMessage -> {
-                    try {
-                        return OBJECT_MAPPER.treeToValue(latestAssistantMessage, ChatCompletionMessage.class);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-    }
-
-    protected List<ChatCompletionMessage> buildToolMessages(LlmChatRequestData llmChatRequestData) {
-        List<LlmToolCallResponse> llmToolCallResponses = llmChatRequestData.getLlmToolCallResponse();
-        if (llmToolCallResponses.isEmpty()) {
+    protected List<ChatCompletionMessage> buildToolMessages(List<ToolResultMessage> toolResultMessages) {
+        if (toolResultMessages.isEmpty()) {
             return List.of();
         }
-        return llmToolCallResponses.stream()
-                .map(llmToolCallResponse -> {
+        return toolResultMessages.stream()
+                .map(toolResultMessage -> {
                     return ChatCompletionMessage.builder()
                             .role(Role.TOOL)
-                            .toolCallId(llmToolCallResponse.getId())
-                            .rawContent(llmToolCallResponse.getContent())
+                            .toolCallId(toolResultMessage.toolCallId())
+                            .rawContent(toolResultMessage.content())
                             .build();
                 })
                 .toList();
     }
 
-    protected ChatCompletionMessage buildSystemMessage(LlmChatRequestData llmChatRequestData) {
+    protected ChatCompletionMessage buildSystemMessage(TextMessage textMessage) {
         return ChatCompletionMessage.builder()
                 .role(Role.SYSTEM)
-                .rawContent(llmChatRequestData.getSystemMessage().text())
+                .rawContent(textMessage.getContent())
                 .build();
     }
 
-    protected List<ChatCompletionMessage> buildHistoricalMessages(LlmChatRequestData llmChatRequestData) {
-        return llmChatRequestData.getHistoricalMessages()
-                .stream()
-                .flatMap(message -> {
-                    if (message instanceof AssistantTextMessage assistantTextMessage) {
-                        return Stream.of(
-                                ChatCompletionMessage.builder()
-                                        .role(Role.ASSISTANT)
-                                        .rawContent(assistantTextMessage.text())
-                                        .reasoningContent(assistantTextMessage.getReasoningContent())
-                                        .build()
-                        );
-                    }
-                    if (message instanceof ToolResponseMessage toolResponseMessage) {
-                        return toolResponseMessage.getLlmToolCallResponses()
+    protected List<ChatCompletionMessage> buildHistoricalMessages(List<Message> historicalMessages) {
+        if (historicalMessages.isEmpty()) {
+            return List.of();
+        }
+        return historicalMessages.stream()
+                .map(message -> {
+                    if (message instanceof ToolCallMessage toolCallMessage) {
+                        List<ToolCall> toolCalls = toolCallMessage.getToolCalls()
                                 .stream()
-                                .map(llmToolCallResponse -> {
-                                    return ChatCompletionMessage.builder()
-                                            .role(Role.TOOL)
-                                            .toolCallId(llmToolCallResponse.getId())
-                                            .rawContent(llmToolCallResponse.getContent())
+                                .map(assistantToolCall -> {
+                                    return ToolCall
+                                            .builder()
+                                            .id(assistantToolCall.getId())
+                                            .index(assistantToolCall.getIndex())
+                                            .type(assistantToolCall.getType())
+                                            .function(ChatCompletionFunction
+                                                    .builder()
+                                                    .name(assistantToolCall.getFunction().getName())
+                                                    .arguments(assistantToolCall.getFunction().getArguments())
+                                                    .build()
+                                            )
                                             .build();
-                                });
+                                })
+                                .toList();
+                        return ChatCompletionMessage.builder()
+                                .role(Role.ASSISTANT)
+                                .rawContent(toolCallMessage.getContent())
+                                .reasoningContent(toolCallMessage.getReasoningContent())
+                                .toolCalls(toolCalls)
+                                .build();
+                    }
+                    if (message instanceof ToolResultMessage toolResultMessage) {
+                        return ChatCompletionMessage.builder()
+                                .role(Role.TOOL)
+                                .toolCallId(toolResultMessage.toolCallId())
+                                .rawContent(toolResultMessage.content())
+                                .build();
                     }
                     if (message instanceof MediaMessage mediaMessage) {
-                        List<Attachment> attachments = mediaMessage.getAttachments();
-                        List<MediaContent> mediaContents = new ArrayList<>(attachments.size() + 1);
-                        MediaContent textMediaContent = MediaContent.of(mediaMessage.text());
-                        mediaContents.add(textMediaContent);
-                        for (Attachment attachment : attachments) {
-                            MimeType mimeType = attachment.mimeType();
-                            if (attachment instanceof UrlAttachment urlAttachment && "image".equalsIgnoreCase(mimeType.getType())) {
-                                MediaContent imageContent = MediaContent.of(ImageUrl.of(urlAttachment.content(), null));
-                                mediaContents.add(imageContent);
-                                continue;
-                            }
-                            if (attachment instanceof Base64Attachment base64Attachment) {
-                                if ("audio".equalsIgnoreCase(mimeType.getType())) {
-                                    if (!Format.MP3.name().equalsIgnoreCase(mimeType.getSubtype()) && !Format.WAV.name().equalsIgnoreCase(mimeType.getSubtype())) {
-                                        log.warn("Unsupported audio format: {}", mimeType.getSubtype());
-                                        continue;
-                                    }
-                                    MediaContent audioContent = MediaContent.of(InputAudio.of(base64Attachment.content(), Format.valueOf(mimeType.getSubtype().toUpperCase())));
-                                    mediaContents.add(audioContent);
-                                    continue;
-                                }
-                                MediaContent fileContent = MediaContent.of(InputFile.of(base64Attachment.name(), base64Attachment.content()));
-                                mediaContents.add(fileContent);
-                            }
-                        }
-                        return Stream.of(ChatCompletionMessage.builder()
-                                .role(Role.USER)
-                                .rawContent(mediaContents)
-                                .build());
+                        return this.buildMediaMessage(Role.valueOf(mediaMessage.getRole()), mediaMessage);
                     }
-                    return Stream.of(ChatCompletionMessage.builder()
-                            .role(Role.USER)
-                            .rawContent(message.text())
-                            .build()
-                    );
+                    if (message instanceof TextMessage textMessage) {
+                        return this.buildTextMessage(Role.valueOf(textMessage.getRole()), textMessage);
+                    }
+                    if (message instanceof AssistantTextMessage assistantTextMessage) {
+                        return ChatCompletionMessage.builder()
+                                .role(Role.ASSISTANT)
+                                .rawContent(assistantTextMessage.getContent())
+                                .reasoningContent(assistantTextMessage.getReasoningContent())
+                                .build();
+                    }
+                    log.warn("Unhandled historical message: {}", message);
+                    return null;
                 })
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    protected ChatCompletionMessage buildUserMessage(LlmChatRequestData llmChatRequestData) {
-        Optional<MediaMessage> optionalMediaMessage = llmChatRequestData.getUserMediaMessage();
-        if (optionalMediaMessage.isPresent()) {
-            MediaMessage mediaMessage = optionalMediaMessage.get();
-            List<Attachment> attachments = mediaMessage.getAttachments();
-            List<MediaContent> mediaContents = new ArrayList<>(attachments.size() + 1);
-            MediaContent textMediaContent = MediaContent.of(mediaMessage.text());
-            mediaContents.add(textMediaContent);
-            for (Attachment attachment : attachments) {
-                MimeType mimeType = attachment.mimeType();
-                if (attachment instanceof UrlAttachment urlAttachment && "image".equalsIgnoreCase(mimeType.getType())) {
-                    MediaContent imageContent = MediaContent.of(ImageUrl.of(urlAttachment.content(), null));
-                    mediaContents.add(imageContent);
-                    continue;
-                }
-                if (attachment instanceof Base64Attachment base64Attachment) {
-                    if ("audio".equalsIgnoreCase(mimeType.getType())) {
-                        if (!Format.MP3.name().equalsIgnoreCase(mimeType.getSubtype()) && !Format.WAV.name().equalsIgnoreCase(mimeType.getSubtype())) {
-                            log.warn("Unsupported audio format: {}", mimeType.getSubtype());
-                            continue;
-                        }
-                        MediaContent audioContent = MediaContent.of(InputAudio.of(base64Attachment.content(), Format.valueOf(mimeType.getSubtype().toUpperCase())));
-                        mediaContents.add(audioContent);
+    protected ChatCompletionMessage buildMediaMessage(Role role, MediaMessage mediaMessage) {
+        Attachment[] attachments = mediaMessage.getAttachments();
+        List<MediaContent> mediaContents = new ArrayList<>(attachments.length + 1);
+        MediaContent textMediaContent = MediaContent.of(mediaMessage.getContent());
+        mediaContents.add(textMediaContent);
+        for (Attachment attachment : attachments) {
+            MimeType mimeType = attachment.mimeType();
+            if (attachment instanceof UrlAttachment urlAttachment && "image".equalsIgnoreCase(mimeType.getType())) {
+                MediaContent imageContent = MediaContent.of(ImageUrl.of(urlAttachment.content(), null));
+                mediaContents.add(imageContent);
+                continue;
+            }
+            if (attachment instanceof Base64Attachment base64Attachment) {
+                if ("audio".equalsIgnoreCase(mimeType.getType())) {
+                    if (!Format.MP3.name().equalsIgnoreCase(mimeType.getSubtype()) && !Format.WAV.name().equalsIgnoreCase(mimeType.getSubtype())) {
+                        log.warn("Unsupported audio format: {}", mimeType.getSubtype());
                         continue;
                     }
-                    MediaContent fileContent = MediaContent.of(InputFile.of(base64Attachment.name(), base64Attachment.content()));
-                    mediaContents.add(fileContent);
+                    MediaContent audioContent = MediaContent.of(InputAudio.of(base64Attachment.content(), Format.valueOf(mimeType.getSubtype().toUpperCase())));
+                    mediaContents.add(audioContent);
+                    continue;
                 }
+                MediaContent fileContent = MediaContent.of(InputFile.of(base64Attachment.name(), base64Attachment.content()));
+                mediaContents.add(fileContent);
             }
-            return ChatCompletionMessage.builder()
-                    .rawContent(mediaContents)
-                    .role(Role.USER)
-                    .build();
         }
         return ChatCompletionMessage.builder()
-                .role(Role.USER)
-                .rawContent(llmChatRequestData.getUserTextMessage().text())
+                .rawContent(mediaContents)
+                .role(role)
+                .build();
+    }
+
+    protected ChatCompletionMessage buildTextMessage(Role role, TextMessage textMessage) {
+        return ChatCompletionMessage.builder()
+                .role(role)
+                .rawContent(textMessage.getContent())
                 .build();
     }
 

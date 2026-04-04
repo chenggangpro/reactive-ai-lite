@@ -26,13 +26,30 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 import reactor.core.publisher.Mono;
 
 /**
+ * The standard implementation of {@link StructuredExecution} for LLM chat operations.
+ * <p>
+ * This class orchestrates a request that mandates a structured, typed JSON response
+ * from the AI model. It uses the {@link LlmProviderExecutor} to resolve the appropriate
+ * provider and delegates the schema generation, request execution, and JSON deserialization
+ * to the provider implementation.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public class ChatStructuredExecution implements StructuredExecution {
 
+    /**
+     * The executor responsible for resolving the provider and executing the request.
+     */
     private final LlmProviderExecutor llmProviderExecutor;
 
+    /**
+     * Constructs a new {@link ChatStructuredExecution}.
+     *
+     * @param llmProviderRegistry the registry for looking up providers
+     * @param executionSpec       the execution specification
+     */
     private ChatStructuredExecution(@NonNull LlmProviderRegistry llmProviderRegistry, @NonNull ExecutionSpec executionSpec) {
         this.llmProviderExecutor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(llmProviderRegistry)
@@ -40,35 +57,62 @@ public class ChatStructuredExecution implements StructuredExecution {
                 .build();
     }
 
+    /**
+     * Factory method for creating a new {@link ChatStructuredExecution}.
+     *
+     * @param llmProviderRegistry the registry for looking up providers
+     * @param executionSpec       the execution specification
+     * @return a new {@link ChatStructuredExecution} instance
+     */
     public static ChatStructuredExecution of(@NonNull LlmProviderRegistry llmProviderRegistry, @NonNull ExecutionSpec executionSpec) {
         return new ChatStructuredExecution(llmProviderRegistry, executionSpec);
     }
 
+    /**
+     * Retrieves the underlying execution specification.
+     *
+     * @return the execution spec
+     */
     @Override
     public ExecutionSpec executionSpec() {
         return this.llmProviderExecutor.getExecutionSpec();
     }
 
+    /**
+     * Executes the structured request using a class type for deserialization.
+     */
     @Override
     public <R> Mono<StructuredResponse<R>> execute(@NonNull Class<R> resultType) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> llmChatProvider.executeStructured(executionInfo, resultType));
     }
 
+    /**
+     * Executes the structured request using a parameterized type for deserialization.
+     */
     @Override
     public <R> Mono<StructuredResponse<R>> execute(@NonNull ParameterizedTypeReference<R> resultType) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> llmChatProvider.executeStructured(executionInfo, resultType));
     }
 
+    /**
+     * Executes the structured request using a raw JSON schema string.
+     */
     @Override
     public Mono<RawResponse> executeRaw(@NonNull String responseJsonSchema) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> llmChatProvider.executeStructuredRaw(executionInfo, responseJsonSchema));
     }
 
+    /**
+     * Executes the structured request using a class type to generate the schema, returning raw JSON.
+     */
     @Override
     public <R> Mono<RawResponse> executeRaw(@NonNull Class<R> resultType) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> llmChatProvider.executeStructuredRaw(executionInfo, resultType));
     }
 
+    /**
+     * Executes the structured request using a parameterized type to generate the schema, returning raw JSON.
+     */
     @Override
     public <R> Mono<RawResponse> executeRaw(@NonNull ParameterizedTypeReference<R> resultType) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> llmChatProvider.executeStructuredRaw(executionInfo, resultType));

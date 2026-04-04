@@ -17,7 +17,11 @@ package pro.chenggang.project.reactive.ai.lite.core.option;
 
 /**
  * Represents the different capabilities or functionalities that an AI model or provider can support.
- * This enum is used to categorize and identify the type of AI service being used.
+ * <p>
+ * This enum is used to categorize and identify the type of AI service being used, allowing
+ * the system to route requests to the appropriate handlers and ensure that providers are
+ * capable of fulfilling specific requests.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0

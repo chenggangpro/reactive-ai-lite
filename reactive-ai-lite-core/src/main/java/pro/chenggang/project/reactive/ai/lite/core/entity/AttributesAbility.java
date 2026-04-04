@@ -18,12 +18,16 @@ package pro.chenggang.project.reactive.ai.lite.core.entity;
 import lombok.NonNull;
 
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 /**
  * Interface providing the ability to manage and access attributes.
  * <p>
  * This interface defines methods for storing and retrieving attributes in a key-value format,
  * allowing implementations to maintain contextual information throughout their lifecycle.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -33,7 +37,7 @@ public interface AttributesAbility {
     /**
      * Return a mutable map of attributes for the current exchange.
      *
-     * @return the attributes
+     * @return the attributes map
      */
     Map<String, Object> getAttributes();
 
@@ -42,7 +46,7 @@ public interface AttributesAbility {
      *
      * @param <T>  the attribute type
      * @param name the attribute name
-     * @return the attribute value
+     * @return the attribute value, or {@code null} if it does not exist
      */
     @SuppressWarnings("unchecked")
     default <T> T getAttribute(@NonNull String name) {
@@ -54,11 +58,30 @@ public interface AttributesAbility {
      *
      * @param <T>          the attribute type
      * @param name         the attribute name
-     * @param defaultValue a default value to return instead
-     * @return the attribute value
+     * @param defaultValue a default value to return instead if the attribute is missing
+     * @return the attribute value, or the default value
      */
     @SuppressWarnings("unchecked")
     default <T> T getAttributeOrDefault(@NonNull String name, @NonNull T defaultValue) {
         return (T) getAttributes().getOrDefault(name, defaultValue);
+    }
+
+    /**
+     * Returns a sequential {@link Stream} with the attributes as its source.
+     *
+     * @return a stream of attribute entries
+     */
+    default Stream<Entry<String, Object>> attributesStream() {
+        return getAttributes().entrySet().stream();
+    }
+
+    /**
+     * Performs the given action for each attribute entry in the map until all entries
+     * have been processed or the action throws an exception.
+     *
+     * @param action the action to be performed for each attribute entry
+     */
+    default void forEachAttribute(@NonNull BiConsumer<String, Object> action) {
+        attributesStream().forEach(entry -> action.accept(entry.getKey(), entry.getValue()));
     }
 }
