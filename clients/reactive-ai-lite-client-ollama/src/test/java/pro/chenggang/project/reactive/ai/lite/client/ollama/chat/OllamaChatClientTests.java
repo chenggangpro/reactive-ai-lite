@@ -47,7 +47,7 @@ public class OllamaChatClientTests extends OllamaLlmClientTestApplicationTests {
     @Autowired
     ReactiveLlmClient reactiveLlmClient;
 
-    String model = "huihui_ai/qwen3.5-abliterated:35b";
+    String model = "gemma4:26b";
 
     @Test
     void testChatGeneralExecute() {
