@@ -98,7 +98,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
             return chain.next(exchange);
         }
         if (log.isDebugEnabled()) {
-            log.debug("  ==> [Llm Execution] Raw response body: {}", exchange.rawResponseBody());
+            log.debug("  <== [Llm Execution] Raw response body: {}", exchange.rawResponseBody());
         }
         Optional<Throwable> optionalThrowable = exchange.error();
         optionalThrowable.ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
