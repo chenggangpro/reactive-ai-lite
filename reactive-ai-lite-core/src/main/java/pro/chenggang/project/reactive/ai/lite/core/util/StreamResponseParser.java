@@ -127,10 +127,8 @@ public class StreamResponseParser extends BaseSubscriber<String> {
         if (log.isTraceEnabled()) {
             log.trace("[RawStreamResponseFlux]Hook on subscribe triggered");
         }
-        if (!this.sink.isCancelled()) {
-            if (this.sink.requestedFromDownstream() > 0) {
-                request(1);
-            }
+        if (!this.sink.isCancelled() && this.sink.requestedFromDownstream() > 0) {
+            request(1);
         }
     }
 
@@ -154,8 +152,8 @@ public class StreamResponseParser extends BaseSubscriber<String> {
             }
             this.parsingRawStreamResponse(value);
         } finally {
-            inParsing.set(false);
             synchronized (monitor) {
+                inParsing.set(false);
                 monitor.notifyAll();
             }
         }
@@ -219,7 +217,6 @@ public class StreamResponseParser extends BaseSubscriber<String> {
                 if (i == maxIndex) {
                     this.requestNext();
                 }
-                continue;
             }
             currentDataType.set(streamDataType);
             // answer content or reasoning content
