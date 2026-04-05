@@ -98,7 +98,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
             return chain.next(exchange);
         }
         if (log.isDebugEnabled()) {
-            log.debug("  <== [Llm Execution] Raw response body: {}", exchange.rawResponseBody());
+            log.debug(" <== [Llm Execution] Raw response body: {}", exchange.rawResponseBody());
         }
         Optional<Throwable> optionalThrowable = exchange.error();
         optionalThrowable.ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
@@ -113,6 +113,13 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         if (!isEnableLogging.get()) {
             return chain.next(exchange);
         }
+        if (exchange.error().isPresent()) {
+            exchange.error().ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
+            Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
+            Duration costDuration = Duration.between(executionInstant, Instant.now());
+            log.info(" <== [Llm Execution] Execution cost : {} ms", costDuration.toMillis());
+            return chain.next(exchange);
+        }
         return exchange.rawStreamResponse()
                 .map(RawStreamResponse::getDataContent)
                 .filter(Objects::nonNull)
@@ -122,6 +129,11 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
                         log.debug(" <== [Llm Execution] Merged stream response content: {}", mergedNode);
                     }
                 })
-                .then(chain.next(exchange));
+                .then(Mono.defer(() -> {
+                    Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
+                    Duration costDuration = Duration.between(executionInstant, Instant.now());
+                    log.info(" <== [Llm Execution] Execution cost : {} ms", costDuration.toMillis());
+                    return chain.next(exchange);
+                }));
     }
 }

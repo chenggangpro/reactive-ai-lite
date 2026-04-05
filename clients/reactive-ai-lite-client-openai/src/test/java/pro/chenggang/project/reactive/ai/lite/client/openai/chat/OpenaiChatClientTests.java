@@ -47,7 +47,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Autowired
     ReactiveLlmClient reactiveLlmClient;
 
-    String modelName = "Qwen3.5-27B-Claude-4.6-Opus-Distilled-MLX-4bit"; // using oMLX instead
+    String modelName = "gemma-4-26b-a4b-it-4bit"; // using oMLX instead
 
     @Test
     void testChatGeneralExecute() {
