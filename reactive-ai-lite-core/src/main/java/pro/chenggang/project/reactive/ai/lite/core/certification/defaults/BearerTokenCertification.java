@@ -25,11 +25,11 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import java.util.List;
 
 /**
- * Bearer token certification implementation that provides HTTP Authorization header with Bearer token authentication.
+ * An implementation of {@link TokenCertification} that applies Bearer token authentication via HTTP headers.
  * <p>
- * This class implements the {@link TokenCertification} interface to support Bearer token-based authentication
- * for HTTP requests. It encapsulates the profile, token, and default status information, and provides
- * functionality to apply the Bearer token to HTTP headers.
+ * This class encapsulates the profile, the raw token, and the default status. It provides
+ * a specific mechanism to apply the token to HTTP requests by injecting an {@code Authorization: Bearer <token>}
+ * header, which is the most common authentication method for LLM provider APIs.
  * </p>
  *
  * @author Cheng Gang
@@ -39,29 +39,61 @@ import java.util.List;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class BearerTokenCertification implements TokenCertification {
 
+    /**
+     * The profile name associated with this credential configuration.
+     */
     @NonNull
     private final String profile;
 
+    /**
+     * The raw authentication token (API key).
+     */
     @NonNull
     private final String token;
 
+    /**
+     * Indicates whether this certification is the default configuration.
+     */
     private final boolean isDefault;
 
+    /**
+     * Returns the profile name.
+     *
+     * @return the profile string
+     */
     @Override
     public String profile() {
         return this.profile;
     }
 
+    /**
+     * Returns whether this is the default certification.
+     *
+     * @return true if default, false otherwise
+     */
     @Override
     public boolean isDefault() {
         return isDefault;
     }
 
+    /**
+     * Returns the name of the HTTP header used for authentication.
+     * <p>
+     * For Bearer tokens, this is always "Authorization" ({@link HttpHeaders#AUTHORIZATION}).
+     * </p>
+     *
+     * @return the header name
+     */
     @Override
     public String name() {
         return HttpHeaders.AUTHORIZATION;
     }
 
+    /**
+     * Returns the raw authentication token value.
+     *
+     * @return the token string
+     */
     @Override
     public String token() {
         return this.token;
@@ -70,11 +102,10 @@ public class BearerTokenCertification implements TokenCertification {
     /**
      * Applies the Bearer token authentication to the provided HTTP headers.
      * <p>
-     * This method adds the Authorization header with the Bearer token scheme to the given
-     * {@link HttpHeaders} object. The format is "Bearer {token}".
+     * This method adds the {@code Authorization} header with the value format {@code Bearer <token>}.
      * </p>
      *
-     * @param httpHeaders the HTTP headers to which the Bearer token will be applied, must not be {@code null}
+     * @param httpHeaders the Spring {@link HttpHeaders} object to modify
      */
     public void applyTo(@NonNull HttpHeaders httpHeaders) {
         httpHeaders.put(name(), List.of("Bearer " + token()));

@@ -23,22 +23,47 @@ import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProvi
 import java.util.Optional;
 
 /**
+ * The default implementation of {@link LlmProviderGeneralResponseExchange}.
+ * <p>
+ * This class extends {@link AbstractLlmProviderExchange} to provide the specific
+ * response data for a non-streaming (general) request. It encapsulates the raw JSON
+ * response body as an {@link ObjectNode} and any error that might have occurred
+ * during the HTTP exchange.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @SuperBuilder
 public class DefaultLlmProviderGeneralResponseExchange extends AbstractLlmProviderExchange implements LlmProviderGeneralResponseExchange {
 
+    /**
+     * The raw JSON response body. May be null if the request failed.
+     */
     @Nullable
     private final ObjectNode rawResponseBody;
+
+    /**
+     * An error that occurred during the execution, if any.
+     */
     @Nullable
     private final Throwable error;
 
+    /**
+     * Retrieves the raw JSON response body, if present.
+     *
+     * @return an {@link Optional} containing the raw JSON body, or empty
+     */
     @Override
     public Optional<ObjectNode> rawResponseBody() {
         return Optional.ofNullable(this.rawResponseBody);
     }
 
+    /**
+     * Retrieves the execution error, if one occurred.
+     *
+     * @return an {@link Optional} containing the error, or empty
+     */
     @Override
     public Optional<Throwable> error() {
         return Optional.ofNullable(this.error);

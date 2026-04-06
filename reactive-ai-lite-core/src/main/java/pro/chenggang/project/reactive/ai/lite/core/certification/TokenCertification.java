@@ -18,9 +18,10 @@ package pro.chenggang.project.reactive.ai.lite.core.certification;
 /**
  * Token-based certification interface for AI provider authentication.
  * <p>
- * This interface extends {@link ProviderCertification} to provide token-based
- * authentication mechanism for AI service providers. It defines methods to
- * retrieve the certification name and the authentication token.
+ * This interface extends {@link ProviderCertification} to provide a standard
+ * token-based authentication mechanism for accessing AI service providers.
+ * It defines methods to retrieve the certification's unique name and the
+ * actual authentication token (e.g., an API key).
  * </p>
  *
  * @author Cheng Gang
@@ -31,8 +32,8 @@ public interface TokenCertification extends ProviderCertification {
     /**
      * Returns the name of this token certification.
      * <p>
-     * The name typically identifies the certification configuration or
-     * the associated AI provider.
+     * The name uniquely identifies this specific credential configuration,
+     * often corresponding to a specific provider or environment setup.
      * </p>
      *
      * @return the certification name
@@ -42,11 +43,13 @@ public interface TokenCertification extends ProviderCertification {
     /**
      * Returns the authentication token for this certification.
      * <p>
-     * The token is used to authenticate requests to the AI service provider.
-     * This should be kept secure and not exposed in logs or error messages.
+     * The token (such as an API key) is used to authenticate HTTP requests
+     * sent to the AI service provider. It is highly sensitive and should
+     * be handled securely, ensuring it is not exposed in application logs
+     * or error messages.
      * </p>
      *
-     * @return the authentication token
+     * @return the authentication token string
      */
     String token();
 }

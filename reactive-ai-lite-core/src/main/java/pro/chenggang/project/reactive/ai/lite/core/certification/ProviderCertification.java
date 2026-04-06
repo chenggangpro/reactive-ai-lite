@@ -16,10 +16,12 @@
 package pro.chenggang.project.reactive.ai.lite.core.certification;
 
 /**
- * Interface for provider certification configuration.
+ * Base interface for provider certification configurations.
  * <p>
- * This interface defines the contract for provider certification implementations,
- * allowing different providers to specify their profile and default status.
+ * This interface defines the core contract that all provider certification
+ * implementations must adhere to. It allows different credential setups to
+ * self-report the profile they belong to and whether they act as the default
+ * configuration for that provider.
  * </p>
  *
  * @author Cheng Gang
@@ -30,22 +32,24 @@ public interface ProviderCertification {
     /**
      * Returns the profile name associated with this provider certification.
      * <p>
-     * The profile typically identifies the specific configuration or environment
-     * for the provider certification.
+     * A profile acts as a grouping or environment identifier for credentials
+     * (e.g., "default", "development", "production"). During execution, the
+     * framework selects the appropriate certification based on the active profile.
      * </p>
      *
-     * @return the profile name as a String
+     * @return the profile name string
      */
     String profile();
 
     /**
-     * Indicates whether this provider certification is the default one.
+     * Indicates whether this provider certification is the designated default.
      * <p>
-     * When multiple provider certifications are available, the default certification
-     * will be used when no specific certification is explicitly requested.
+     * When multiple credential profiles are registered for a single provider,
+     * the framework falls back to using the default certification when no
+     * explicit profile selection logic is provided by the user.
      * </p>
      *
-     * @return {@code true} if this is the default provider certification, {@code false} otherwise
+     * @return {@code true} if this is the default certification, {@code false} otherwise
      */
     boolean isDefault();
 }

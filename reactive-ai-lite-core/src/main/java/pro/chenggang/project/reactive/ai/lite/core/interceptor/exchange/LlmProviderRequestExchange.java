@@ -18,14 +18,31 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * The Llm Provider Interceptor Exchange.
+ * Represents the data exchange specifically for outbound LLM requests.
+ * <p>
+ * This interface extends {@link LlmProviderExchange} to provide access to the raw
+ * JSON request body that is about to be dispatched to the AI provider. Interceptors
+ * operating before the request execution can use this interface to inspect or modify
+ * the payload.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public interface LlmProviderRequestExchange extends LlmProviderExchange {
 
+    /**
+     * The key used to store the raw request body within the attributes map.
+     */
     String RAW_REQUEST_BODY_ATTRIBUTE_KEY = LlmProviderRequestExchange.class.getName() + ".raw-request-body";
 
+    /**
+     * Retrieves the raw JSON request body that will be sent to the provider.
+     * <p>
+     * Interceptors can modify this {@link ObjectNode} to alter the request payload before it is sent.
+     * </p>
+     *
+     * @return the raw request payload as a JSON {@link ObjectNode}
+     */
     ObjectNode rawRequestBody();
 }

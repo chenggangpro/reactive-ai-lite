@@ -25,22 +25,47 @@ import reactor.core.publisher.Flux;
 import java.util.Optional;
 
 /**
+ * The default implementation of {@link LlmProviderStreamResponseExchange}.
+ * <p>
+ * This class extends {@link AbstractLlmProviderExchange} to provide the
+ * specific response data for a streaming request. It encapsulates the inbound
+ * {@link Flux} of raw JSON stream chunks and any error that might have
+ * occurred during the HTTP exchange.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @SuperBuilder
 public class DefaultLlmProviderStreamResponseExchange extends AbstractLlmProviderExchange implements LlmProviderStreamResponseExchange {
 
+    /**
+     * The stream of raw JSON response chunks. May be null if the stream failed to initiate.
+     */
     @Nullable
     private final Flux<RawStreamResponse> rawStreamResponse;
+
+    /**
+     * An error that occurred during the execution, if any.
+     */
     @Nullable
     private final Throwable error;
 
+    /**
+     * Retrieves the stream of raw JSON responses.
+     *
+     * @return the {@link Flux} of stream chunks
+     */
     @Override
     public Flux<RawStreamResponse> rawStreamResponse() {
         return this.rawStreamResponse;
     }
 
+    /**
+     * Retrieves the execution error, if one occurred.
+     *
+     * @return an {@link Optional} containing the error, or empty
+     */
     @Override
     public Optional<Throwable> error() {
         return Optional.ofNullable(error);

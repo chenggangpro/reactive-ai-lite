@@ -21,17 +21,42 @@ import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 
 /**
- * The Llm Provider Interceptor Exchange.
+ * The base contract for data exchanged between interceptors during an LLM request lifecycle.
+ * <p>
+ * This interface defines the core context available to all interceptors, regardless of
+ * whether they are operating on the request before execution, or the response after
+ * execution. It provides access to the shared attributes, the execution context view,
+ * the client type, and metadata about the provider handling the request.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public interface LlmProviderExchange extends AttributesAbility {
 
+    /**
+     * Retrieves the read-only view of the execution context.
+     * <p>
+     * This context view contains attributes and state configured before the request
+     * began processing, useful for tracing and correlation.
+     * </p>
+     *
+     * @return the {@link ExecutionContextView}
+     */
     ExecutionContextView contextView();
 
+    /**
+     * Retrieves the type of LLM client executing the request (e.g., CHAT, IMAGE).
+     *
+     * @return the {@link LlmClientType}
+     */
     LlmClientType clientType();
 
+    /**
+     * Retrieves the metadata of the LLM provider handling the request.
+     *
+     * @return the {@link LlmProviderInfo}
+     */
     LlmProviderInfo llmProviderInfo();
 
 }

@@ -40,7 +40,15 @@ import java.util.stream.Collectors;
 import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange.RAW_REQUEST_BODY_ATTRIBUTE_KEY;
 
 /**
- * The default implementation of LLM provider interceptor registry.
+ * The default implementation of the {@link LLmProviderInterceptorRegistry}.
+ * <p>
+ * This class orchestrates the execution of interceptor chains around the core LLM request.
+ * It initializes and sorts the "before" and "after" interceptor chains per client type.
+ * During request execution, it guarantees that "before" interceptors are called prior to
+ * the HTTP request, and "after" interceptors are called when the response arrives or an
+ * error occurs. It uses Reactor's {@link Mono#usingWhen} to ensure that interceptor
+ * resources (like shared attribute maps) are properly cleaned up.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -50,11 +58,24 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
     private final Map<LlmClientType, LlmProviderExecutionBeforeInterceptorChain> beforeInterceptorChainMap;
     private final Map<LlmClientType, LlmProviderExecutionAfterInterceptorChain> afterInterceptorChainMap;
 
+    /**
+     * Constructs a new {@link DefaultLLmProviderInterceptorRegistry}.
+     *
+     * @param beforeInterceptors the list of before interceptors
+     * @param afterInterceptors  the list of after interceptors
+     */
     public DefaultLLmProviderInterceptorRegistry(@NonNull List<LlmProviderExecutionBeforeInterceptor> beforeInterceptors, @NonNull List<LlmProviderExecutionAfterInterceptor> afterInterceptors) {
         this.beforeInterceptorChainMap = initBeforeInterceptorChainMap(beforeInterceptors);
         this.afterInterceptorChainMap = initAfterInterceptorChainMap(afterInterceptors);
     }
 
+    /**
+     * Applies interceptors around a general (non-streaming) request execution.
+     *
+     * @param interceptedDataInfo the request metadata and payload
+     * @param generalExecution    the core execution logic
+     * @return the intercepted execution Mono
+     */
     @Override
     public Mono<ObjectNode> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<ObjectNode> generalExecution) {
         return Mono.deferContextual(contextView -> Mono.justOrEmpty(contextView)
@@ -131,6 +152,13 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
         );
     }
 
+    /**
+     * Applies interceptors around a streaming request execution.
+     *
+     * @param interceptedDataInfo the request metadata and payload
+     * @param streamExecution     the core execution logic returning a stream
+     * @return the intercepted execution Flux
+     */
     @Override
     public Flux<RawStreamResponse> interceptStream(@NonNull LLmProviderInterceptorRegistry.InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution) {
         return Flux.deferContextual(contextView -> Mono.justOrEmpty(contextView)

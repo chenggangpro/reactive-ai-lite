@@ -25,39 +25,80 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import java.util.Map;
 
 /**
+ * An abstract base implementation of the {@link LlmProviderExchange} interface.
+ * <p>
+ * This class provides the common data structure and accessor methods for all
+ * interceptor exchange types. It stores the mutable attributes map, the read-only
+ * execution context view, the client type, and the provider metadata. Subclasses
+ * (like request, general response, or stream response exchanges) extend this
+ * to add phase-specific payload data.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @SuperBuilder
 public abstract class AbstractLlmProviderExchange implements LlmProviderExchange {
 
+    /**
+     * A mutable map for interceptors to share data across the execution chain.
+     */
     @NonNull
     protected final Map<String, Object> attributes;
 
+    /**
+     * The type of LLM client handling the request.
+     */
     @NonNull
     protected final LlmClientType clientType;
 
+    /**
+     * Metadata about the specific LLM provider.
+     */
     @NonNull
     protected final LlmProviderInfo llmProviderInfo;
 
+    /**
+     * A read-only view of the execution context.
+     */
     @NonNull
     protected final ExecutionContextView executionContextView;
 
+    /**
+     * Retrieves the mutable attributes map.
+     *
+     * @return the attributes map
+     */
     @Override
     public Map<String, Object> getAttributes() {
         return this.attributes;
     }
 
+    /**
+     * Retrieves the read-only execution context view.
+     *
+     * @return the execution context view
+     */
     @Override
     public ExecutionContextView contextView() {
         return this.executionContextView;
     }
 
+    /**
+     * Retrieves the LLM client type.
+     *
+     * @return the client type
+     */
     @Override
     public LlmClientType clientType() {
         return this.clientType;
     }
 
+    /**
+     * Retrieves the LLM provider metadata.
+     *
+     * @return the provider info
+     */
     @Override
     public LlmProviderInfo llmProviderInfo() {
         return this.llmProviderInfo;

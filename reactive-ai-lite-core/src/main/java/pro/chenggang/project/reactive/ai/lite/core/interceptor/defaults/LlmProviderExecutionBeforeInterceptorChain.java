@@ -26,24 +26,53 @@ import java.util.ListIterator;
 import java.util.Objects;
 
 /**
- * The Llm provider execution before interceptor chain.
+ * A concrete implementation of {@link LlmProviderRequestInterceptorChain}.
+ * <p>
+ * This class builds an immutable, linked-list-style execution chain of
+ * {@link LlmProviderExecutionBeforeInterceptor} instances. When the {@code next()}
+ * method is called, it triggers the current interceptor and passes a reference
+ * to the remainder of the chain. This allows interceptors to execute sequentially
+ * before the LLM request is dispatched.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
- * @since 0.1.0
  */
 @Slf4j
 public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRequestInterceptorChain {
 
+    /**
+     * The interceptor to execute at this point in the chain.
+     */
     private final LlmProviderExecutionBeforeInterceptor currentInterceptor;
+
+    /**
+     * The remainder of the interceptor chain.
+     */
     private final LlmProviderExecutionBeforeInterceptorChain next;
 
+    /**
+     * Constructs a new chain from a list of interceptors.
+     * <p>
+     * The list should be ordered according to the desired execution sequence.
+     * The constructor builds the linked structure iteratively from the end
+     * of the list backwards to maintain the correct forward-execution order.
+     * </p>
+     *
+     * @param interceptors the list of 'before' interceptors to form the chain
+     */
     public LlmProviderExecutionBeforeInterceptorChain(List<LlmProviderExecutionBeforeInterceptor> interceptors) {
         LlmProviderExecutionBeforeInterceptorChain interceptor = init(interceptors);
         this.currentInterceptor = interceptor.currentInterceptor;
         this.next = interceptor.next;
     }
 
+    /**
+     * Initializes the linked chain structure by iterating backwards over the provided list.
+     *
+     * @param interceptors the list of interceptors
+     * @return the head of the initialized chain
+     */
     private LlmProviderExecutionBeforeInterceptorChain init(List<LlmProviderExecutionBeforeInterceptor> interceptors) {
         LlmProviderExecutionBeforeInterceptorChain interceptor = new LlmProviderExecutionBeforeInterceptorChain(null, null);
         if (Objects.nonNull(interceptors) && !interceptors.isEmpty()) {
@@ -57,12 +86,24 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
         return interceptor;
     }
 
+    /**
+     * Private constructor for linking nodes in the chain.
+     *
+     * @param currentInterceptor the current node's interceptor
+     * @param next               the next node in the chain
+     */
     private LlmProviderExecutionBeforeInterceptorChain(LlmProviderExecutionBeforeInterceptor currentInterceptor,
                                                        LlmProviderExecutionBeforeInterceptorChain next) {
         this.currentInterceptor = currentInterceptor;
         this.next = next;
     }
 
+    /**
+     * Executes the next interceptor in the chain for an outbound request.
+     *
+     * @param exchange the request exchange
+     * @return a Mono representing completion of the chain execution
+     */
     @Override
     public Mono<Void> next(LlmProviderRequestExchange exchange) {
         return Mono.defer(() -> {
@@ -73,6 +114,11 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
         });
     }
 
+    /**
+     * Determines if there is a valid interceptor to execute at this node.
+     *
+     * @return true if an interceptor and a next node exist, false otherwise (end of chain)
+     */
     private boolean shouldIntercept() {
         return this.currentInterceptor != null && this.next != null;
     }

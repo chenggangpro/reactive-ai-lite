@@ -18,12 +18,26 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 import java.util.Optional;
 
 /**
- * The Llm Provider Interceptor Exchange.
+ * The base data exchange specifically for inbound responses from the LLM provider.
+ * <p>
+ * This interface extends {@link LlmProviderExchange} to provide a common foundation
+ * for both general and streaming response interceptions. It includes the capability
+ * to surface any errors or exceptions that may have occurred during the execution of the request.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
 public interface LlmProviderResponseExchange extends LlmProviderExchange {
 
+    /**
+     * Retrieves an optional error that may have occurred during the request execution.
+     * <p>
+     * Interceptors can check this to perform error-specific logging or handling.
+     * If empty, the execution succeeded.
+     * </p>
+     *
+     * @return an {@link Optional} containing a {@link Throwable} if an error occurred, otherwise empty
+     */
     Optional<Throwable> error();
 }

@@ -27,7 +27,14 @@ import java.util.ListIterator;
 import java.util.Objects;
 
 /**
- * The Llm provider execution after interceptor chain.
+ * A concrete implementation of {@link LlmProviderResponseInterceptorChain}.
+ * <p>
+ * This class builds an immutable, linked-list-style execution chain of
+ * {@link LlmProviderExecutionAfterInterceptor} instances. When the {@code next()}
+ * method is called, it triggers the current interceptor and passes a reference
+ * to the remainder of the chain. This allows interceptors to execute sequentially
+ * after the LLM response is received.
+ * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
@@ -35,15 +42,37 @@ import java.util.Objects;
 @Slf4j
 public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderResponseInterceptorChain {
 
+    /**
+     * The interceptor to execute at this point in the chain.
+     */
     private final LlmProviderExecutionAfterInterceptor currentInterceptor;
+
+    /**
+     * The remainder of the interceptor chain.
+     */
     private final LlmProviderExecutionAfterInterceptorChain next;
 
+    /**
+     * Constructs a new chain from a list of interceptors.
+     * <p>
+     * The list should be ordered according to the desired execution sequence.
+     * The constructor builds the linked structure iteratively.
+     * </p>
+     *
+     * @param interceptors the list of 'after' interceptors to form the chain
+     */
     public LlmProviderExecutionAfterInterceptorChain(List<LlmProviderExecutionAfterInterceptor> interceptors) {
         LlmProviderExecutionAfterInterceptorChain interceptor = init(interceptors);
         this.currentInterceptor = interceptor.currentInterceptor;
         this.next = interceptor.next;
     }
 
+    /**
+     * Initializes the linked chain structure.
+     *
+     * @param interceptors the list of interceptors
+     * @return the head of the initialized chain
+     */
     private LlmProviderExecutionAfterInterceptorChain init(List<LlmProviderExecutionAfterInterceptor> interceptors) {
         LlmProviderExecutionAfterInterceptorChain interceptor = new LlmProviderExecutionAfterInterceptorChain(null, null);
         if (Objects.nonNull(interceptors) && !interceptors.isEmpty()) {
@@ -57,12 +86,23 @@ public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderRes
         return interceptor;
     }
 
+    /**
+     * Private constructor for linking nodes in the chain.
+     *
+     * @param currentInterceptor the current node's interceptor
+     * @param next               the next node in the chain
+     */
     private LlmProviderExecutionAfterInterceptorChain(LlmProviderExecutionAfterInterceptor currentInterceptor,
                                                       LlmProviderExecutionAfterInterceptorChain next) {
         this.currentInterceptor = currentInterceptor;
         this.next = next;
     }
 
+    /**
+     * Determines if there is a valid interceptor to execute at this node.
+     *
+     * @return true if an interceptor and a next node exist, false otherwise (end of chain)
+     */
     private boolean shouldIntercept() {
         return this.currentInterceptor != null && this.next != null;
     }
@@ -72,6 +112,12 @@ public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderRes
         return getClass().getSimpleName() + "[currentInterceptor=" + this.currentInterceptor + "]";
     }
 
+    /**
+     * Executes the next interceptor in the chain for a general response.
+     *
+     * @param exchange the general response exchange
+     * @return a Mono representing completion of the chain execution
+     */
     @Override
     public Mono<Void> next(LlmProviderGeneralResponseExchange exchange) {
         return Mono.defer(() -> {
@@ -82,6 +128,12 @@ public class LlmProviderExecutionAfterInterceptorChain implements LlmProviderRes
         });
     }
 
+    /**
+     * Executes the next interceptor in the chain for a stream response chunk.
+     *
+     * @param exchange the stream response exchange
+     * @return a Mono representing completion of the chain execution
+     */
     @Override
     public Mono<Void> next(LlmProviderStreamResponseExchange exchange) {
         return Mono.defer(() -> {

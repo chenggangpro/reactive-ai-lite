@@ -21,15 +21,30 @@ import lombok.experimental.SuperBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange;
 
 /**
+ * The default implementation of {@link LlmProviderRequestExchange}.
+ * <p>
+ * This class extends {@link AbstractLlmProviderExchange} to include the raw JSON
+ * request body that will be sent to the LLM provider. Interceptors can access
+ * and modify this {@code ObjectNode} before the HTTP request is executed.
+ * </p>
+ *
  * @author Cheng Gang
  * @version 0.1.0
  */
 @SuperBuilder
 public class DefaultLlmProviderRequestExchange extends AbstractLlmProviderExchange implements LlmProviderRequestExchange {
 
+    /**
+     * The raw JSON payload intended for the provider.
+     */
     @NonNull
     private final ObjectNode rawRequestBody;
 
+    /**
+     * Retrieves the raw JSON request body.
+     *
+     * @return the JSON request body
+     */
     @Override
     public ObjectNode rawRequestBody() {
         return this.rawRequestBody;
