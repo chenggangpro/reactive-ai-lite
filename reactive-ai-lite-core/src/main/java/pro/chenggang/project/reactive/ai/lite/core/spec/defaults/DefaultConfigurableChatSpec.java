@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.spec.defaults;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -37,6 +38,7 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -77,6 +79,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     private Function<ExecutionContextView, Integer> maxCompletionTokensConfigure;
     private Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
     private Function<ExecutionContextView, Collection<ToolResultMessage>> toolsResultMessageConfigure;
+    private BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure;
     private boolean distinctToolCalls;
 
     /**
@@ -265,6 +268,12 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
         return this;
     }
 
+    @Override
+    public ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure) {
+        this.rawRequestCustomizerConfigure = rawRequestCustomizerConfigure;
+        return this;
+    }
+
     /**
      * Creates and returns a handler for general chat execution.
      *
@@ -304,6 +313,9 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
         var builder = ExecutionSpec.builder();
         if (Objects.nonNull(this.toolChoiceConfigure)) {
             builder.toolChoiceConfigure(this.toolChoiceConfigure);
+        }
+        if (Objects.nonNull(this.rawRequestCustomizerConfigure)) {
+            builder.rawRequestCustomizerConfigure(this.rawRequestCustomizerConfigure);
         }
         return builder.llmClientType(llmClientType)
                 .parentAttributes(defaultExecutionContextSpec.getParentAttributes())

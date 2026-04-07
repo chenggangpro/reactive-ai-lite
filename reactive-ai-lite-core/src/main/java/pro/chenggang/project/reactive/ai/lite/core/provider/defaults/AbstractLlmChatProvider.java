@@ -93,8 +93,8 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     /**
      * Constructs a new {@link AbstractLlmChatProvider}.
      *
-     * @param certifications               a list of token certifications to register
-     * @param llmProviderInfoInitializer   a function to initialize the provider info based on the registered certifications
+     * @param certifications                 a list of token certifications to register
+     * @param llmProviderInfoInitializer     a function to initialize the provider info based on the registered certifications
      * @param lLmProviderInterceptorRegistry the registry for interceptors
      */
     protected AbstractLlmChatProvider(@NonNull List<TokenCertification> certifications,
@@ -232,7 +232,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     public Flux<StreamResponse> executeStream(@NonNull ExecutionInfo executionInfo) {
         return this.initializeLlmRequestData(executionInfo, true, null, null)
                 .flatMapMany(llmRequestData -> {
-                            return Mono.fromCallable(() -> this.initializeRequestBody(llmRequestData))
+                            return this.generateRawRequestBody(llmRequestData)
                                     .flatMapMany(requestBody -> {
                                         return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                                                 .clientType(CHAT)
@@ -264,7 +264,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     public Flux<RawStreamResponse> executeStreamRaw(@NonNull ExecutionInfo executionInfo) {
         return this.initializeLlmRequestData(executionInfo, true, null, null)
                 .flatMapMany(llmRequestData -> {
-                            return Mono.fromCallable(() -> this.initializeRequestBody(llmRequestData))
+                            return this.generateRawRequestBody(llmRequestData)
                                     .flatMapMany(requestBody -> {
                                         return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                                                 .clientType(CHAT)
@@ -348,7 +348,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      * @return a Mono emitting the raw response
      */
     protected Mono<RawResponse> executeInternalRaw(@NonNull LlmChatRequestData llmChatRequestData) {
-        return Mono.fromCallable(() -> this.initializeRequestBody(llmChatRequestData))
+        return this.generateRawRequestBody(llmChatRequestData)
                 .flatMap(requestBody -> {
                     return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                             .clientType(CHAT)
@@ -440,6 +440,21 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
             ResponseSpec responseSpec = requestBodySpec.retrieve()
                     .onStatus(HttpStatusCode::isError, LlmProviderUtil::handleClientResponseError);
             sink.success(responseSpec);
+        });
+    }
+
+    /**
+     * Generates the raw JSON request body by initializing it and applying any customizers.
+     *
+     * @param llmChatRequestData the request data
+     * @return a Mono emitting the fully configured {@link ObjectNode} request body
+     */
+    protected Mono<ObjectNode> generateRawRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
+        return Mono.fromCallable(() -> {
+            ObjectNode rawRequestBody = this.initializeRequestBody(llmChatRequestData);
+            llmChatRequestData.getRawRequestCustomizerConfigure()
+                    .accept(llmChatRequestData.getExecutionContextView(), rawRequestBody);
+            return rawRequestBody;
         });
     }
 }

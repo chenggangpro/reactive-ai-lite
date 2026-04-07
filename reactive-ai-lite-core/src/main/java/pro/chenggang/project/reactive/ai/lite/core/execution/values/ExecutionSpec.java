@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.values;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -166,6 +168,12 @@ public class ExecutionSpec {
     private final Function<ExecutionContextView, Collection<ToolResultMessage>> toolResultMessageConfigure;
 
     /**
+     * A consumer to dynamically customize the raw request JSON node before it is sent to the LLM provider.
+     */
+    @Builder.Default
+    private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure = ((contextView, jsonNodes) -> {});
+
+    /**
      * Whether to filter distinct tool calls from the provider's response.
      */
     private final boolean distinctToolCalls;
@@ -216,6 +224,7 @@ public class ExecutionSpec {
                 .toolsConfigure(this.toolsConfigure)
                 .toolChoiceConfigure(this.toolChoiceConfigure)
                 .toolResultMessageConfigure(this.toolResultMessageConfigure)
+                .rawRequestCustomizerConfigure(this.rawRequestCustomizerConfigure)
                 .distinctToolCalls(this.distinctToolCalls)
                 .build();
     }

@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.values;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,6 +31,7 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -137,6 +139,11 @@ public class ExecutionInfo {
      * A function to dynamically configure the tool execution results to send back to the model.
      */
     private final Function<ExecutionContextView, Collection<ToolResultMessage>> toolResultMessageConfigure;
+
+    /**
+     * A consumer to dynamically customize the raw request JSON object before it is sent.
+     */
+    private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure;
 
     /**
      * A flag indicating whether distinct tool calls should be enforced.

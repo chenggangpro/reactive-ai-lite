@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.spec;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -29,6 +30,8 @@ import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static pro.chenggang.project.reactive.ai.lite.core.option.BuildInPrompt.SYSTEM_PROMPT;
@@ -329,4 +332,24 @@ public interface ConfigurableChatSpec extends ChatSpec {
         return toolsResponse(contextView -> toolResultMessages);
     }
 
+    /**
+     * Configures a customizer for the raw request object (JSON node).
+     * This allows for low-level manipulation of the request payload before it is sent to the AI provider,
+     * enabling support for provider-specific parameters not explicitly covered by this API.
+     *
+     * @param rawRequestCustomizerConfigure a consumer that accepts the execution context and the raw request ObjectNode
+     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     */
+    ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure);
+
+    /**
+     * Configures a customizer for the raw request object (JSON node).
+     * This is a convenience method that ignores the execution context.
+     *
+     * @param rawRequestCustomizerConfigure a consumer that accepts the raw request ObjectNode
+     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     */
+    default ConfigurableChatSpec rawRequestCustomizer(@NonNull Consumer<ObjectNode> rawRequestCustomizerConfigure) {
+        return rawRequestCustomizer((contextView, jsonNode) -> rawRequestCustomizerConfigure.accept(jsonNode));
+    }
 }

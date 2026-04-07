@@ -15,6 +15,7 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.entity.values;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -165,6 +167,12 @@ public class LlmChatRequestData {
      * The most recent media message (text with attachments) from the user.
      */
     private final MediaMessage userMediaMessage;
+
+    /**
+     * A customizer for the raw request object node.
+     */
+    @Getter
+    private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure;
 
     /**
      * Gets the token certification as an Optional.
@@ -358,6 +366,7 @@ public class LlmChatRequestData {
                     .toolChoice(this.loadToolChoice(executionInfo))
                     .structuredOutputType(structuredOutputType)
                     .responseJsonSchema(responseJsonSchema)
+                    .rawRequestCustomizerConfigure(executionInfo.getRawRequestCustomizerConfigure())
                     .build();
         }
 
