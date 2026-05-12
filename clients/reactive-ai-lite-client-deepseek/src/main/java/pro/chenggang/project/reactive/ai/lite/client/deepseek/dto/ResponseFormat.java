@@ -18,12 +18,13 @@ package pro.chenggang.project.reactive.ai.lite.client.deepseek.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.jsonschema.JsonSchema;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
+
+import java.util.Map;
 
 /**
  * @author Cheng Gang
@@ -63,6 +64,25 @@ public class ResponseFormat {
          */
         @JsonProperty("json_object")
         JSON_OBJECT,
+
+    }
+
+    /**
+     * JSON schema object that describes the format of the JSON object. Applicable for the
+     * 'json_schema' type only.
+     */
+    @JsonInclude(Include.NON_NULL)
+    @Getter
+    @Builder
+    @Jacksonized
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JsonSchema {
+
+        @JsonProperty("schema")
+        private final Map<String, Object> schema;
+
+        @JsonProperty("strict")
+        private final Boolean strict;
 
     }
 

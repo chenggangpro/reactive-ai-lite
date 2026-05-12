@@ -51,7 +51,7 @@ class AbstractLlmProviderInfoTest {
         Set<String> profiles = Collections.singleton("default");
         Set<String> models = Set.of("gpt-4", "gpt-3.5");
         TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, models);
-        
+
         assertThat(info.supportModel("gpt-4")).isTrue();
         assertThat(info.supportModel("gpt-3.5")).isTrue();
         assertThat(info.supportModel("claude")).isFalse();
@@ -61,7 +61,7 @@ class AbstractLlmProviderInfoTest {
     void testSupportModelAll() {
         Set<String> profiles = Collections.singleton("default");
         TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, null);
-        
+
         assertThat(info.supportModel("any")).isTrue();
     }
 

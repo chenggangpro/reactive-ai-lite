@@ -37,7 +37,7 @@ class LlmProviderExchangeTest {
         LlmProviderInfo info = mock(LlmProviderInfo.class);
         ExecutionContextView contextView = mock(ExecutionContextView.class);
         ObjectNode requestBody = JsonNodeFactory.instance.objectNode();
-        
+
         DefaultLlmProviderRequestExchange exchange = DefaultLlmProviderRequestExchange.builder()
                 .attributes(new HashMap<>())
                 .clientType(clientType)
@@ -45,7 +45,7 @@ class LlmProviderExchangeTest {
                 .executionContextView(contextView)
                 .rawRequestBody(requestBody)
                 .build();
-        
+
         assertThat(exchange.clientType()).isEqualTo(clientType);
         assertThat(exchange.llmProviderInfo()).isEqualTo(info);
         assertThat(exchange.contextView()).isEqualTo(contextView);
@@ -59,7 +59,7 @@ class LlmProviderExchangeTest {
         ExecutionContextView contextView = mock(ExecutionContextView.class);
         ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
         Throwable error = new RuntimeException("err");
-        
+
         DefaultLlmProviderGeneralResponseExchange exchange = DefaultLlmProviderGeneralResponseExchange.builder()
                 .attributes(new HashMap<>())
                 .clientType(clientType)
@@ -68,7 +68,7 @@ class LlmProviderExchangeTest {
                 .rawResponseBody(responseBody)
                 .error(error)
                 .build();
-        
+
         assertThat(exchange.rawResponseBody()).contains(responseBody);
         assertThat(exchange.error()).contains(error);
     }
@@ -79,7 +79,7 @@ class LlmProviderExchangeTest {
         LlmProviderInfo info = mock(LlmProviderInfo.class);
         ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<RawStreamResponse> stream = Flux.empty();
-        
+
         DefaultLlmProviderStreamResponseExchange exchange = DefaultLlmProviderStreamResponseExchange.builder()
                 .attributes(new HashMap<>())
                 .clientType(clientType)
@@ -87,7 +87,7 @@ class LlmProviderExchangeTest {
                 .executionContextView(contextView)
                 .rawStreamResponse(stream)
                 .build();
-        
+
         assertThat(exchange.rawStreamResponse()).isEqualTo(stream);
     }
 }

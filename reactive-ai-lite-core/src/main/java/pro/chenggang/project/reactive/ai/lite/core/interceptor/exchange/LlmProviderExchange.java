@@ -25,7 +25,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
  * <p>
  * This interface defines the core context available to all interceptors, regardless of
  * whether they are operating on the request before execution, or the response after
- * execution. It provides access to the shared attributes, the execution context view,
+ * execution. It provides access to the shared parsingAttributes, the execution context view,
  * the client type, and metadata about the provider handling the request.
  * </p>
  *
@@ -37,7 +37,7 @@ public interface LlmProviderExchange extends AttributesAbility {
     /**
      * Retrieves the read-only view of the execution context.
      * <p>
-     * This context view contains attributes and state configured before the request
+     * This context view contains parsingAttributes and state configured before the request
      * began processing, useful for tracing and correlation.
      * </p>
      *

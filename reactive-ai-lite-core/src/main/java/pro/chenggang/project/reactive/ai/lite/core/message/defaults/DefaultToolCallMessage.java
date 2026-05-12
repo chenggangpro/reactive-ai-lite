@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Singular;
 import lombok.extern.jackson.Jacksonized;
 import org.springframework.lang.Nullable;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribute;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage;
 
@@ -42,7 +43,7 @@ import java.util.List;
 @Jacksonized
 @Builder
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class DefaultToolCallMessage implements ToolCallMessage {
+public class DefaultToolCallMessage extends AbstractAttribute implements ToolCallMessage {
 
     /**
      * The primary textual content of the message, if any.

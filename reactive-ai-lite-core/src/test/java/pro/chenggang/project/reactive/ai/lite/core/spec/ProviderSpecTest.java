@@ -30,7 +30,7 @@ class ProviderSpecTest {
     @Test
     void testDefaultMethods() {
         ProviderSpec spec = mock(ProviderSpec.class);
-        
+
         when(spec.firstProvider(any(Predicate.class))).thenCallRealMethod();
         when(spec.profile(any(String.class))).thenCallRealMethod();
         when(spec.defaultSystemMessage(any(String.class))).thenCallRealMethod();

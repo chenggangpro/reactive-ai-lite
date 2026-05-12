@@ -20,6 +20,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
+import pro.chenggang.project.reactive.ai.lite.core.entity.AttributesAbility;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribute;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 
 /**
@@ -36,7 +38,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 @Jacksonized
 @Builder
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class TextStreamDataChunk implements StreamDataChunk {
+public class TextStreamDataChunk extends AbstractAttribute implements StreamDataChunk, AttributesAbility {
 
     /**
      * The specific category of this text chunk (e.g., ANSWER_CONTENT, REASONING_CONTENT).

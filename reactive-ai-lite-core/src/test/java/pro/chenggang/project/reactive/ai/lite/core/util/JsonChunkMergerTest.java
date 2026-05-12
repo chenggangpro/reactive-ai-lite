@@ -30,7 +30,7 @@ class JsonChunkMergerTest {
         target.put("text", "Hello");
         ObjectNode source = OBJECT_MAPPER.createObjectNode();
         source.put("text", " World");
-        
+
         JsonChunkMerger.merge(target, source);
         assertThat(target.get("text").asText()).isEqualTo("Hello World");
     }

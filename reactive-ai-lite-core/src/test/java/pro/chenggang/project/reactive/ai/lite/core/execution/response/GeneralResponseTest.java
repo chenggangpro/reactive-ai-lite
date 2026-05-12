@@ -31,11 +31,11 @@ class GeneralResponseTest {
     void testGetToolCallsWithToolCallMessage() {
         ToolCallMessage toolCallMessage = mock(ToolCallMessage.class);
         when(toolCallMessage.getToolCalls()).thenReturn(Collections.emptyList());
-        
+
         GeneralResponse response = GeneralResponse.builder()
                 .assistantTextMessage(toolCallMessage)
                 .build();
-        
+
         assertThat(response.getToolCalls()).isPresent();
         assertThat(response.getToolCalls().get()).isEmpty();
     }
@@ -43,11 +43,11 @@ class GeneralResponseTest {
     @Test
     void testGetToolCallsWithRegularMessage() {
         AssistantTextMessage assistantTextMessage = mock(AssistantTextMessage.class);
-        
+
         GeneralResponse response = GeneralResponse.builder()
                 .assistantTextMessage(assistantTextMessage)
                 .build();
-        
+
         assertThat(response.getToolCalls()).isEmpty();
     }
 }

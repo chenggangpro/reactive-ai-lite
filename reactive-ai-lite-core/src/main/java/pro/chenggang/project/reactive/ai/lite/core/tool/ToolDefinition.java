@@ -81,7 +81,7 @@ public interface ToolDefinition {
      * </p>
      *
      * @return {@code true} to enforce strict schema adherence, or {@code null} to use the
-     *         provider's default behavior
+     * provider's default behavior
      */
     default Boolean strict() {
         return null;
@@ -110,9 +110,9 @@ public interface ToolDefinition {
      * type from which the schema will be automatically generated.
      * </p>
      *
+     * @author Cheng Gang
      * @see ToolDefinition
      * @see DefaultToolDefinition
-     * @author Cheng Gang
      */
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     class ToolDefinitionBuilder {

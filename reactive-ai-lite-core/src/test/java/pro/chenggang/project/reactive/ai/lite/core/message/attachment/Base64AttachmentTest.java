@@ -32,7 +32,7 @@ class Base64AttachmentTest {
                 .base64Content("SGVsbG8=")
                 .charset(StandardCharsets.UTF_8)
                 .build();
-        
+
         assertThat(attachment.mimeType()).isEqualTo(MimeTypeUtils.IMAGE_PNG);
         assertThat(attachment.name()).isEqualTo("test.png");
         assertThat(attachment.content()).contains("SGVsbG8=");

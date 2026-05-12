@@ -34,7 +34,7 @@ class MediaMessageTest {
                 .reasoningContent("reason")
                 .attachments(mock(Attachment.class))
                 .build();
-        
+
         assertThat(message.getRole()).isEqualTo(Role.USER.getValue());
         assertThat(message.getContent()).isEqualTo("hello");
         assertThat(message.getName()).isEqualTo("user");
@@ -47,7 +47,7 @@ class MediaMessageTest {
         MediaMessage message = MediaMessage.newMediaMessage("user")
                 .content("hello")
                 .build();
-        
+
         assertThat(message.getRole()).isEqualTo("user");
     }
 
@@ -57,7 +57,7 @@ class MediaMessageTest {
         MediaMessage message = MediaMessage.newMediaMessage(Role.USER)
                 .attachments(Collections.singletonList(attachment))
                 .build();
-        
+
         assertThat(message.getAttachments()).containsExactly(attachment);
     }
 
@@ -68,7 +68,7 @@ class MediaMessageTest {
                 .reasoningContent(null)
                 .attachments((Attachment[]) null)
                 .build();
-        
+
         assertThat(message.getContent()).isEmpty();
         assertThat(message.getReasoningContent()).isNull();
         assertThat(message.getAttachments()).isEmpty();

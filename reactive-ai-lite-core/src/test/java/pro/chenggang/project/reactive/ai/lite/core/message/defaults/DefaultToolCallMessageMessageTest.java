@@ -16,25 +16,30 @@
 package pro.chenggang.project.reactive.ai.lite.core.message.defaults;
 
 import org.junit.jupiter.api.Test;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage.AssistantToolCall;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
-class DefaultAssistantTextMessageTest {
+class DefaultToolCallMessageMessageTest {
 
     @Test
     void testBuilderAndGetters() {
-        String content = "Hello, world!";
-        String reasoningContent = "I'm thinking...";
-        
-        DefaultAssistantTextMessage message = DefaultAssistantTextMessage.builder()
+        String content = "I will call a tool";
+        String reasoningContent = "Thinking about tool";
+        AssistantToolCall toolCall = mock(AssistantToolCall.class);
+
+        DefaultToolCallMessage message = DefaultToolCallMessage.builder()
                 .content(content)
                 .reasoningContent(reasoningContent)
+                .toolCall(toolCall)
                 .build();
 
         assertThat(message.getContent()).isEqualTo(content);
         assertThat(message.getReasoningContent()).isEqualTo(reasoningContent);
+        assertThat(message.getToolCalls()).containsExactly(toolCall);
         assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toLowerCase());
-        assertThat(message.getActualType()).isEqualTo(DefaultAssistantTextMessage.class);
+        assertThat(message.getActualType()).isEqualTo(DefaultToolCallMessage.class);
     }
 }

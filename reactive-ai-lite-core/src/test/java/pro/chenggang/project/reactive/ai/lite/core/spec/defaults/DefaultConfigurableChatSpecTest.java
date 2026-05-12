@@ -56,19 +56,19 @@ class DefaultConfigurableChatSpecTest {
         ToolResultMessage toolResult = mock(ToolResultMessage.class);
 
         spec.model(ctx -> "gpt-4")
-            .temperature(ctx -> 0.7)
-            .topP(ctx -> 0.9)
-            .includeUsage(ctx -> true)
-            .reasoning(ctx -> "thinking")
-            .textMessage(ctx -> "hello")
-            .mediaMessage(ctx -> mediaMessage)
-            .systemMessage(ctx -> "system")
-            .historicalMessage(ctx -> Collections.singletonList(historicalMessage))
-            .maxCompletionTokens(ctx -> 100)
-            .tools(ctx -> Collections.singletonList(tool))
-            .toolsResponse(ctx -> Collections.singletonList(toolResult))
-            .toolChoice(ctx -> "auto")
-            .distinctToolCalls(true);
+                .temperature(ctx -> 0.7)
+                .topP(ctx -> 0.9)
+                .includeUsage(ctx -> true)
+                .reasoning(ctx -> "thinking")
+                .textMessage(ctx -> "hello")
+                .mediaMessage(ctx -> mediaMessage)
+                .systemMessage(ctx -> "system")
+                .historicalMessage(ctx -> Collections.singletonList(historicalMessage))
+                .maxCompletionTokens(ctx -> 100)
+                .tools(ctx -> Collections.singletonList(tool))
+                .toolsResponse(ctx -> Collections.singletonList(toolResult))
+                .toolChoice(ctx -> "auto")
+                .distinctToolCalls(true);
 
         ExecutionSpec executionSpec = spec.toExecutionSpec();
         assertThat(executionSpec.getLlmClientType()).isEqualTo(LlmClientType.CHAT);
@@ -91,7 +91,7 @@ class DefaultConfigurableChatSpecTest {
     @Test
     void testExecutionHandlers() {
         spec.model(ctx -> "gpt-4");
-        
+
         GeneralExecution general = spec.general();
         assertThat(general).isNotNull();
 
@@ -105,9 +105,9 @@ class DefaultConfigurableChatSpecTest {
     @Test
     void testAdditionalConfigurableMethods() {
         spec.model(ctx -> "gpt-4")
-            .distinctToolCalls(true);
+                .distinctToolCalls(true);
         assertThat(spec.isDistinctToolCalls()).isTrue();
-        
+
         ExecutionSpec executionSpec = spec.toExecutionSpec();
         assertThat(executionSpec).isNotNull();
     }

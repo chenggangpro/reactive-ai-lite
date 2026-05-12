@@ -30,7 +30,7 @@ class ConfigurableChatSpecTest {
     @Test
     void testDefaultMethods() {
         ConfigurableChatSpec spec = mock(ConfigurableChatSpec.class);
-        
+
         when(spec.model(any(String.class))).thenCallRealMethod();
         when(spec.temperature(any(Double.class))).thenCallRealMethod();
         when(spec.topP(any(Double.class))).thenCallRealMethod();
@@ -65,7 +65,7 @@ class ConfigurableChatSpecTest {
 
         spec.historicalMessage(Collections.emptyList());
         // verify NOT called since it's empty
-        
+
         spec.textMessage("user");
         verify(spec).textMessage(any(java.util.function.Function.class));
 

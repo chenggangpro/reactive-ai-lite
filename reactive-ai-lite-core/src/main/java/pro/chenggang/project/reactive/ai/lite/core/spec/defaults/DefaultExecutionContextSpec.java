@@ -34,7 +34,7 @@ import java.util.function.Consumer;
  * <p>
  * This class serves as the initial starting point for building an AI request
  * execution specification. It captures fundamental context settings like parent
- * attributes and custom context configuration callbacks before transitioning to
+ * parsingAttributes and custom context configuration callbacks before transitioning to
  * provider configuration.
  * </p>
  *
@@ -78,9 +78,9 @@ public class DefaultExecutionContextSpec implements ExecutionContextSpec {
     }
 
     /**
-     * Sets attributes inherited from a parent execution context.
+     * Sets parsingAttributes inherited from a parent execution context.
      *
-     * @param parentAttributes a map of attributes from the parent context
+     * @param parentAttributes a map of parsingAttributes from the parent context
      * @return this instance for method chaining
      */
     @Override

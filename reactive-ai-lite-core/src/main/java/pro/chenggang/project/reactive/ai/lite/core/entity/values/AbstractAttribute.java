@@ -26,17 +26,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * An abstract base class that implements the {@link AttributesAbility} interface.
  * <p>
  * This class provides a thread-safe, concurrent backing map for storing and managing
- * attributes. It is intended to be extended by message or context classes that require
+ * parsingAttributes. It is intended to be extended by message or context classes that require
  * the ability to carry metadata or context-specific data across the application.
  * </p>
  *
  * @author Cheng Gang
  * @version 0.1.0
  */
-public abstract class AbstractAttributeMessage implements AttributesAbility {
+public abstract class AbstractAttribute implements AttributesAbility {
 
     /**
-     * The underlying map storing the attributes.
+     * The underlying map storing the parsingAttributes.
      * <p>
      * Protected access allows subclasses to potentially interact with the map
      * directly if necessary, though standard access should be via the methods
@@ -46,29 +46,29 @@ public abstract class AbstractAttributeMessage implements AttributesAbility {
     protected final Map<String, Object> attributes;
 
     /**
-     * Constructs a new {@link AbstractAttributeMessage} with an empty, concurrent attribute map.
+     * Constructs a new {@link AbstractAttribute} with an empty, concurrent attribute map.
      */
-    public AbstractAttributeMessage() {
+    public AbstractAttribute() {
         this(null);
     }
 
     /**
-     * Constructs a new {@link AbstractAttributeMessage} using the provided attribute map.
+     * Constructs a new {@link AbstractAttribute} using the provided attribute map.
      * <p>
      * If the provided map is {@code null}, a new {@link ConcurrentHashMap} is created
-     * to ensure thread-safe operations on the attributes.
+     * to ensure thread-safe operations on the parsingAttributes.
      * </p>
      *
-     * @param attributes the initial map of attributes, or {@code null} to create a new empty map
+     * @param attributes the initial map of parsingAttributes, or {@code null} to create a new empty map
      */
-    protected AbstractAttributeMessage(@Nullable Map<String, Object> attributes) {
+    protected AbstractAttribute(@Nullable Map<String, Object> attributes) {
         this.attributes = Objects.isNull(attributes) ? new ConcurrentHashMap<>() : attributes;
     }
 
     /**
-     * Retrieves the map of attributes.
+     * Retrieves the map of parsingAttributes.
      *
-     * @return the mutable map of attributes
+     * @return the mutable map of parsingAttributes
      */
     @Override
     public Map<String, Object> getAttributes() {

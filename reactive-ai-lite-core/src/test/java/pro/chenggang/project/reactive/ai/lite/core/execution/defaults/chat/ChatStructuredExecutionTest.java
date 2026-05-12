@@ -42,7 +42,7 @@ class ChatStructuredExecutionTest {
                 .llmClientType(LlmClientType.CHAT)
                 .modelNameConfigure(ctx -> "gpt-4")
                 .build();
-        
+
         ChatStructuredExecution execution = ChatStructuredExecution.of(registry, spec);
         assertThat(execution.executionSpec()).isEqualTo(spec);
     }
@@ -52,15 +52,15 @@ class ChatStructuredExecutionTest {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getChatProvider(any())).thenReturn(provider);
-        
+
         ExecutionSpec spec = ExecutionSpec.builder()
                 .llmClientType(LlmClientType.CHAT)
                 .modelNameConfigure(ctx -> "gpt-4")
                 .build();
-        
+
         StructuredResponse<String> response = mock(StructuredResponse.class);
         when(provider.executeStructured(any(), (Class<String>) any())).thenReturn(Mono.just(response));
-        
+
         ChatStructuredExecution execution = ChatStructuredExecution.of(registry, spec);
         StepVerifier.create(execution.execute(String.class))
                 .expectNext(response)
@@ -72,15 +72,15 @@ class ChatStructuredExecutionTest {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getChatProvider(any())).thenReturn(provider);
-        
+
         ExecutionSpec spec = ExecutionSpec.builder()
                 .llmClientType(LlmClientType.CHAT)
                 .modelNameConfigure(ctx -> "gpt-4")
                 .build();
-        
+
         StructuredResponse<Collections> response = mock(StructuredResponse.class);
         when(provider.executeStructured(any(), (ParameterizedTypeReference<Collections>) any())).thenReturn(Mono.just(response));
-        
+
         ChatStructuredExecution execution = ChatStructuredExecution.of(registry, spec);
         StepVerifier.create(execution.execute(new ParameterizedTypeReference<Collections>() {}))
                 .expectNext(response)
@@ -92,15 +92,15 @@ class ChatStructuredExecutionTest {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getChatProvider(any())).thenReturn(provider);
-        
+
         ExecutionSpec spec = ExecutionSpec.builder()
                 .llmClientType(LlmClientType.CHAT)
                 .modelNameConfigure(ctx -> "gpt-4")
                 .build();
-        
+
         RawResponse response = mock(RawResponse.class);
         when(provider.executeStructuredRaw(any(), any(String.class))).thenReturn(Mono.just(response));
-        
+
         ChatStructuredExecution execution = ChatStructuredExecution.of(registry, spec);
         StepVerifier.create(execution.executeRaw("{}"))
                 .expectNext(response)

@@ -42,23 +42,23 @@ class LlmProviderExecutorTest {
         ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        
+
         ExecutionContext executionContext = mock(ExecutionContext.class);
         when(spec.newExecutionContext()).thenReturn(executionContext);
-        
+
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getDefaultProvider(any())).thenReturn(provider);
-        
+
         ExecutionInfo executionInfo = mock(ExecutionInfo.class);
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-        
+
         LlmProviderExecutor executor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-        
+
         BiFunction<LlmChatProvider, ExecutionInfo, String> execution = (p, info) -> "result";
-        
+
         String result = executor.executeChat(execution);
         assertThat(result).isEqualTo("result");
         verify(spec).newExecutionContext();
@@ -71,15 +71,15 @@ class LlmProviderExecutorTest {
         ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        
+
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getDefaultProvider(any())).thenReturn(provider);
-        
+
         LlmProviderExecutor executor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-        
+
         LlmChatProvider result = executor.loadLlmProvider(mock(ExecutionContext.class), LlmProviderRegistry::getChatProvider);
         assertThat(result).isEqualTo(provider);
     }
@@ -90,26 +90,26 @@ class LlmProviderExecutorTest {
         ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        
+
         ExecutionContext executionContext = mock(ExecutionContext.class);
         when(spec.newExecutionContext()).thenReturn(executionContext);
-        
+
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getDefaultProvider(any())).thenReturn(provider);
-        
+
         ExecutionInfo executionInfo = mock(ExecutionInfo.class);
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-        
+
         LlmProviderExecutor executor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-        
+
         RawStreamResponse chunk = mock(RawStreamResponse.class);
         reactor.core.publisher.Flux<RawStreamResponse> execution = reactor.core.publisher.Flux.just(chunk);
-        
+
         reactor.core.publisher.Flux<RawStreamResponse> result = executor.executeChat((p, info) -> execution);
-        
+
         StepVerifier.create(result)
                 .expectNext(chunk)
                 .verifyComplete();
@@ -121,13 +121,13 @@ class LlmProviderExecutorTest {
         ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        
+
         ExecutionContext executionContext = mock(ExecutionContext.class);
         when(spec.newExecutionContext()).thenReturn(executionContext);
-        
+
         // Return null for default provider
         when(registry.getDefaultProvider(any())).thenReturn(null);
-        
+
         ExecutionInfo executionInfo = mock(ExecutionInfo.class);
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
 
@@ -135,7 +135,7 @@ class LlmProviderExecutorTest {
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-        
+
         // This should throw NPE because llmProvider is null
         assertThatThrownBy(() -> executor.executeChat((p, info) -> p.info()))
                 .isInstanceOf(NullPointerException.class);

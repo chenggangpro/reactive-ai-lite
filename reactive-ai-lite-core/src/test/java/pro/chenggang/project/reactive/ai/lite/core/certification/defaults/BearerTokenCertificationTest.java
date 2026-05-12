@@ -29,10 +29,10 @@ class BearerTokenCertificationTest {
                 .token("my-token")
                 .isDefault(true)
                 .build();
-        
+
         HttpHeaders headers = new HttpHeaders();
         cert.applyTo(headers);
-        
+
         assertThat(headers.getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer my-token");
     }
 }

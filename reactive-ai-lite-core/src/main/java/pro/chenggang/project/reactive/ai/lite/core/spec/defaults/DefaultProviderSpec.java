@@ -91,8 +91,8 @@ public class DefaultProviderSpec implements ProviderSpec {
     /**
      * Constructs a new {@link DefaultProviderSpec}.
      *
-     * @param llmClientType             the type of client
-     * @param llmProviderRegistry       the registry for looking up providers
+     * @param llmClientType               the type of client
+     * @param llmProviderRegistry         the registry for looking up providers
      * @param defaultExecutionContextSpec the preceding execution context specification
      */
     protected DefaultProviderSpec(@NonNull LlmClientType llmClientType, @NonNull LlmProviderRegistry llmProviderRegistry, @NonNull DefaultExecutionContextSpec defaultExecutionContextSpec) {
@@ -104,8 +104,8 @@ public class DefaultProviderSpec implements ProviderSpec {
     /**
      * Creates a new instance of {@link DefaultProviderSpec}.
      *
-     * @param llmClientType             the type of client
-     * @param llmProviderRegistry       the registry for looking up providers
+     * @param llmClientType               the type of client
+     * @param llmProviderRegistry         the registry for looking up providers
      * @param defaultExecutionContextSpec the preceding execution context specification
      * @return a new {@link DefaultProviderSpec} instance
      */

@@ -67,7 +67,7 @@ public class JsonChunkMerger {
      * The heuristic rules are:
      * 1. If a field is new, copy it directly.
      * 2. If both fields are textual: if they match exactly (metadata) or the key
-     *    is in {@link #TAKE_LATEST_KEY}, overwrite. If they differ (streaming text), concatenate.
+     * is in {@link #TAKE_LATEST_KEY}, overwrite. If they differ (streaming text), concatenate.
      * 3. If both fields are objects, recursively deep merge.
      * 4. If both fields are arrays, merge them by aligning indices.
      * 5. Otherwise (numbers, booleans, type mismatches), overwrite with the source value.

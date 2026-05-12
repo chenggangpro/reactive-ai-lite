@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -48,6 +49,7 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.J
 import pro.chenggang.project.reactive.ai.lite.client.openai.dto.ResponseFormat.Type;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.HttpHeaderTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.entity.usage.Usage;
@@ -82,6 +84,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.AbstractLlm
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
+import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.JsonStreamChunkSlide;
 import reactor.core.publisher.Mono;
 
@@ -170,7 +173,17 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
 
     @Override
     protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
-        throw new UnsupportedOperationException("This method is not supported for OpenAI chat provider.");
+        RequestBodyUriSpec requestBodyUriSpec = this.webClient.post();
+        return requestBodyUriSpec.uri(uriBuilder -> {
+            uriBuilder.path(this.chatCompletionEndpoint);
+            llmChatRequestData.getTokenCertification()
+                    .ifPresent(tokenCertification -> {
+                        if (tokenCertification instanceof UriTokenCertification uriTokenCertification) {
+                            super.applyCertificationWithUriBuilder(uriBuilder, uriTokenCertification);
+                        }
+                    });
+            return uriBuilder.build();
+        });
     }
 
     @Override
@@ -179,7 +192,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull ObjectNode rawResponseData) {
+    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull StreamResponseParser.JsonChunkParsingData jsonChunkParsingData) {
+        ObjectNode rawResponseData = jsonChunkParsingData.getData();
         JsonNode usageNode = rawResponseData.at("/usage");
         if (!usageNode.isMissingNode() && usageNode.isObject()) {
             return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
@@ -286,19 +300,17 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
             }
         }
         if (distinctToolCalls) {
-            Set<ObjectNode> toolCallSet = new HashSet<>();
+            Set<String> toolCallSet = new HashSet<>();
             if (toolCalls.size() > 1) {
                 Iterator<ObjectNode> iterator = toolCalls.iterator();
                 while (iterator.hasNext()) {
                     ObjectNode toolCall = iterator.next();
-                    ObjectNode copied = toolCall.deepCopy();
-                    copied.remove("index");
-                    copied.remove("id");
-                    if (toolCallSet.contains(copied)) {
+                    String toolCallName = toolCall.at("/function/name").textValue();
+                    if (toolCallSet.contains(toolCallName)) {
                         iterator.remove();
-                    } else {
-                        toolCallSet.add(copied);
+                        continue;
                     }
+                    toolCallSet.add(toolCallName);
                 }
             }
             toolCallSet.clear();
@@ -572,7 +584,7 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Mono<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
+    protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
         StreamDataType streamDataType = rawStreamResponse.getDataType();
         ObjectNode dataContent = rawStreamResponse.getDataContent();
         ExecutionContextView contextView = rawStreamResponse.getContextView();
@@ -725,6 +737,27 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
             log.warn("No token certification be applied, cause of the unknown TokenCertification : {}", tokenCertification);
         }
         return requestBodySpec;
+    }
+
+    @Override
+    protected void applyCertificationWithRequestBodySpec(@NonNull RequestBodySpec requestBodySpec, @NonNull TokenCertification tokenCertification) {
+        switch (tokenCertification) {
+            case BearerTokenCertification bearerTokenCertification -> {
+                requestBodySpec.headers(bearerTokenCertification::applyTo);
+                return;
+            }
+            case HttpHeaderTokenCertification httpHeaderTokenCertification -> {
+                requestBodySpec.headers(httpHeaderTokenCertification::applyTo);
+                return;
+            }
+            case OrganizationTokenCertification organizationTokenCertification -> {
+                requestBodySpec.headers(organizationTokenCertification::applyTo);
+                return;
+            }
+            default -> {
+            }
+        }
+        log.warn("Unrecognized token certification : {}", tokenCertification);
     }
 
     @Override
@@ -967,7 +1000,9 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
                 }
                 MediaContent fileContent = MediaContent.of(InputFile.of(base64Attachment.name(), base64Attachment.content()));
                 mediaContents.add(fileContent);
+                continue;
             }
+            log.warn("Unhandled media attachment: {}", attachments);
         }
         return ChatCompletionMessage.builder()
                 .rawContent(mediaContents)

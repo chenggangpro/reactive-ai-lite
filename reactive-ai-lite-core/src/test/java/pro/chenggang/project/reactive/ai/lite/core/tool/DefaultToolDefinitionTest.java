@@ -30,7 +30,7 @@ class DefaultToolDefinitionTest {
                 .inputSchema("{\"type\": \"object\"}")
                 .strict(true)
                 .build();
-        
+
         assertThat(tool.name()).isEqualTo("test-tool");
         assertThat(tool.description()).isEqualTo("A test tool");
         assertThat(tool.inputSchema()).isEqualTo("{\"type\": \"object\"}");
@@ -44,7 +44,7 @@ class DefaultToolDefinitionTest {
                 .description("A test tool")
                 .inputSchemaType(String.class)
                 .build();
-        
+
         assertThat(tool.name()).isEqualTo("test-tool");
         assertThat(tool.inputSchema()).contains("string");
     }

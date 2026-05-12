@@ -40,12 +40,12 @@ class LlmProviderExecutionLoggingInterceptorTest {
         LlmProviderRequestExchange exchange = mock(LlmProviderRequestExchange.class);
         LlmProviderRequestInterceptorChain chain = mock(LlmProviderRequestInterceptorChain.class);
         LlmProviderInfo info = mock(LlmProviderInfo.class);
-        
+
         when(exchange.llmProviderInfo()).thenReturn(info);
         when(exchange.getAttributes()).thenReturn(new HashMap<>());
         when(exchange.rawRequestBody()).thenReturn(null);
         when(chain.next(any())).thenReturn(Mono.empty());
-        
+
         StepVerifier.create(interceptor.interceptBefore(exchange, chain))
                 .verifyComplete();
     }
@@ -68,9 +68,9 @@ class LlmProviderExecutionLoggingInterceptorTest {
         LlmProviderExecutionLoggingInterceptor interceptor = new LlmProviderExecutionLoggingInterceptor(() -> false);
         LlmProviderRequestExchange exchange = mock(LlmProviderRequestExchange.class);
         LlmProviderRequestInterceptorChain chain = mock(LlmProviderRequestInterceptorChain.class);
-        
+
         when(chain.next(any())).thenReturn(Mono.empty());
-        
+
         StepVerifier.create(interceptor.interceptBefore(exchange, chain))
                 .verifyComplete();
     }

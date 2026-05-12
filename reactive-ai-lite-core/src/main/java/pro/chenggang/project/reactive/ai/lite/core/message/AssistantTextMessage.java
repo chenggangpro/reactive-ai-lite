@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.message;
 
 import org.springframework.lang.Nullable;
+import pro.chenggang.project.reactive.ai.lite.core.entity.AttributesAbility;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 
 /**
@@ -30,7 +31,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Role;
  * @author Cheng Gang
  * @version 0.1.0
  */
-public interface AssistantTextMessage extends Message {
+public interface AssistantTextMessage extends Message, AttributesAbility {
 
     /**
      * Returns the role identifier for assistant messages.

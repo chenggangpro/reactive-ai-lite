@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.exception;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Getter;
+import lombok.NonNull;
 
 import java.io.Serial;
 
@@ -51,7 +52,7 @@ public class ResponseMessageExtractFailedException extends LlmClientException {
      *
      * @param responseBody the raw, unparseable JSON response body
      */
-    public ResponseMessageExtractFailedException(ObjectNode responseBody) {
+    public ResponseMessageExtractFailedException(@NonNull ObjectNode responseBody) {
         super("Failed to extract response message from response body. Response body: \n" + responseBody.toPrettyString());
         this.responseBody = responseBody;
     }
@@ -62,7 +63,7 @@ public class ResponseMessageExtractFailedException extends LlmClientException {
      * @param responseBody the raw, unparseable JSON response body
      * @param cause        the exception that triggered the failure (e.g., a JSON processing error)
      */
-    public ResponseMessageExtractFailedException(ObjectNode responseBody, Throwable cause) {
+    public ResponseMessageExtractFailedException(@NonNull ObjectNode responseBody, @NonNull Throwable cause) {
         super("Failed to extract response message from response body. Response body: \n" + responseBody.toPrettyString(), cause);
         this.responseBody = responseBody;
     }

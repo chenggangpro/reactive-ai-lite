@@ -85,10 +85,10 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     /**
      * Constructs a new {@link DefaultConfigurableChatSpec}.
      *
-     * @param llmClientType             the type of client
-     * @param llmProviderRegistry       the registry for looking up providers
+     * @param llmClientType               the type of client
+     * @param llmProviderRegistry         the registry for looking up providers
      * @param defaultExecutionContextSpec the preceding execution context specification
-     * @param defaultProviderSpec       the preceding provider specification
+     * @param defaultProviderSpec         the preceding provider specification
      */
     protected DefaultConfigurableChatSpec(@NonNull LlmClientType llmClientType,
                                           @NonNull LlmProviderRegistry llmProviderRegistry,

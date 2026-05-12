@@ -57,7 +57,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
 public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecutionBeforeInterceptor, LlmProviderExecutionAfterInterceptor {
 
     /**
-     * The key used to store the execution start instant in the exchange attributes.
+     * The key used to store the execution start instant in the exchange parsingAttributes.
      * This is used later to calculate the total execution duration.
      */
     public static final String EXECUTION_INSTANT_ATTR_KEY = LlmProviderExecutionLoggingInterceptor.class.getName() + ".execution-instant";
@@ -113,7 +113,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         exchange.getAttributes()
                 .compute(EXECUTION_INSTANT_ATTR_KEY, (k, v) -> {
                             if (Objects.nonNull(v)) {
-                                log.warn("Execution instant attribute already exists in the exchange attributes, skipping interception.");
+                                log.warn("Execution instant attribute already exists in the exchange parsingAttributes, skipping interception.");
                                 return v;
                             }
                             return Instant.now();

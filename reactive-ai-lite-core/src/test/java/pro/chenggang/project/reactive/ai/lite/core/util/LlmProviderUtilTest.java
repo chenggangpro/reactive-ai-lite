@@ -37,7 +37,7 @@ class LlmProviderUtilTest {
         when(response.statusCode()).thenReturn(HttpStatus.BAD_REQUEST);
         when(response.headers()).thenReturn(mock(ClientResponse.Headers.class));
         when(response.headers().asHttpHeaders()).thenReturn(new HttpHeaders());
-        
+
         byte[] body = "{\"error\": \"bad request\"}".getBytes(StandardCharsets.UTF_8);
         when(response.bodyToMono(any(org.springframework.core.ParameterizedTypeReference.class)))
                 .thenReturn(Mono.just(body));

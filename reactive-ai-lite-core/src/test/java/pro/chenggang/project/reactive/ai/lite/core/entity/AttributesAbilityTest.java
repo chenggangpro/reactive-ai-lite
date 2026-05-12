@@ -28,6 +28,7 @@ class AttributesAbilityTest {
 
     static class TestAttributesAbility implements AttributesAbility {
         private final Map<String, Object> attributes = new HashMap<>();
+
         @Override
         public Map<String, Object> getAttributes() {
             return attributes;
@@ -38,10 +39,10 @@ class AttributesAbilityTest {
     void testGetAttribute() {
         TestAttributesAbility ability = new TestAttributesAbility();
         ability.getAttributes().put("key", "value");
-        
+
         String value = ability.getAttribute("key");
         assertThat(value).isEqualTo("value");
-        
+
         Object missing = ability.getAttribute("missing");
         assertThat(missing).isNull();
     }
@@ -50,10 +51,10 @@ class AttributesAbilityTest {
     void testGetAttributeOrDefault() {
         TestAttributesAbility ability = new TestAttributesAbility();
         ability.getAttributes().put("key", "value");
-        
+
         String value = ability.getAttributeOrDefault("key", "default");
         assertThat(value).isEqualTo("value");
-        
+
         String missingValue = ability.getAttributeOrDefault("missing", "default");
         assertThat(missingValue).isEqualTo("default");
     }
@@ -63,7 +64,7 @@ class AttributesAbilityTest {
         TestAttributesAbility ability = new TestAttributesAbility();
         ability.getAttributes().put("key1", "value1");
         ability.getAttributes().put("key2", "value2");
-        
+
         List<Map.Entry<String, Object>> attributeList = ability.attributesStream().toList();
         assertThat(attributeList.size()).isEqualTo(2);
     }
@@ -73,10 +74,10 @@ class AttributesAbilityTest {
         TestAttributesAbility ability = new TestAttributesAbility();
         ability.getAttributes().put("key1", "value1");
         ability.getAttributes().put("key2", "value2");
-        
+
         AtomicInteger count = new AtomicInteger();
         ability.forEachAttribute((k, v) -> count.incrementAndGet());
-        
+
         assertThat(count.get()).isEqualTo(2);
     }
 }

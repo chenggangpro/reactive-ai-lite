@@ -16,12 +16,12 @@
 package pro.chenggang.project.reactive.ai.lite.core.entity.context;
 
 import lombok.Getter;
-import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttributeMessage;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribute;
 
 /**
  * Represents the mutable execution context for reactive AI operations.
  * <p>
- * This class manages the execution state and attributes during the lifecycle of an AI request.
+ * This class manages the execution state and parsingAttributes during the lifecycle of an AI request.
  * It acts as a thread-safe container for storing contextual metadata and shared data across
  * interceptors and handlers. It also exposes a read-only {@link ExecutionContextView} to
  * safely expose its data to configuration functions.
@@ -31,10 +31,10 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribu
  * @version 0.1.0
  */
 @Getter
-public class ExecutionContext extends AbstractAttributeMessage {
+public class ExecutionContext extends AbstractAttribute {
 
     /**
-     * A read-only view of the attributes contained within this execution context.
+     * A read-only view of the parsingAttributes contained within this execution context.
      * <p>
      * This view is used to safely expose the context data to dynamic configuration
      * functions without allowing modification of the underlying state.
@@ -45,7 +45,7 @@ public class ExecutionContext extends AbstractAttributeMessage {
     /**
      * Constructs a new {@link ExecutionContext}.
      * <p>
-     * It initializes the attribute map (inherited from {@link AbstractAttributeMessage})
+     * It initializes the attribute map (inherited from {@link AbstractAttribute})
      * and creates the corresponding read-only view.
      * </p>
      */

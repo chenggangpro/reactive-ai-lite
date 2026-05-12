@@ -44,7 +44,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -72,7 +72,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.profiles()).thenReturn(Set.of("default"));
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 null,
@@ -106,7 +106,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -152,7 +152,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -181,7 +181,7 @@ class LlmChatRequestDataTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.profiles()).thenReturn(Collections.singleton("custom"));
         TokenCertification customCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.singletonMap("custom", customCert),
                 null,
@@ -207,7 +207,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -239,7 +239,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -270,7 +270,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -299,7 +299,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,
@@ -327,7 +327,7 @@ class LlmChatRequestDataTest {
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(),
                 defaultCert,

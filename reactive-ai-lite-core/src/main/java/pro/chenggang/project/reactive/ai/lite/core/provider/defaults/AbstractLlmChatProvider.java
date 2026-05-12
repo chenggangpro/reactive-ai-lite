@@ -18,14 +18,18 @@ package pro.chenggang.project.reactive.ai.lite.core.provider.defaults;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.ResponseSpec;
+import org.springframework.web.util.UriBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.HttpHeaderTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
@@ -133,16 +137,12 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     protected abstract ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData);
 
     /**
-     * Extracts parsed stream chunks from a raw JSON stream response object.
-     * <p>
-     * Since different providers have different SSE payload structures, implementations
-     * must parse the provider's specific JSON into standardized {@link JsonStreamChunkSlide}s.
-     * </p>
+     * Extracts individual stream chunks from a parsed Server-Sent Event (SSE).
      *
-     * @param rawResponseData the raw JSON object from the stream
-     * @return an array of extracted stream chunks
+     * @param jsonChunkParsingData the parsed JSON SSE event
+     * @return an array of {@link JsonStreamChunkSlide} containing the extracted data
      */
-    protected abstract JsonStreamChunkSlide[] extractStreamChunks(@NonNull ObjectNode rawResponseData);
+    protected abstract JsonStreamChunkSlide[] extractStreamChunks(@NonNull StreamResponseParser.JsonChunkParsingData jsonChunkParsingData);
 
     /**
      * Merges multiple raw tool call message chunks into a single, cohesive JSON object.
@@ -193,7 +193,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      * @param rawStreamResponse the raw stream chunk
      * @return a Mono emitting the parsed {@link StreamResponse}
      */
-    protected abstract Mono<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse);
+    protected abstract Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse);
 
     /**
      * Returns the metadata and configuration information for this provider.
@@ -394,8 +394,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      * @return the configured RequestBodySpec
      */
     protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
-        boolean certificationSet = false;
-        Optional<TokenCertification> optionalTokenCertification = llmChatRequestData.getTokenCertification();
+        this.checkTokenCertification(llmChatRequestData);
         RequestBodySpec requestBodySpec = this.loadRequestBodySpec(llmChatRequestData);
         requestBodySpec.contentType(MediaType.APPLICATION_JSON)
                 .header(HttpHeaders.USER_AGENT, "reactive-ai-lite")
@@ -405,17 +404,52 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
         } else {
             requestBodySpec.accept(MediaType.APPLICATION_JSON);
         }
-        if (optionalTokenCertification.isPresent()) {
-            TokenCertification tokenCertification = optionalTokenCertification.get();
-            if (tokenCertification instanceof BearerTokenCertification bearerTokenCertification) {
-                requestBodySpec.headers(bearerTokenCertification::applyTo);
-                certificationSet = true;
-            }
-        }
-        if (!certificationSet) {
-            log.debug("No token certification be applied, cause of the unknown TokenCertification : {}", optionalTokenCertification);
-        }
+        llmChatRequestData.getTokenCertification()
+                .ifPresent(tokenCertification -> {
+                    this.applyCertificationWithRequestBodySpec(requestBodySpec, tokenCertification);
+                });
         return requestBodySpec;
+    }
+
+    /**
+     * Validates that a token certification is present in the request data.
+     *
+     * @param llmChatRequestData the request data to check
+     * @throws IllegalStateException if no token certification is found
+     */
+    protected void checkTokenCertification(@NonNull LlmChatRequestData llmChatRequestData) {
+        Optional<TokenCertification> optionalTokenCertification = llmChatRequestData.getTokenCertification();
+        if (optionalTokenCertification.isEmpty()) {
+            throw new IllegalStateException("At least one token certification is required for the chat completion request.");
+        }
+    }
+
+    /**
+     * Applies URI-based token certification to the given {@link UriBuilder}.
+     *
+     * @param uriBuilder            the URI builder to modify
+     * @param uriTokenCertification the URI token certification to apply
+     */
+    protected void applyCertificationWithUriBuilder(@NonNull UriBuilder uriBuilder, @NonNull UriTokenCertification uriTokenCertification) {
+        uriBuilder.queryParam(uriTokenCertification.name(), uriTokenCertification.token());
+    }
+
+    /**
+     * Applies header-based token certification to the given {@link RequestBodySpec}.
+     *
+     * @param requestBodySpec    the request body specification to modify
+     * @param tokenCertification the token certification to apply
+     */
+    protected void applyCertificationWithRequestBodySpec(@NonNull RequestBodySpec requestBodySpec, @NonNull TokenCertification tokenCertification) {
+        if (tokenCertification instanceof BearerTokenCertification bearerTokenCertification) {
+            requestBodySpec.headers(bearerTokenCertification::applyTo);
+            return;
+        }
+        if (tokenCertification instanceof HttpHeaderTokenCertification httpHeaderTokenCertification) {
+            requestBodySpec.headers(httpHeaderTokenCertification::applyTo);
+            return;
+        }
+        log.warn("Unrecognized token certification : {}", tokenCertification);
     }
 
     /**

@@ -34,11 +34,11 @@ class StructuredExecutionTest {
         StructuredExecution execution = mock(StructuredExecution.class);
         RawResponse rawResponse = mock(RawResponse.class);
         when(execution.executeRaw(anyString())).thenReturn(Mono.just(rawResponse));
-        
+
         RawResponseConverter<String> converter = resp -> "converted";
-        
+
         when(execution.execute(anyString(), any())).thenCallRealMethod();
-        
+
         StepVerifier.create(execution.execute("{}", converter))
                 .expectNext("converted")
                 .verifyComplete();
@@ -49,11 +49,11 @@ class StructuredExecutionTest {
         StructuredExecution execution = mock(StructuredExecution.class);
         RawResponse rawResponse = mock(RawResponse.class);
         when(execution.executeRaw(any(Class.class))).thenReturn(Mono.just(rawResponse));
-        
+
         RawResponseConverter<String> converter = resp -> "converted";
-        
+
         when(execution.execute(any(Class.class), any())).thenCallRealMethod();
-        
+
         StepVerifier.create(execution.execute(String.class, converter))
                 .expectNext("converted")
                 .verifyComplete();
@@ -64,11 +64,11 @@ class StructuredExecutionTest {
         StructuredExecution execution = mock(StructuredExecution.class);
         RawResponse rawResponse = mock(RawResponse.class);
         when(execution.executeRaw(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rawResponse));
-        
+
         RawResponseConverter<String> converter = resp -> "converted";
-        
+
         when(execution.execute(any(ParameterizedTypeReference.class), any())).thenCallRealMethod();
-        
+
         StepVerifier.create(execution.execute(new ParameterizedTypeReference<String>() {}, converter))
                 .expectNext("converted")
                 .verifyComplete();

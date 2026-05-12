@@ -28,7 +28,7 @@ class DefaultChatModuleTest {
     void testDefaultChatModule() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         DefaultChatModule module = new DefaultChatModule(registry);
-        
+
         assertThat(module.type()).isEqualTo(LlmClientType.CHAT);
         assertThat(module.newCompletionContext()).isNotNull();
     }

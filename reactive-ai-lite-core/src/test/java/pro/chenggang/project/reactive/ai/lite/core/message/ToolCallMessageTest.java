@@ -30,7 +30,7 @@ class ToolCallMessageTest {
                 .name("test-func")
                 .arguments("{\"a\": 1}")
                 .build();
-        
+
         assertThat(function.getName()).isEqualTo("test-func");
         assertThat(function.getArguments()).isEqualTo("{\"a\": 1}");
         assertThat(function.jsonArguments().get("a").asInt()).isEqualTo(1);
@@ -42,7 +42,7 @@ class ToolCallMessageTest {
                 .name("test-func")
                 .arguments("")
                 .build();
-        
+
         assertThat(function.getArguments()).isEqualTo("{}");
     }
 
@@ -52,7 +52,7 @@ class ToolCallMessageTest {
                 .name("test-func")
                 .arguments("{invalid}")
                 .build();
-        
+
         assertThatThrownBy(function::jsonArguments)
                 .isInstanceOf(RuntimeException.class);
     }
@@ -68,7 +68,7 @@ class ToolCallMessageTest {
                 .function(function)
                 .toolDefinition(toolDefinition)
                 .build();
-        
+
         assertThat(toolCall.getIndex()).isEqualTo(0);
         assertThat(toolCall.getId()).isEqualTo("id");
         assertThat(toolCall.getType()).isEqualTo("function");

@@ -27,7 +27,7 @@ class DefaultReactiveLlmClientTest {
     void testDefaultReactiveLlmClient() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         DefaultReactiveLlmClient client = new DefaultReactiveLlmClient(registry);
-        
+
         assertThat(client.chat()).isNotNull();
     }
 }

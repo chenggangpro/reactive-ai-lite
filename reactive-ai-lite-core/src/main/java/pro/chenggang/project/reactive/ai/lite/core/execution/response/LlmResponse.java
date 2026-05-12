@@ -27,7 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
  * This class serves as the root of the response hierarchy for all types of LLM interactions
  * (e.g., general, streaming, structured). It ensures that every response object carries
  * a read-only view of the execution context that generated it, allowing downstream consumers
- * to access metadata, correlation IDs, or other attributes associated with the request.
+ * to access metadata, correlation IDs, or other parsingAttributes associated with the request.
  * </p>
  *
  * @author Cheng Gang
@@ -42,7 +42,7 @@ public abstract class LlmResponse {
      * A read-only view of the execution context that was used to generate this response.
      * <p>
      * This allows tracing back the response to the specific request configurations
-     * and attributes present at execution time.
+     * and parsingAttributes present at execution time.
      * </p>
      */
     protected final ExecutionContextView contextView;

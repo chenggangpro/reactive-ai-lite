@@ -54,7 +54,7 @@ import java.util.function.Function;
 public class ExecutionInfo {
 
     /**
-     * The mutable execution context that tracks state and attributes for this specific run.
+     * The mutable execution context that tracks state and parsingAttributes for this specific run.
      */
     @NonNull
     private final ExecutionContext executionContext;

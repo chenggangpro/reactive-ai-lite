@@ -31,7 +31,7 @@ class UriTokenCertificationTest {
                 .name("api_key")
                 .token("test-token")
                 .build();
-        
+
         assertThat(certification.profile()).isEqualTo("test-profile");
         assertThat(certification.isDefault()).isTrue();
         assertThat(certification.name()).isEqualTo("api_key");

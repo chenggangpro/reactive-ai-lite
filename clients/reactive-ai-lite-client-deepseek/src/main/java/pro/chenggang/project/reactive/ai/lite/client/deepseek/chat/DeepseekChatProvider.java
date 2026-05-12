@@ -23,9 +23,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
@@ -38,9 +37,9 @@ import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.DeepseekChatRe
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.FunctionTool;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.FunctionTool.Function;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.ResponseFormat;
+import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.ResponseFormat.JsonSchema;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.ResponseFormat.Type;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.entity.usage.Usage;
@@ -71,10 +70,11 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.AbstractLlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
+import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
+import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.JsonStreamChunkSlide;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,9 +82,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -103,7 +101,6 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
     private final String baseUrL;
     private final String chatCompletionEndpoint;
     private final WebClient webClient;
-
 
     @Builder
     private DeepseekChatProvider(@NonNull WebClient.Builder webClientBuilder,
@@ -159,7 +156,17 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
 
     @Override
     protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
-        throw new UnsupportedOperationException("This method is not supported for OpenAI chat provider.");
+        RequestBodyUriSpec requestBodyUriSpec = this.webClient.post();
+        return requestBodyUriSpec.uri(uriBuilder -> {
+            uriBuilder.path(this.chatCompletionEndpoint);
+            llmChatRequestData.getTokenCertification()
+                    .ifPresent(tokenCertification -> {
+                        if (tokenCertification instanceof UriTokenCertification uriTokenCertification) {
+                            super.applyCertificationWithUriBuilder(uriBuilder, uriTokenCertification);
+                        }
+                    });
+            return uriBuilder.build();
+        });
     }
 
     @Override
@@ -168,7 +175,8 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull ObjectNode rawResponseData) {
+    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull StreamResponseParser.JsonChunkParsingData jsonChunkParsingData) {
+        ObjectNode rawResponseData = jsonChunkParsingData.getData();
         JsonNode usageNode = rawResponseData.at("/usage");
         if (!usageNode.isMissingNode() && usageNode.isObject()) {
             return new JsonStreamChunkSlide[]{JsonStreamChunkSlide.builder()
@@ -275,19 +283,17 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
             }
         }
         if (distinctToolCalls) {
-            Set<ObjectNode> toolCallSet = new HashSet<>();
+            Set<String> toolCallSet = new HashSet<>();
             if (toolCalls.size() > 1) {
                 Iterator<ObjectNode> iterator = toolCalls.iterator();
                 while (iterator.hasNext()) {
                     ObjectNode toolCall = iterator.next();
-                    ObjectNode copied = toolCall.deepCopy();
-                    copied.remove("index");
-                    copied.remove("id");
-                    if (toolCallSet.contains(copied)) {
+                    String toolCallName = toolCall.at("/function/name").textValue();
+                    if (toolCallSet.contains(toolCallName)) {
                         iterator.remove();
-                    } else {
-                        toolCallSet.add(copied);
+                        continue;
                     }
+                    toolCallSet.add(toolCallName);
                 }
             }
             toolCallSet.clear();
@@ -561,7 +567,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Mono<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
+    protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
         StreamDataType streamDataType = rawStreamResponse.getDataType();
         ObjectNode dataContent = rawStreamResponse.getDataContent();
         ExecutionContextView contextView = rawStreamResponse.getContextView();
@@ -675,43 +681,6 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected RequestBodySpec initializeRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
-        AtomicBoolean certificationSet = new AtomicBoolean(false);
-        RequestBodyUriSpec requestBodyUriSpec = this.webClient.post();
-        Optional<TokenCertification> optionalTokenCertification = llmChatRequestData.getTokenCertification();
-        if (optionalTokenCertification.isEmpty()) {
-            throw new IllegalStateException("At least one token certification is required for the chat completion request.");
-        }
-        TokenCertification tokenCertification = optionalTokenCertification.get();
-        RequestBodySpec requestBodySpec = requestBodyUriSpec.uri(uriBuilder -> {
-            uriBuilder.path(this.chatCompletionEndpoint);
-            if (tokenCertification instanceof UriTokenCertification uriTokenCertification) {
-                uriTokenCertification.applyTo(uriBuilder);
-                certificationSet.set(true);
-            }
-            return uriBuilder.build();
-        });
-        requestBodySpec.contentType(MediaType.APPLICATION_JSON)
-                .header(HttpHeaders.USER_AGENT, "reactive-ai-lite")
-                .acceptCharset(StandardCharsets.UTF_8);
-        if (llmChatRequestData.isStream()) {
-            requestBodySpec.accept(MediaType.TEXT_EVENT_STREAM);
-        } else {
-            requestBodySpec.accept(MediaType.APPLICATION_JSON);
-        }
-        if (tokenCertification instanceof BearerTokenCertification bearerTokenCertification) {
-            if (!certificationSet.get()) {
-                requestBodySpec.headers(bearerTokenCertification::applyTo);
-                certificationSet.set(true);
-            }
-        }
-        if (!certificationSet.get()) {
-            log.warn("No token certification be applied, cause of the unknown TokenCertification : {}", tokenCertification);
-        }
-        return requestBodySpec;
-    }
-
-    @Override
     public String toString() {
         return "DeepseekChatProvider{" +
                 "llmProviderInfo=" + llmProviderInfo +
@@ -730,8 +699,19 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                     .build()
             );
         } else {
+            Map<String, Object> jsonSchemaMap = Map.of();
+            if (llmChatRequestData.getResponseJsonSchema().isPresent()) {
+                jsonSchemaMap = JsonRelatedUtil.jsonToMap(llmChatRequestData.getResponseJsonSchema().get());
+            } else if (llmChatRequestData.getStructuredOutputType().isPresent()) {
+                var structuredOutputType = llmChatRequestData.getStructuredOutputType().get();
+                jsonSchemaMap = JsonRelatedUtil.jsonToMap(JsonSchemaUtil.generateForType(structuredOutputType));
+            }
             deepseekChatRequestBuilder.responseFormat(ResponseFormat.builder()
                     .type(Type.JSON_OBJECT)
+                    .jsonSchema(JsonSchema.builder()
+                            .schema(jsonSchemaMap)
+                            .strict(true)
+                            .build())
                     .build()
             );
         }

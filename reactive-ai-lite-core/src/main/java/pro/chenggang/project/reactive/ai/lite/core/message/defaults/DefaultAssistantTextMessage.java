@@ -20,6 +20,7 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 import org.springframework.lang.Nullable;
+import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribute;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 
@@ -39,7 +40,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 @Jacksonized
 @Builder
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class DefaultAssistantTextMessage implements AssistantTextMessage {
+public class DefaultAssistantTextMessage extends AbstractAttribute implements AssistantTextMessage {
 
     /**
      * The primary textual content of the message.

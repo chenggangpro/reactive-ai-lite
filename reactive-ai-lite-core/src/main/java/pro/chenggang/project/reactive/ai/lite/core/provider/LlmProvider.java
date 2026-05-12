@@ -47,7 +47,7 @@ public interface LlmProvider {
      * Retrieves metadata and configuration information about this LLM provider.
      * <p>
      * The provider information includes details such as the provider's unique name,
-     * available configuration profiles, and other identifying attributes necessary for
+     * available configuration profiles, and other identifying parsingAttributes necessary for
      * dynamic provider selection.
      * </p>
      *

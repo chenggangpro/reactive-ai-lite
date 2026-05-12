@@ -35,10 +35,10 @@ class ExecutionInterfaceTest {
         GeneralExecution execution = mock(GeneralExecution.class);
         RawResponse rawResponse = mock(RawResponse.class);
         when(execution.executeRaw()).thenReturn(Mono.just(rawResponse));
-        
+
         RawResponseConverter<String> converter = resp -> "converted";
         when(execution.execute(any())).thenCallRealMethod();
-        
+
         StepVerifier.create(execution.execute(converter))
                 .expectNext("converted")
                 .verifyComplete();
@@ -49,10 +49,10 @@ class ExecutionInterfaceTest {
         StreamExecution execution = mock(StreamExecution.class);
         RawStreamResponse chunk = mock(RawStreamResponse.class);
         when(execution.executeRaw()).thenReturn(Flux.just(chunk));
-        
+
         RawStreamResponseConverter<String> converter = resp -> "converted";
         when(execution.execute(any())).thenCallRealMethod();
-        
+
         StepVerifier.create(execution.execute(converter))
                 .expectNext("converted")
                 .verifyComplete();

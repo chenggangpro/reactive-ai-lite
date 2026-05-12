@@ -33,7 +33,7 @@ class StreamDataChunkTest {
         UsageStreamDataChunk chunk = UsageStreamDataChunk.builder()
                 .usage(usage)
                 .build();
-        
+
         assertThat(chunk.getDataType()).isEqualTo(StreamDataType.USAGE);
         assertThat(chunk.getUsage()).isEqualTo(usage);
     }
@@ -43,7 +43,7 @@ class StreamDataChunkTest {
         RawStreamDataChunk chunk = RawStreamDataChunk.builder()
                 .value(JsonNodeFactory.instance.objectNode())
                 .build();
-        
+
         assertThat(chunk.getDataType()).isEqualTo(StreamDataType.UNKNOWN);
         assertThat(chunk.getValue()).isNotNull();
     }
@@ -53,7 +53,7 @@ class StreamDataChunkTest {
         ToolCallStreamDataChunk chunk = ToolCallStreamDataChunk.builder()
                 .toolCalls(Collections.emptyList())
                 .build();
-        
+
         assertThat(chunk.getDataType()).isEqualTo(StreamDataType.TOOL_CALL);
         assertThat(chunk.getToolCalls()).isEmpty();
     }

@@ -31,10 +31,10 @@ class DefaultExecutionContextSpecTest {
     void testTransitions() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         DefaultExecutionContextSpec spec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
-        
+
         spec.parentAttributes(Collections.singletonMap("a", "b"))
-            .contextConfigure(ctx -> {});
-            
+                .contextConfigure(ctx -> {});
+
         ProviderSpec providerSpec = spec.providerSpec();
         assertThat(providerSpec).isNotNull();
         assertThat(providerSpec).isInstanceOf(DefaultProviderSpec.class);

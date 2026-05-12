@@ -30,11 +30,11 @@ class DefaultProviderSpecTest {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         DefaultExecutionContextSpec contextSpec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
         DefaultProviderSpec spec = DefaultProviderSpec.of(LlmClientType.CHAT, registry, contextSpec);
-        
+
         spec.defaultProvider()
-            .defaultProfile()
-            .defaultSystemMessage(ctx -> "system");
-            
+                .defaultProfile()
+                .defaultSystemMessage(ctx -> "system");
+
         assertThat(spec.isDefaultProvider()).isTrue();
         assertThat(spec.isDefaultProfile()).isTrue();
         assertThat(spec.getDefaultSystemMessageProvider().apply(null)).isEqualTo("system");
@@ -49,10 +49,10 @@ class DefaultProviderSpecTest {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         DefaultExecutionContextSpec contextSpec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
         DefaultProviderSpec spec = DefaultProviderSpec.of(LlmClientType.CHAT, registry, contextSpec);
-        
+
         spec.firstProvider((info, ctx) -> true)
-            .profile((ctx, profiles) -> "custom");
-            
+                .profile((ctx, profiles) -> "custom");
+
         assertThat(spec.isDefaultProvider()).isFalse();
         assertThat(spec.getProviderFilter()).isNotNull();
         assertThat(spec.isDefaultProfile()).isFalse();
@@ -64,7 +64,7 @@ class DefaultProviderSpecTest {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         DefaultExecutionContextSpec contextSpec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
         DefaultProviderSpec spec = DefaultProviderSpec.of(LlmClientType.CHAT, registry, contextSpec);
-        
+
         ConfigurableChatSpec chatSpec1 = spec.chatSpec();
         ConfigurableChatSpec chatSpec2 = spec.chatSpec();
         assertThat(chatSpec1).isNotSameAs(chatSpec2);

@@ -181,7 +181,7 @@ public class ExecutionSpec {
     /**
      * Instantiates a new {@link ExecutionContext} based on this specification.
      * <p>
-     * It creates a fresh context, merges in any parent attributes, and applies
+     * It creates a fresh context, merges in any parent parsingAttributes, and applies
      * the custom configuration consumer if one was provided.
      * </p>
      *

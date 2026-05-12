@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * A read-only or restricted view of an {@link ExecutionContext}.
  * <p>
- * This class implements {@link AttributesAbility} to expose the attributes map
+ * This class implements {@link AttributesAbility} to expose the parsingAttributes map
  * contained within an ExecutionContext. It is commonly used when executing dynamic
  * configuration functions (e.g., determining which model or profile to use) where
  * the context data needs to be read but should not necessarily be modified or where
@@ -39,15 +39,15 @@ import java.util.Map;
 public class ExecutionContextView implements AttributesAbility {
 
     /**
-     * The underlying attributes map from the ExecutionContext.
+     * The underlying parsingAttributes map from the ExecutionContext.
      */
     @NonNull
     private final Map<String, Object> attributes;
 
     /**
-     * Retrieves the map of attributes.
+     * Retrieves the map of parsingAttributes.
      *
-     * @return the map of attributes
+     * @return the map of parsingAttributes
      */
     @Override
     public Map<String, Object> getAttributes() {

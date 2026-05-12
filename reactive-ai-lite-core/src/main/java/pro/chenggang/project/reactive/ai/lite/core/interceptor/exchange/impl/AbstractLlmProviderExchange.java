@@ -28,7 +28,7 @@ import java.util.Map;
  * An abstract base implementation of the {@link LlmProviderExchange} interface.
  * <p>
  * This class provides the common data structure and accessor methods for all
- * interceptor exchange types. It stores the mutable attributes map, the read-only
+ * interceptor exchange types. It stores the mutable parsingAttributes map, the read-only
  * execution context view, the client type, and the provider metadata. Subclasses
  * (like request, general response, or stream response exchanges) extend this
  * to add phase-specific payload data.
@@ -65,9 +65,9 @@ public abstract class AbstractLlmProviderExchange implements LlmProviderExchange
     protected final ExecutionContextView executionContextView;
 
     /**
-     * Retrieves the mutable attributes map.
+     * Retrieves the mutable parsingAttributes map.
      *
-     * @return the attributes map
+     * @return the parsingAttributes map
      */
     @Override
     public Map<String, Object> getAttributes() {

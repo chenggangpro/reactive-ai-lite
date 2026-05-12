@@ -38,7 +38,7 @@ public enum Role {
      */
     @JsonProperty("system")
     SYSTEM,
-    
+
     /**
      * User message.
      * <p>
@@ -47,7 +47,7 @@ public enum Role {
      */
     @JsonProperty("user")
     USER,
-    
+
     /**
      * Assistant message.
      * <p>
@@ -56,7 +56,7 @@ public enum Role {
      */
     @JsonProperty("assistant")
     ASSISTANT,
-    
+
     /**
      * Tool message.
      * <p>

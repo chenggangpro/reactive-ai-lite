@@ -25,6 +25,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscription;
+import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
@@ -36,7 +37,9 @@ import reactor.util.context.Context;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -70,8 +73,9 @@ public class StreamResponseParser extends BaseSubscriber<String> {
 
     private final ExecutionContextView executionContextView;
     private final FluxSink<RawStreamResponse> sink;
-    private final Function<ObjectNode, JsonStreamChunkSlide[]> streamChunkParser;
+    private final Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser;
     private final Function<List<ObjectNode>, ObjectNode> rawToolCallMerger;
+    private final Map<String, Object> parsingAttributes = new ConcurrentHashMap<>();
 
     /**
      * Constructs a new StreamResponseParser.
@@ -81,10 +85,10 @@ public class StreamResponseParser extends BaseSubscriber<String> {
      * @param streamChunkParser    A function to parse stream chunks from a JSON object.
      * @param rawToolCallMerger    A function to merge multiple tool call chunks into a single representative JSON object.
      */
-    public StreamResponseParser(@NonNull ExecutionContextView executionContextView,
-                                @NonNull FluxSink<RawStreamResponse> sink,
-                                @NonNull Function<ObjectNode, JsonStreamChunkSlide[]> streamChunkParser,
-                                @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
+    protected StreamResponseParser(@NonNull ExecutionContextView executionContextView,
+                                   @NonNull FluxSink<RawStreamResponse> sink,
+                                   @NonNull Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser,
+                                   @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
         this.executionContextView = executionContextView;
         this.sink = sink;
         this.streamChunkParser = streamChunkParser;
@@ -106,7 +110,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
      */
     public static Flux<RawStreamResponse> parseStreamResponse(@NonNull ExecutionContextView executionContextView,
                                                               @NonNull Flux<String> rawStreamResponse,
-                                                              @NonNull Function<ObjectNode, JsonStreamChunkSlide[]> streamChunkParser,
+                                                              @NonNull Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser,
                                                               @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
         return Flux.create(fluxSink -> {
             StreamResponseParser streamResponseParser = new StreamResponseParser(executionContextView, fluxSink, streamChunkParser, rawToolCallMerger);
@@ -160,8 +164,13 @@ public class StreamResponseParser extends BaseSubscriber<String> {
     }
 
     private void parsingRawStreamResponse(String value) {
+        if (!StringUtils.hasText(value)) {
+            this.requestNext();
+            return;
+        }
         boolean isDone = SSE_DONE_PREDICATE.test(value);
         if (isDone) {
+            this.requestNext();
             return;
         }
         ObjectNode objectNode;
@@ -178,8 +187,20 @@ public class StreamResponseParser extends BaseSubscriber<String> {
             onSinkCancel();
             return;
         }
-        JsonStreamChunkSlide[] jsonStreamChunkSlides = streamChunkParser.apply(objectNode);
+        JsonStreamChunkSlide[] jsonStreamChunkSlides;
+        try {
+            jsonStreamChunkSlides = streamChunkParser.apply(JsonChunkParsingData.builder()
+                    .data(objectNode)
+                    .parsingAttributes(this.parsingAttributes)
+                    .build()
+            );
+        } catch (Exception e) {
+            this.sink.error(e);
+            onSinkCancel();
+            return;
+        }
         if (jsonStreamChunkSlides.length == 0) {
+            this.requestNext();
             return;
         }
         int maxIndex = jsonStreamChunkSlides.length - 1;
@@ -338,6 +359,9 @@ public class StreamResponseParser extends BaseSubscriber<String> {
         if (!this.toolCallData.isEmpty()) {
             this.toolCallData.clear();
         }
+        if (!this.parsingAttributes.isEmpty()) {
+            this.parsingAttributes.clear();
+        }
     }
 
     private void requestNext() {
@@ -346,6 +370,53 @@ public class StreamResponseParser extends BaseSubscriber<String> {
                 && this.requestDataCount.get() > 0) {
             request(1);
         }
+    }
+
+    /**
+     * Represents a parsed data containing JSON data.
+     *
+     * @author Cheng Gang
+     */
+    @Getter
+    @Builder
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class JsonChunkParsingData {
+
+        /**
+         * The parsed JSON data content.
+         */
+        private final ObjectNode data;
+
+        /**
+         * The parsingAttributes associated while the whole parsing process.
+         */
+        private final Map<String, Object> parsingAttributes;
+
+        /**
+         * Return the attribute value if present or {@code null} if not present.
+         *
+         * @param <T>  the attribute type
+         * @param name the attribute name
+         * @return the attribute value, or {@code null} if it does not exist
+         */
+        @SuppressWarnings("unchecked")
+        public <T> T getParsingAttribute(@NonNull String name) {
+            return (T) getParsingAttributes().get(name);
+        }
+
+        /**
+         * Return the attribute value or a default value if the attribute is not present.
+         *
+         * @param <T>          the attribute type
+         * @param name         the attribute name
+         * @param defaultValue a default value to return instead if the attribute is missing
+         * @return the attribute value, or the default value
+         */
+        @SuppressWarnings("unchecked")
+        public <T> T getParsingAttributeOrDefault(@NonNull String name, @NonNull T defaultValue) {
+            return (T) getParsingAttributes().getOrDefault(name, defaultValue);
+        }
+
     }
 
     /**
@@ -361,10 +432,16 @@ public class StreamResponseParser extends BaseSubscriber<String> {
          * The response data type.
          */
         private final StreamDataType streamDataType;
+
         /**
          * The response data content.
          */
         private final ObjectNode dataContent;
+
+        /**
+         * The parsingAttributes associated with the Server-Sent Event.
+         */
+        private final Map<String, Object> attributes;
     }
 
 }

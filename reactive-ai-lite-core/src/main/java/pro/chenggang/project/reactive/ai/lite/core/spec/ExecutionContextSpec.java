@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 /**
  * A specification for configuring the execution context of an AI operation.
  * <p>
- * This interface provides a fluent API to set up tracing, attributes, and other
+ * This interface provides a fluent API to set up tracing, parsingAttributes, and other
  * context-related properties before executing a request. It serves as the initial
  * stage in configuring an AI interaction.
  * </p>
@@ -35,13 +35,13 @@ import java.util.function.Consumer;
 public interface ExecutionContextSpec {
 
     /**
-     * Sets attributes inherited from a parent execution context.
+     * Sets parsingAttributes inherited from a parent execution context.
      * <p>
-     * These attributes can carry metadata, correlation IDs, or shared state
+     * These parsingAttributes can carry metadata, correlation IDs, or shared state
      * across related AI operations, facilitating distributed tracing and context propagation.
      * </p>
      *
-     * @param parentAttributes a map of attributes from the parent context
+     * @param parentAttributes a map of parsingAttributes from the parent context
      * @return this {@link ExecutionContextSpec} instance for method chaining
      */
     ExecutionContextSpec parentAttributes(Map<String, Object> parentAttributes);

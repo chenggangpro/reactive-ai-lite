@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.reactivestreams.Publisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
@@ -38,6 +39,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInf
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
+import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.JsonStreamChunkSlide;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -86,7 +88,7 @@ class AbstractLlmChatProviderTest {
         }
 
         @Override
-        protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull ObjectNode rawResponseData) {
+        protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull StreamResponseParser.JsonChunkParsingData jsonChunkParsingData) {
             return new JsonStreamChunkSlide[0];
         }
 
@@ -106,12 +108,14 @@ class AbstractLlmChatProviderTest {
         }
 
         @Override
-        protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull ParameterizedTypeReference<R> resultType) {
+        protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
+                                                                                   @NonNull RawResponse rawResponse,
+                                                                                   @NonNull ParameterizedTypeReference<R> resultType) {
             return Mono.empty();
         }
 
         @Override
-        protected Mono<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
+        protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
             return Mono.empty();
         }
     }
@@ -142,7 +146,7 @@ class AbstractLlmChatProviderTest {
     void testConstructorWithNoDefaultCertification() {
         when(tokenCertification.profile()).thenReturn("other");
         when(tokenCertification.isDefault()).thenReturn(false);
-        
+
         assertThatThrownBy(() -> new TestLlmChatProvider(
                 Collections.singletonList(tokenCertification),
                 map -> llmProviderInfo,
@@ -193,7 +197,7 @@ class AbstractLlmChatProviderTest {
                 .isDefault(false)
                 .token("test-token")
                 .build();
-        
+
         TestLlmChatProvider bearerProvider = new TestLlmChatProvider(
                 java.util.Arrays.asList(tokenCertification, bearerCert),
                 map -> llmProviderInfo,

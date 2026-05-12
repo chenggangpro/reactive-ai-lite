@@ -23,9 +23,9 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 /**
- * Interface providing the ability to manage and access attributes.
+ * Interface providing the ability to manage and access parsingAttributes.
  * <p>
- * This interface defines methods for storing and retrieving attributes in a key-value format,
+ * This interface defines methods for storing and retrieving parsingAttributes in a key-value format,
  * allowing implementations to maintain contextual information throughout their lifecycle.
  * </p>
  *
@@ -35,9 +35,9 @@ import java.util.stream.Stream;
 public interface AttributesAbility {
 
     /**
-     * Return a mutable map of attributes for the current exchange.
+     * Return a mutable map of parsingAttributes for the current exchange.
      *
-     * @return the attributes map
+     * @return the parsingAttributes map
      */
     Map<String, Object> getAttributes();
 
@@ -67,7 +67,7 @@ public interface AttributesAbility {
     }
 
     /**
-     * Returns a sequential {@link Stream} with the attributes as its source.
+     * Returns a sequential {@link Stream} with the parsingAttributes as its source.
      *
      * @return a stream of attribute entries
      */

@@ -33,7 +33,7 @@ class ChatGeneralExecutionTest {
                 .llmClientType(LlmClientType.CHAT)
                 .modelNameConfigure(ctx -> "gpt-4")
                 .build();
-        
+
         GeneralExecution execution = ChatGeneralExecution.of(registry, spec);
         assertThat(execution).isNotNull();
     }
