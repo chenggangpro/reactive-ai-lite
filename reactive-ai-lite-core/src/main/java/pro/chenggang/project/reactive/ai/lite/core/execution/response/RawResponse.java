@@ -28,7 +28,7 @@ import lombok.experimental.SuperBuilder;
  * non-standard metadata, or handle specific provider quirks directly.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

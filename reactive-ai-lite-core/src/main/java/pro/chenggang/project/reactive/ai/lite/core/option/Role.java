@@ -17,6 +17,8 @@ package pro.chenggang.project.reactive.ai.lite.core.option;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Locale;
+
 /**
  * Defines the role of the entity that authored a message in a conversation.
  * <p>
@@ -25,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * (model) responding, or a tool returning results.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public enum Role {
@@ -78,7 +80,7 @@ public enum Role {
      * @return the lowercase string representation of this role (e.g., "system", "user", "assistant", "tool")
      */
     public String getValue() {
-        return this.name().toLowerCase();
+        return this.name().toUpperCase(Locale.ROOT);
     }
 
 }

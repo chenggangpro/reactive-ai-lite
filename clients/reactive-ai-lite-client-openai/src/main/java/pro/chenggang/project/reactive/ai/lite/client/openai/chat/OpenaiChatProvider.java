@@ -15,8 +15,6 @@
  */
 package pro.chenggang.project.reactive.ai.lite.client.openai.chat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -24,11 +22,9 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.MimeType;
-import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodyUriSpec;
@@ -59,7 +55,6 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
@@ -109,7 +104,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
 /**
  * The default OpenAI chat provider implementation.
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j
@@ -349,7 +344,8 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
         return Mono.fromCallable(rawResponse::getResponseBody)
                 .handle((rawResponseBody, syncSink) -> {
                     var generalResponseBuilder = GeneralResponse.builder()
-                            .contextView(rawResponse.getContextView());
+                            .contextView(rawResponse.getContextView())
+                            .rawResponseBody(rawResponseBody);
                     JsonNode messageNode = rawResponseBody.at("/choices/0/message");
                     if (messageNode.isMissingNode() || !messageNode.isObject()) {
                         log.error("Failed to extract response message from response body. Response body: {}", rawResponseBody.toPrettyString());
@@ -441,146 +437,6 @@ public class OpenaiChatProvider extends AbstractLlmChatProvider {
             toolCallList.add(toolCall);
         }
         return List.copyOf(toolCallList);
-    }
-
-    @Override
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull Class<R> resultType) {
-        return this.extractStructuredResponseContentInternal(
-                toolDefinitions,
-                rawResponse,
-                content -> {
-                    try {
-                        return OBJECT_MAPPER.readValue(content, resultType);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                },
-                contentNode -> {
-                    try {
-                        return OBJECT_MAPPER.treeToValue(contentNode, resultType);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-        );
-    }
-
-    @Override
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
-                                                                               @NonNull RawResponse rawResponse,
-                                                                               @NonNull ParameterizedTypeReference<R> resultType) {
-        return this.extractStructuredResponseContentInternal(toolDefinitions,
-                rawResponse,
-                content -> {
-                    try {
-                        return OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
-                                    @Override
-                                    public java.lang.reflect.Type getType() {
-                                        return resultType.getType();
-                                    }
-                                }
-                        );
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                },
-                contentNode -> {
-                    try {
-                        return OBJECT_MAPPER.treeToValue(contentNode, new TypeReference<R>() {
-                                    @Override
-                                    public java.lang.reflect.Type getType() {
-                                        return resultType.getType();
-                                    }
-                                }
-                        );
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-        );
-    }
-
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContentInternal(@NonNull List<ToolDefinition> toolDefinitions,
-                                                                                       @NonNull RawResponse rawResponse,
-                                                                                       @NonNull java.util.function.Function<String, R> textValueConverter,
-                                                                                       @NonNull java.util.function.Function<JsonNode, R> jsonValueConverter) {
-        return Mono.fromCallable(rawResponse::getResponseBody)
-                .handle((rawResponseBody, syncSink) -> {
-                    var structuredResponseBuilder = StructuredResponse.<R>builder()
-                            .contextView(rawResponse.getContextView());
-                    JsonNode messageNode = rawResponseBody.at("/choices/0/message");
-                    if (messageNode.isMissingNode() || !messageNode.isObject()) {
-                        log.error("Failed to extract response message from response body. Response body: {}", rawResponseBody.toPrettyString());
-                        syncSink.error(new ResponseMessageExtractFailedException(rawResponseBody));
-                        return;
-                    }
-                    JsonNode usageNode = rawResponseBody.at("/usage");
-                    if (!usageNode.isMissingNode() && usageNode.isObject() && !usageNode.isNull()) {
-                        Usage usage = Usage.newUsageBuilder((ObjectNode) usageNode)
-                                .promptTokensExtractor(this::extractPromptTokenUsage)
-                                .completionTokensExtractor(this::extractCompletionTokenUsage)
-                                .otherTokensExtractor(this::extractOtherTokenUsage)
-                                .build();
-                        structuredResponseBuilder.usage(usage);
-                    }
-                    String answerContent = null;
-                    R structuredValue = null;
-                    JsonNode contentNode = messageNode.at("/content");
-                    if (!contentNode.isMissingNode() && contentNode.isTextual()) {
-                        answerContent = contentNode.asText();
-                        if (StringUtils.hasText(answerContent)) {
-                            try {
-                                structuredValue = textValueConverter.apply(answerContent);
-                            } catch (Exception e) {
-                                log.error("Failed to parse content : {}", answerContent, e);
-                                syncSink.error(e);
-                                return;
-                            }
-                        }
-                    } else if (contentNode.isObject() || contentNode.isArray()) {
-                        try {
-                            answerContent = contentNode.toString();
-                            structuredValue = jsonValueConverter.apply(contentNode);
-                        } catch (Exception e) {
-                            log.error("Failed to parse content: {}", contentNode, e);
-                            syncSink.error(e);
-                            return;
-                        }
-                    }
-                    structuredResponseBuilder.structuredContent(structuredValue);
-                    String reasoningContent = null;
-                    JsonNode reasoningContentNode = messageNode.at("/reasoning_content");
-                    if (!reasoningContentNode.isMissingNode() && reasoningContentNode.isTextual()) {
-                        reasoningContent = reasoningContentNode.asText();
-                    }
-                    JsonNode toolCallsNode = messageNode.at("/tool_calls");
-                    if (!toolCallsNode.isMissingNode() && toolCallsNode.isArray()) {
-                        ArrayNode toolCallsArrayNode = (ArrayNode) toolCallsNode;
-                        List<AssistantToolCall> toolCalls = null;
-                        try {
-                            toolCalls = this.parseToolCallList(toolDefinitions, toolCallsArrayNode);
-                        } catch (Exception e) {
-                            syncSink.error(e);
-                            return;
-                        }
-                        ToolCallMessage toolCallMessage = DefaultToolCallMessage.builder()
-                                .toolCalls(toolCalls)
-                                .content(answerContent)
-                                .reasoningContent(reasoningContent)
-                                .build();
-                        StructuredResponse<R> structuredResponse = structuredResponseBuilder.assistantTextMessage(toolCallMessage)
-                                .build();
-                        syncSink.next(structuredResponse);
-                        return;
-                    }
-                    AssistantTextMessage assistantTextMessage = DefaultAssistantTextMessage.builder()
-                            .content(answerContent)
-                            .reasoningContent(reasoningContent)
-                            .build();
-                    StructuredResponse<R> structuredResponse = structuredResponseBuilder.assistantTextMessage(assistantTextMessage)
-                            .build();
-                    syncSink.next(structuredResponse);
-                });
     }
 
     @Override

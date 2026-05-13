@@ -32,7 +32,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
  * text is determined by its {@link StreamDataType}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Jacksonized

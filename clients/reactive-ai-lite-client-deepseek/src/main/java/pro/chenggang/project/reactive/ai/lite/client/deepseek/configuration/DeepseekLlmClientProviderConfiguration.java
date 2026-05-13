@@ -36,7 +36,7 @@ import java.util.List;
 /**
  * The auto configuration for Deepseek LLM client provider.
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j

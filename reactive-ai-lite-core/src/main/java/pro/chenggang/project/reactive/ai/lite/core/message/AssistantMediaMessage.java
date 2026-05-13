@@ -26,7 +26,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Role;
  * the standard parsingAttributes of media messages while enforcing the {@link Role#ASSISTANT} role.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface AssistantMediaMessage extends MediaMessage {

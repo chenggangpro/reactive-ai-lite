@@ -30,7 +30,7 @@ import java.util.List;
  * This class provides authentication credentials including bearer token, optional organization ID,
  * and optional project ID for OpenAI API requests.
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder

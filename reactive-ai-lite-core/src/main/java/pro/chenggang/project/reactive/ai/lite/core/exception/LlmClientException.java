@@ -25,7 +25,7 @@ import java.io.Serial;
  * by the LLM client framework. It is an unchecked {@link RuntimeException}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class LlmClientException extends RuntimeException {

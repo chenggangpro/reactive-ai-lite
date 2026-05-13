@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
  * wrapped in a Project Reactor {@link Mono}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface GeneralExecution extends LlmClientExecution {

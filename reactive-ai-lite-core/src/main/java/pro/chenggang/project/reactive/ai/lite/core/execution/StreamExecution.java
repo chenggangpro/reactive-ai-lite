@@ -29,7 +29,7 @@ import reactor.core.publisher.Flux;
  * applications to display responses to users before the entire completion is finished.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface StreamExecution extends LlmClientExecution {

@@ -16,12 +16,10 @@
 package pro.chenggang.project.reactive.ai.lite.core.provider;
 
 import lombok.NonNull;
-import org.springframework.core.ParameterizedTypeReference;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import reactor.core.publisher.Flux;
@@ -36,7 +34,7 @@ import reactor.core.publisher.Mono;
  * interface handle the actual HTTP communication and protocol specifics for different AI providers.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmChatProvider extends LlmProvider {
@@ -100,72 +98,5 @@ public interface LlmChatProvider extends LlmProvider {
      * @return a {@link Flux} emitting raw stream responses as they arrive
      */
     Flux<RawStreamResponse> executeStreamRaw(@NonNull ExecutionInfo executionInfo);
-
-    /**
-     * Executes a structured chat request and returns a response deserialized into the specified class type.
-     * <p>
-     * The provider implementation is responsible for instructing the model to output JSON
-     * matching the schema of the provided class, and then parsing that JSON into an instance.
-     * </p>
-     *
-     * @param <R>           the type of the result object
-     * @param executionInfo the execution information containing the request details
-     * @param resultType    the class type to deserialize the response into
-     * @return a {@link Mono} emitting the structured response containing the deserialized result
-     */
-    <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType);
-
-    /**
-     * Executes a structured chat request and returns a response deserialized into a parameterized type.
-     * <p>
-     * This method is used when the desired output type involves generics (e.g., {@code List<MyObject>}).
-     * </p>
-     *
-     * @param <R>           the type of the result object
-     * @param executionInfo the execution information containing the request details
-     * @param resultType    the parameterized type reference to deserialize the response into
-     * @return a {@link Mono} emitting the structured response containing the deserialized result
-     */
-    <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType);
-
-    /**
-     * Executes a structured chat request using a custom JSON schema string and returns the raw response.
-     * <p>
-     * The provider will force the model's output to conform to the provided JSON schema.
-     * </p>
-     *
-     * @param executionInfo      the execution information containing the request details
-     * @param responseJsonSchema the raw JSON schema string defining the expected response structure
-     * @return a {@link Mono} emitting the raw response
-     */
-    Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull String responseJsonSchema);
-
-    /**
-     * Executes a structured chat request based on the schema of a class type and returns the raw response.
-     * <p>
-     * The framework will generate a JSON schema from the class, send it to the provider,
-     * and return the unparsed JSON string response.
-     * </p>
-     *
-     * @param <R>           the type of the result object
-     * @param executionInfo the execution information containing the request details
-     * @param resultType    the class type used to generate the response schema
-     * @return a {@link Mono} emitting the raw response containing the JSON string
-     */
-    <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType);
-
-    /**
-     * Executes a structured chat request based on the schema of a parameterized type and returns the raw response.
-     * <p>
-     * The framework will generate a JSON schema from the parameterized type, send it to the provider,
-     * and return the unparsed JSON string response.
-     * </p>
-     *
-     * @param <R>           the type of the result object
-     * @param executionInfo the execution information containing the request details
-     * @param resultType    the parameterized type reference used to generate the response schema
-     * @return a {@link Mono} emitting the raw response containing the JSON string
-     */
-    <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType);
 
 }

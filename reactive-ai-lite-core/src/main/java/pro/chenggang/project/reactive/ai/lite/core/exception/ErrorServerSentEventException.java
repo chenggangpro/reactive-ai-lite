@@ -25,7 +25,7 @@ import java.util.Objects;
 /**
  * Exception thrown when a Server-Sent Event (SSE) contains an error payload.
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

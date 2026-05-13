@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.chunk.StreamDataChunk
  * the underlying Server-Sent Events (SSE) JSON structure from the framework's consumers.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

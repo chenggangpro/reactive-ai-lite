@@ -38,7 +38,7 @@ import java.util.function.Function;
  * and passes it along to the next stage in the fluent API.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class DefaultProviderSpec implements ProviderSpec {

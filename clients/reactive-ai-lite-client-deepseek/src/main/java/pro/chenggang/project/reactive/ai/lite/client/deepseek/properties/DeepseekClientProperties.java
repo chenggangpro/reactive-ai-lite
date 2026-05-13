@@ -32,7 +32,7 @@ import java.util.Set;
  * validation after all properties are set.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

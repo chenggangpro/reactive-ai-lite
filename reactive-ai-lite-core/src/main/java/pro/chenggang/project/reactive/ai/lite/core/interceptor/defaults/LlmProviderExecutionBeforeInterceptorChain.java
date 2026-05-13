@@ -35,7 +35,7 @@ import java.util.Objects;
  * before the LLM request is dispatched.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j

@@ -29,7 +29,7 @@ import java.util.Set;
  * routing.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderInfo {

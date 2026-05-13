@@ -56,6 +56,7 @@ class LlmProviderExecutionLoggingInterceptorTest {
         LlmProviderStreamResponseExchange exchange = mock(LlmProviderStreamResponseExchange.class);
         LlmProviderResponseInterceptorChain chain = mock(LlmProviderResponseInterceptorChain.class);
 
+        when(exchange.getAttributeOrDefault(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(exchange.rawStreamResponse()).thenReturn(reactor.core.publisher.Flux.empty());
         when(chain.next(any(LlmProviderStreamResponseExchange.class))).thenReturn(Mono.empty());
 

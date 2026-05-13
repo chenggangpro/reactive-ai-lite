@@ -24,7 +24,7 @@ package pro.chenggang.project.reactive.ai.lite.core.certification;
  * configuration for that provider.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ProviderCertification {

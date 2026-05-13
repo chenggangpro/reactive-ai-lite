@@ -45,11 +45,11 @@ import java.util.function.Function;
  * temperature, or list of historical messages).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class ExecutionInfo {
 
@@ -149,5 +149,15 @@ public class ExecutionInfo {
      * A flag indicating whether distinct tool calls should be enforced.
      */
     private final boolean distinctToolCalls;
+
+    /**
+     * The response JSON schema for structured output.
+     */
+    private final String responseJsonSchema;
+
+    /**
+     * The structured output type for deserialization.
+     */
+    private final java.lang.reflect.Type structuredOutputType;
 
 }

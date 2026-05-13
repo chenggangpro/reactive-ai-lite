@@ -49,7 +49,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
  * controlled by a {@code Supplier<Boolean>}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j

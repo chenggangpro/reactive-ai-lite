@@ -23,14 +23,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
-import pro.chenggang.project.reactive.ai.lite.core.execution.GeneralExecution;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
+import pro.chenggang.project.reactive.ai.lite.core.execution.StreamExecution;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -41,7 +42,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ChatGeneralExecutionTest {
+class ChatStreamExecutionTest {
 
     @Mock
     private LlmProviderRegistry registry;
@@ -58,12 +59,12 @@ class ChatGeneralExecutionTest {
     @Mock
     private ExecutionInfo executionInfo;
 
-    private GeneralExecution execution;
+    private StreamExecution execution;
 
     @BeforeEach
     void setUp() {
         lenient().when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        execution = ChatGeneralExecution.of(registry, spec);
+        execution = ChatStreamExecution.of(registry, spec);
         lenient().when(executionContext.getContextView()).thenReturn(org.mockito.Mockito.mock(ExecutionContextView.class));
     }
 
@@ -74,14 +75,14 @@ class ChatGeneralExecutionTest {
     }
 
     @Test
-    @DisplayName("Should successfully execute chat")
+    @DisplayName("Should successfully execute stream")
     void testExecute() {
-        GeneralResponse response = mock(GeneralResponse.class);
+        StreamResponse response = mock(StreamResponse.class);
         when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-        when(provider.executeGeneral(any())).thenReturn(Mono.just(response));
+        when(provider.executeStream(any())).thenReturn(Flux.just(response));
 
         StepVerifier.create(execution.execute())
                 .expectNext(response)
@@ -89,14 +90,14 @@ class ChatGeneralExecutionTest {
     }
 
     @Test
-    @DisplayName("Should successfully execute raw chat")
+    @DisplayName("Should successfully execute raw stream")
     void testExecuteRaw() {
-        RawResponse response = mock(RawResponse.class);
+        RawStreamResponse response = mock(RawStreamResponse.class);
         when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-        when(provider.executeGeneralRaw(any())).thenReturn(Mono.just(response));
+        when(provider.executeStreamRaw(any())).thenReturn(Flux.just(response));
 
         StepVerifier.create(execution.executeRaw())
                 .expectNext(response)

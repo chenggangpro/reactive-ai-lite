@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
        Copyright 2025-2026 the original author or authors.
@@ -15,7 +16,6 @@
        limitations under the License.
 
 -->
-<?xml version="1.0" encoding="UTF-8"?>  
 <configuration scan="true" scanPeriod="60 seconds" debug="false">
     <property scope="context" name="log_dir" value="../logs" />
     <property scope="context" name="app_name" value="rsocket-micro-connect-core"/>

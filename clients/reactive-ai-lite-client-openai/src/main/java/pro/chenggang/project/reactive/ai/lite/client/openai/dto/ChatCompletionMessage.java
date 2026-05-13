@@ -31,7 +31,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import java.util.List;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @JsonInclude(Include.NON_NULL)

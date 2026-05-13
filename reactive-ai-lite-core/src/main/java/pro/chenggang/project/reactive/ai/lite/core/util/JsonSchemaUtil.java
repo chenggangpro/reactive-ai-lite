@@ -39,7 +39,7 @@ import java.util.stream.Stream;
  * to describe tool input parameters or structured output formats to AI models.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public final class JsonSchemaUtil {
@@ -141,7 +141,7 @@ public final class JsonSchemaUtil {
     /**
      * Options for customizing the generation of JSON Schemas.
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     public enum SchemaOption {
 

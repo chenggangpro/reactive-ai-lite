@@ -13,9 +13,20 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-/**
- * @author Cheng Gang
- * @version 0.1.0
- * @since 0.1.0
- */
 package pro.chenggang.project.reactive.ai.lite.core;
+
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import reactor.blockhound.BlockHound;
+
+public class BlockHoundExtension implements BeforeAllCallback {
+    private static boolean installed = false;
+
+    @Override
+    public void beforeAll(ExtensionContext context) {
+        if (!installed) {
+            BlockHound.install();
+            installed = true;
+        }
+    }
+}

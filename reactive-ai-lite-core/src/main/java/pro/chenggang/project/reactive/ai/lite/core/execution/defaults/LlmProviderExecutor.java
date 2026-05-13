@@ -29,6 +29,8 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -43,7 +45,7 @@ import java.util.function.Predicate;
  * are resolved, it executes the given functional logic (e.g., executing a chat request).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder
@@ -64,7 +66,7 @@ public class LlmProviderExecutor {
     private final ExecutionSpec executionSpec;
 
     /**
-     * Executes a chat-based operation.
+     * Executes a chat-based operation that returns a {@link Mono}.
      * <p>
      * This method resolves the runtime {@link ExecutionContext}, loads the appropriate
      * {@link LlmChatProvider} based on the {@link ExecutionSpec}'s filtering rules,
@@ -73,14 +75,42 @@ public class LlmProviderExecutor {
      *
      * @param specifiedExecution a {@link BiFunction} defining the specific chat operation to perform.
      *                           It receives the resolved provider and execution info.
-     * @param <T>                the type of the result returned by the execution (e.g., Mono or Flux)
-     * @return the result of the specified execution
+     * @param <R>                the type of the result emitted by the Mono
+     * @return a {@link Mono} emitting the result of the specified execution
      */
-    public <T> T executeChat(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, T> specifiedExecution) {
-        ExecutionContext executionContext = this.executionSpec.newExecutionContext();
-        LlmChatProvider llmProvider = this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider);
-        ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-        return specifiedExecution.apply(llmProvider, executionInfo);
+    public <R> Mono<R> executeChat(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, Mono<R>> specifiedExecution) {
+        return Mono.defer(() -> {
+            ExecutionContext executionContext = this.executionSpec.newExecutionContext();
+            return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
+                    .flatMap(llmProvider -> {
+                        ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
+                        return specifiedExecution.apply(llmProvider, executionInfo);
+                    });
+        });
+    }
+
+    /**
+     * Executes a chat-based operation that returns a {@link Flux}.
+     * <p>
+     * This method resolves the runtime {@link ExecutionContext}, loads the appropriate
+     * {@link LlmChatProvider} based on the {@link ExecutionSpec}'s filtering rules,
+     * creates the finalized {@link ExecutionInfo}, and then applies the provided execution logic.
+     * </p>
+     *
+     * @param specifiedExecution a {@link BiFunction} defining the specific chat operation to perform.
+     *                           It receives the resolved provider and execution info.
+     * @param <R>                the type of the results emitted by the Flux
+     * @return a {@link Flux} emitting the results of the specified execution
+     */
+    public <R> Flux<R> executeChatFlux(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, Flux<R>> specifiedExecution) {
+        return Flux.defer(() -> {
+            ExecutionContext executionContext = this.executionSpec.newExecutionContext();
+            return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
+                    .flatMapMany(llmProvider -> {
+                        ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
+                        return specifiedExecution.apply(llmProvider, executionInfo);
+                    });
+        });
     }
 
     /**
@@ -93,13 +123,13 @@ public class LlmProviderExecutor {
      * @param executionContext the current runtime execution context
      * @param providerLoader   a function that interacts with the registry to find a provider matching a predicate
      * @param <P>              the type of the {@link LlmProvider} to load
-     * @return the loaded LLM provider
+     * @return a {@link Mono} emitting the loaded LLM provider
      */
     @SuppressWarnings("unchecked")
-    public <P extends LlmProvider> P loadLlmProvider(@NonNull ExecutionContext executionContext, @NonNull BiFunction<LlmProviderRegistry, Predicate<LlmProviderInfo>, P> providerLoader) {
+    public <P extends LlmProvider> Mono<P> loadLlmProvider(@NonNull ExecutionContext executionContext, @NonNull BiFunction<LlmProviderRegistry, Predicate<LlmProviderInfo>, Mono<P>> providerLoader) {
         Capability capability = executionSpec.getLlmClientType().getCapability();
         if (executionSpec.isDefaultProvider()) {
-            return (P) llmProviderRegistry.getDefaultProvider(capability);
+            return (Mono<P>) llmProviderRegistry.getDefaultProvider(capability);
         }
         ExecutionContextView executionContextView = executionContext.getContextView();
         return providerLoader.apply(llmProviderRegistry, llmProviderInfo -> {

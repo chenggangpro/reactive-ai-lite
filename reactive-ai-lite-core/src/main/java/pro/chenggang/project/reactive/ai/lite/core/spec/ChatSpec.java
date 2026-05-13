@@ -26,7 +26,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.StructuredExecution
  * providing access to general, streaming, and structured response handlers.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ChatSpec {

@@ -29,7 +29,7 @@ class ExecutionSpecTest {
     void testNewExecutionContext() {
         ExecutionSpec spec = ExecutionSpec.builder()
                 .llmClientType(LlmClientType.CHAT)
-                .modelNameConfigure(ctx -> "gpt-4")
+                .modelNameConfigure(__ -> "gpt-4")
                 .parentAttributes(Collections.singletonMap("key", "val"))
                 .contextConfigure(ctx -> ctx.getAttributes().put("custom", "config"))
                 .build();
@@ -43,7 +43,7 @@ class ExecutionSpecTest {
     void testNewExecutionInfo() {
         ExecutionSpec spec = ExecutionSpec.builder()
                 .llmClientType(LlmClientType.CHAT)
-                .modelNameConfigure(ctx -> "gpt-4")
+                .modelNameConfigure(__ -> "gpt-4")
                 .build();
 
         ExecutionContext context = ExecutionContext.newContext();

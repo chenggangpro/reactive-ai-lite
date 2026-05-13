@@ -38,7 +38,7 @@ import java.util.function.Consumer;
  * provider configuration.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)

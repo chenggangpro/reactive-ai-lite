@@ -39,7 +39,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
  * contains the necessary information to execute the tool locally.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ToolCallMessage extends AssistantTextMessage {
@@ -59,7 +59,7 @@ public interface ToolCallMessage extends AssistantTextMessage {
      * reference to the original {@link ToolDefinition}.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     @Jacksonized
@@ -108,7 +108,7 @@ public interface ToolCallMessage extends AssistantTextMessage {
      * AI model in JSON format.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     class AssistantToolCallFunction {

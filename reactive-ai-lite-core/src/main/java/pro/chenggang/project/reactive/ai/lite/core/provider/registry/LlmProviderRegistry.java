@@ -20,6 +20,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
+import reactor.core.publisher.Mono;
 
 import java.util.function.Predicate;
 
@@ -31,7 +32,7 @@ import java.util.function.Predicate;
  * selection criteria.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderRegistry {
@@ -44,9 +45,9 @@ public interface LlmProviderRegistry {
      * </p>
      *
      * @param capability the {@link Capability} (e.g., CHAT, EMBEDDING) for which to find the provider
-     * @return the default {@link LlmProvider} supporting the requested capability
+     * @return a {@link Mono} emitting the default {@link LlmProvider} supporting the requested capability
      */
-    LlmProvider getDefaultProvider(@NonNull Capability capability);
+    Mono<LlmProvider> getDefaultProvider(@NonNull Capability capability);
 
     /**
      * Finds and returns an {@link LlmChatProvider} that matches the given dynamic filter.
@@ -56,8 +57,8 @@ public interface LlmProviderRegistry {
      * </p>
      *
      * @param providerFilter a {@link Predicate} used to evaluate each provider's info
-     * @return the first {@link LlmChatProvider} that matches the filter
+     * @return a {@link Mono} emitting the first {@link LlmChatProvider} that matches the filter
      */
-    LlmChatProvider getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter);
+    Mono<LlmChatProvider> getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter);
 
 }

@@ -32,7 +32,7 @@ import java.util.Optional;
  * calls) alongside extracted usage and metadata from {@link ExtractedLlmResponse}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * the ability to carry metadata or context-specific data across the application.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public abstract class AbstractAttribute implements AttributesAbility {

@@ -34,7 +34,7 @@ import java.util.List;
  * has finished outputting the tool call arguments for the current stream slide.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

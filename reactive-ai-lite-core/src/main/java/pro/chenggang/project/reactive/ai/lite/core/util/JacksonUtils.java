@@ -29,7 +29,7 @@ import java.util.List;
  * dynamically discovering and instantiating available Jackson modules in the classpath.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public abstract class JacksonUtils {

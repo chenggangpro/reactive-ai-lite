@@ -30,7 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
  * to access metadata, correlation IDs, or other parsingAttributes associated with the request.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

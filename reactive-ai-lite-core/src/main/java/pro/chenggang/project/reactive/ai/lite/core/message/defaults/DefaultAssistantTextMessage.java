@@ -34,7 +34,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.Message;
  * serializable and deserializable using Jackson.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Jacksonized

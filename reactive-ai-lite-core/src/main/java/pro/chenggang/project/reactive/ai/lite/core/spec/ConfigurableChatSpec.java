@@ -46,7 +46,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.option.BuildInPrompt.S
  * configuration based on the request context.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ConfigurableChatSpec extends ChatSpec {

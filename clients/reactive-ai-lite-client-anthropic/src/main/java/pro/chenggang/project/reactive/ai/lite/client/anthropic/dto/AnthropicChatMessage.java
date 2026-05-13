@@ -33,7 +33,7 @@ import java.util.Map;
 /**
  * Anthropic Message DTO.
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @JsonInclude(Include.NON_NULL)

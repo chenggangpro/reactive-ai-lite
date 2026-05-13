@@ -30,7 +30,7 @@ import java.util.Set;
  * requests through the appropriate interceptors.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LLmProviderExecutionInterceptor extends Ordered {

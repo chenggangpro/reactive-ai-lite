@@ -34,7 +34,7 @@ import java.util.Map;
  * such as converting JSON strings directly to Maps.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public abstract class JsonRelatedUtil {

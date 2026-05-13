@@ -31,7 +31,7 @@ import java.util.Objects;
  * the content as a data URI scheme. It uses a builder pattern for easy instantiation.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder

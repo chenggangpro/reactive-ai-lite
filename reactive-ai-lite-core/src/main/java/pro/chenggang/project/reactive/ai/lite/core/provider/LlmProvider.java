@@ -26,7 +26,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
  * and its configuration metadata, allowing the registry to manage and route requests appropriately.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProvider {

@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
  * It provides a strong typing mechanism to ensure that appropriate capabilities are requested from providers.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

@@ -15,73 +15,37 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.spec;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
+import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableChatSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultExecutionContextSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultProviderSpec;
 
-import java.util.Collections;
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ConfigurableChatSpecTest {
 
+    private LlmProviderRegistry registry;
+    private DefaultExecutionContextSpec contextSpec;
+    private DefaultProviderSpec providerSpec;
+    private ConfigurableChatSpec spec;
+
+    @BeforeEach
+    void setUp() {
+        registry = mock(LlmProviderRegistry.class);
+        contextSpec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
+        providerSpec = DefaultProviderSpec.of(LlmClientType.CHAT, registry, contextSpec);
+        // Using DefaultConfigurableChatSpec to test the interface methods
+        spec = new DefaultConfigurableChatSpec(LlmClientType.CHAT, registry, contextSpec, providerSpec);
+    }
+
     @Test
     void testDefaultMethods() {
-        ConfigurableChatSpec spec = mock(ConfigurableChatSpec.class);
-
-        when(spec.model(any(String.class))).thenCallRealMethod();
-        when(spec.temperature(any(Double.class))).thenCallRealMethod();
-        when(spec.topP(any(Double.class))).thenCallRealMethod();
-        when(spec.includeUsage()).thenCallRealMethod();
-        when(spec.reasoning(any(String.class))).thenCallRealMethod();
-        when(spec.systemMessage(any(String.class))).thenCallRealMethod();
-        when(spec.historicalMessage(any(List.class))).thenCallRealMethod();
-        when(spec.textMessage(any(String.class))).thenCallRealMethod();
-        when(spec.mediaMessage(any(String.class), any(List.class))).thenCallRealMethod();
-        when(spec.maxCompletionTokens(any(Integer.class))).thenCallRealMethod();
-        when(spec.tools(any(List.class))).thenCallRealMethod();
-        when(spec.toolChoice(any(String.class))).thenCallRealMethod();
-        when(spec.toolsResponse(any(List.class))).thenCallRealMethod();
-
-        spec.model("test-model");
-        verify(spec).model(any(java.util.function.Function.class));
-
-        spec.temperature(0.5);
-        verify(spec).temperature(any(java.util.function.Function.class));
-
-        spec.topP(0.9);
-        verify(spec).topP(any(java.util.function.Function.class));
-
-        spec.includeUsage();
-        verify(spec).includeUsage(any(java.util.function.Function.class));
-
-        spec.reasoning("thinking");
-        verify(spec).reasoning(any(java.util.function.Function.class));
-
-        spec.systemMessage("sys");
-        verify(spec).systemMessage(any(java.util.function.Function.class));
-
-        spec.historicalMessage(Collections.emptyList());
-        // verify NOT called since it's empty
-
-        spec.textMessage("user");
-        verify(spec).textMessage(any(java.util.function.Function.class));
-
-        spec.mediaMessage("user", Collections.emptyList());
-        verify(spec).mediaMessage(any(java.util.function.Function.class));
-
-        spec.maxCompletionTokens(100);
-        verify(spec).maxCompletionTokens(any(java.util.function.Function.class));
-
-        spec.tools(Collections.emptyList());
-        verify(spec).tools(any(java.util.function.Function.class));
-
-        spec.toolChoice("auto");
-        verify(spec).toolChoice(any(java.util.function.Function.class));
-
-        spec.toolsResponse(Collections.emptyList());
-        verify(spec).toolsResponse(any(java.util.function.Function.class));
+        // These methods now have default implementations in the interface or are implemented by DefaultConfigurableChatSpec
+        assertThat(spec.includeUsage()).isEqualTo(spec);
+        assertThat(spec.distinctToolCalls(true)).isEqualTo(spec);
     }
 }

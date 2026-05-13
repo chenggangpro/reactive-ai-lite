@@ -36,7 +36,7 @@ import reactor.test.StepVerifier;
 import java.util.List;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class OllamaChatClientTests extends OllamaLlmClientTestApplicationTests {

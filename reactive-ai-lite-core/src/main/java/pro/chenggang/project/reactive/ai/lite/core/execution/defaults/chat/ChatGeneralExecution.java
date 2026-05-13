@@ -33,7 +33,7 @@ import reactor.core.publisher.Mono;
  * dynamically based on the execution context and configuration specification.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class ChatGeneralExecution implements GeneralExecution {

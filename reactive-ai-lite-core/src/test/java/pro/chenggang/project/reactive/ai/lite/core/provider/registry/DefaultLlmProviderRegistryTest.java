@@ -20,10 +20,10 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
+import reactor.test.StepVerifier;
 
 import java.util.Collections;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -39,7 +39,9 @@ class DefaultLlmProviderRegistryTest {
         when(info.isDefault()).thenReturn(true);
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        assertThat(registry.getDefaultProvider(Capability.CHAT)).isEqualTo(provider);
+        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
+                .expectNext(provider)
+                .verifyComplete();
     }
 
     @Test
@@ -51,8 +53,9 @@ class DefaultLlmProviderRegistryTest {
         when(info.name()).thenReturn("test-provider");
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        LlmChatProvider result = registry.getChatProvider(i -> i.name().equals("test-provider"));
-        assertThat(result).isEqualTo(provider);
+        StepVerifier.create(registry.getChatProvider(i -> i.name().equals("test-provider")))
+                .expectNext(provider)
+                .verifyComplete();
     }
 
     @Test
@@ -64,8 +67,9 @@ class DefaultLlmProviderRegistryTest {
         when(info.name()).thenReturn("test-provider");
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        assertThatThrownBy(() -> registry.getChatProvider(i -> i.name().equals("other")))
-                .isInstanceOf(IllegalStateException.class);
+        StepVerifier.create(registry.getChatProvider(i -> i.name().equals("other")))
+                .expectError(IllegalStateException.class)
+                .verify();
     }
 
     @Test
@@ -86,7 +90,9 @@ class DefaultLlmProviderRegistryTest {
         when(info.isDefault()).thenReturn(true);
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(java.util.Arrays.asList(provider, validProvider));
-        assertThat(registry.getDefaultProvider(Capability.CHAT)).isEqualTo(validProvider);
+        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
+                .expectNext(validProvider)
+                .verifyComplete();
     }
 
     @Test
@@ -98,7 +104,8 @@ class DefaultLlmProviderRegistryTest {
         when(info.isDefault()).thenReturn(true);
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        assertThatThrownBy(() -> registry.getDefaultProvider(Capability.AUDIO))
-                .isInstanceOf(IllegalArgumentException.class);
+        StepVerifier.create(registry.getDefaultProvider(Capability.AUDIO))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 }

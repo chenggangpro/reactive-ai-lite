@@ -22,6 +22,8 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,7 +41,7 @@ import java.util.function.Predicate;
  * It provides efficient lookup methods to resolve providers at runtime.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j
@@ -89,16 +91,12 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
      * Retrieves the default provider associated with the specified capability.
      *
      * @param capability the {@link Capability} required
-     * @return the default {@link LlmProvider} for that capability
-     * @throws IllegalArgumentException if no default provider is registered for the capability
+     * @return a {@link Mono} emitting the default {@link LlmProvider} for that capability
      */
     @Override
-    public LlmProvider getDefaultProvider(@NonNull Capability capability) {
-        LlmProvider llmProvider = defaultProviderContainer.get(capability);
-        if (Objects.isNull(llmProvider)) {
-            throw new IllegalArgumentException("At least one default LlmProvider is required for " + capability + ". Use 'LlmProvider.info().isDefault()' to mark a provider as default.");
-        }
-        return llmProvider;
+    public Mono<LlmProvider> getDefaultProvider(@NonNull Capability capability) {
+        return Mono.justOrEmpty(defaultProviderContainer.get(capability))
+                .switchIfEmpty(Mono.error(() -> new IllegalArgumentException("At least one default LlmProvider is required for " + capability + ". Use 'LlmProvider.info().isDefault()' to mark a provider as default.")));
     }
 
     /**
@@ -110,15 +108,14 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
      * </p>
      *
      * @param providerFilter the predicate used to evaluate each provider's metadata
-     * @return the matched {@link LlmChatProvider}
-     * @throws IllegalStateException if no chat provider matches the filter criteria
+     * @return a {@link Mono} emitting the matched {@link LlmChatProvider}
      */
     @Override
-    public LlmChatProvider getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter) {
-        return this.providers.stream()
+    public Mono<LlmChatProvider> getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter) {
+        return Flux.fromIterable(this.providers)
                 .filter(llmProvider -> Capability.CHAT.equals(llmProvider.capability()) && providerFilter.test(llmProvider.info()))
-                .findFirst()
-                .map(LlmChatProvider.class::cast)
-                .orElseThrow(() -> new IllegalStateException("No LlmChatProvider found that matches the given filter."));
+                .next()
+                .cast(LlmChatProvider.class)
+                .switchIfEmpty(Mono.error(() -> new IllegalStateException("No LlmChatProvider found that matches the given filter.")));
     }
 }

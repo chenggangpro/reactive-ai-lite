@@ -29,7 +29,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import pro.chenggang.project.reactive.ai.lite.client.anthropic.AnthropicLlmClientTestApplicationTests;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
+import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.TextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
+import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.tool.DefaultToolDefinition;
+import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import reactor.test.StepVerifier;
@@ -37,7 +42,7 @@ import reactor.test.StepVerifier;
 import java.util.List;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationTests {
@@ -60,6 +65,14 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                 .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .historicalMessage(List.of(
+                        TextMessage.newTextMessage(Role.USER)
+                                .content("你能做什么")
+                                .build(),
+                        TextMessage.newTextMessage(Role.ASSISTANT)
+                                .content("我是一名运维工程师，负责保障系统和服务的正常运行。熟悉各种监控工具，能够高效地处理故障和进行系统优化。还懂得如何进行数据备份和恢复，以保证数据安全。")
+                                .build()
+                ))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .general()
                 .execute()
@@ -84,6 +97,14 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                 .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .historicalMessage(List.of(
+                        TextMessage.newTextMessage(Role.USER)
+                                .content("你能做什么")
+                                .build(),
+                        TextMessage.newTextMessage(Role.ASSISTANT)
+                                .content("我是一名运维工程师，负责保障系统和服务的正常运行。熟悉各种监控工具，能够高效地处理故障和进行系统优化。还懂得如何进行数据备份和恢复，以保证数据安全。")
+                                .build()
+                ))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .stream()
                 .execute()
@@ -139,7 +160,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
-                        DefaultToolDefinition.builder()
+                        ToolDefinition.newToolDefinition()
                                 .name("read_csv")
                                 .description("读取CSV文件内容")
                                 .inputSchema(
@@ -149,6 +170,61 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                 ))
                 .general()
                 .execute()
+                .flatMap(generalResponse -> {
+                    AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
+                    List<ToolResultMessage> toolResultMessages = generalResponse.getToolCalls()
+                            .map(assistantToolCalls -> {
+                                return assistantToolCalls.stream()
+                                        .<ToolResultMessage>map(assistantToolCall -> ToolResultMessage.newToolResultMessage(assistantToolCall.getId())
+                                                .content(
+                                                        """
+                                                                name,month,amount
+                                                                A,2025-01,323.44
+                                                                B,2025-01,123.44
+                                                                C,2025-01,423.44
+                                                                D,2025-01,523.44
+                                                                A,2025-02,723.44
+                                                                B,2025-02,23.24
+                                                                C,2025-02,23.34
+                                                                D,2025-02,33.14
+                                                                A,2025-03,43.44
+                                                                B,2025-03,53.44
+                                                                C,2025-03,43.44
+                                                                D,2025-03,23.34
+                                                                A,2025-04,33.44
+                                                                B,2025-04,23.44
+                                                                C,2025-04,23.44
+                                                                D,2025-04,23.44
+                                                                A,2025-05,23.44
+                                                                B,2025-05,23.44
+                                                                C,2025-05,23.44
+                                                                D,2025-05,23.44
+                                                                """
+                                                )
+                                                .build())
+                                        .toList();
+                            })
+                            .orElse(List.of());
+                    return reactiveLlmClient.chat()
+                            .newCompletionContext()
+                            .providerSpec()
+                            .defaultProvider()
+                            .defaultProfile()
+                            .chatSpec()
+                            .model(contextView -> model)
+                            .systemMessage((contextView -> "You are a helpful assistant"))
+                            .historicalMessage(
+                                    List.of(
+                                            TextMessage.newTextMessage(Role.USER)
+                                                    .content("帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告")
+                                                    .build(),
+                                            assistantTextMessage
+                                    )
+                            )
+                            .toolsResponse(toolResultMessages)
+                            .general()
+                            .execute();
+                })
                 .as(StepVerifier::create)
                 .consumeNextWith(response -> {
                     try {

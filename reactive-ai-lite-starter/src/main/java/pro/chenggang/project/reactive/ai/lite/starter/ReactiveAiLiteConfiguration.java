@@ -36,7 +36,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 import pro.chenggang.project.reactive.ai.lite.starter.properties.ReactiveAiClientProperties;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j

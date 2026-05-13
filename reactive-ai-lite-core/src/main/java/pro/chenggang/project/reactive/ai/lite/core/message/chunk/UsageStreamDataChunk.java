@@ -30,7 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
  * to report the total token usage metrics consumed by the request and response generation.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

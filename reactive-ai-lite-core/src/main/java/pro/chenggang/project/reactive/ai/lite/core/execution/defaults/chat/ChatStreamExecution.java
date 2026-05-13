@@ -33,7 +33,7 @@ import reactor.core.publisher.Flux;
  * streaming methods on the resolved {@link LlmChatProvider}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class ChatStreamExecution implements StreamExecution {
@@ -84,7 +84,7 @@ public class ChatStreamExecution implements StreamExecution {
      */
     @Override
     public Flux<StreamResponse> execute() {
-        return llmProviderExecutor.executeChat(LlmChatProvider::executeStream);
+        return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStream);
     }
 
     /**
@@ -94,7 +94,7 @@ public class ChatStreamExecution implements StreamExecution {
      */
     @Override
     public Flux<RawStreamResponse> executeRaw() {
-        return llmProviderExecutor.executeChat(LlmChatProvider::executeStreamRaw);
+        return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStreamRaw);
     }
 
 }

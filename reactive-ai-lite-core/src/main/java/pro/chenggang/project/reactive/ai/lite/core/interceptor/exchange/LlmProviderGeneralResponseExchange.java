@@ -27,7 +27,7 @@ import java.util.Optional;
  * execution can use this to inspect or modify the payload before it is parsed into domain objects.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderGeneralResponseExchange extends LlmProviderResponseExchange {

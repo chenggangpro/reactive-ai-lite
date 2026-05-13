@@ -32,7 +32,7 @@ import java.util.List;
  * header, which is the most common authentication method for LLM provider APIs.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder

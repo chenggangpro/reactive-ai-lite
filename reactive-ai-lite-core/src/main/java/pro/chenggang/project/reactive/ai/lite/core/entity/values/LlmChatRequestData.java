@@ -21,7 +21,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.jackson.Jacksonized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
@@ -35,6 +34,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
+import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
@@ -56,11 +56,10 @@ import java.util.function.Function;
  * passed from the framework to the specific provider implementation.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder
-@Jacksonized
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class LlmChatRequestData {
 
@@ -288,8 +287,6 @@ public class LlmChatRequestData {
         private final LlmProviderInfo llmProviderInfo;
         private final ExecutionInfo executionInfo;
         private final boolean isStream;
-        private final Type structuredOutputType;
-        private final String responseJsonSchema;
 
         /**
          * Constructs a new initializer.
@@ -299,23 +296,17 @@ public class LlmChatRequestData {
          * @param llmProviderInfo      information about the LLM provider
          * @param executionInfo        the execution specification holding configuration functions
          * @param isStream             whether the request is a streaming request
-         * @param structuredOutputType the expected type for structured output
-         * @param responseJsonSchema   the JSON schema for structured output
          */
         private LlmChatRequestDataInitializer(@NonNull Map<String, TokenCertification> certificationMap,
                                               TokenCertification defaultCertification,
                                               @NonNull LlmProviderInfo llmProviderInfo,
                                               @NonNull ExecutionInfo executionInfo,
-                                              boolean isStream,
-                                              Type structuredOutputType,
-                                              String responseJsonSchema) {
+                                              boolean isStream) {
             this.certificationMap = certificationMap;
             this.defaultCertification = defaultCertification;
             this.llmProviderInfo = llmProviderInfo;
             this.executionInfo = executionInfo;
             this.isStream = isStream;
-            this.structuredOutputType = structuredOutputType;
-            this.responseJsonSchema = responseJsonSchema;
         }
 
         /**
@@ -326,18 +317,14 @@ public class LlmChatRequestData {
          * @param llmProviderInfo      information about the LLM provider
          * @param executionInfo        the execution specification
          * @param isStream             whether the request is a streaming request
-         * @param structuredOutputType the expected type for structured output
-         * @param responseJsonSchema   the JSON schema for structured output
          * @return a new {@link LlmChatRequestDataInitializer}
          */
         public static LlmChatRequestDataInitializer of(@NonNull Map<String, TokenCertification> certificationMap,
                                                        TokenCertification defaultCertification,
                                                        @NonNull LlmProviderInfo llmProviderInfo,
                                                        @NonNull ExecutionInfo executionInfo,
-                                                       boolean isStream,
-                                                       Type structuredOutputType,
-                                                       String responseJsonSchema) {
-            return new LlmChatRequestDataInitializer(certificationMap, defaultCertification, llmProviderInfo, executionInfo, isStream, structuredOutputType, responseJsonSchema);
+                                                       boolean isStream) {
+            return new LlmChatRequestDataInitializer(certificationMap, defaultCertification, llmProviderInfo, executionInfo, isStream);
         }
 
         /**
@@ -345,8 +332,8 @@ public class LlmChatRequestData {
          *
          * @return a populated {@link LlmChatRequestData} instance
          */
-        public LlmChatRequestData initialize() {
-            return LlmChatRequestData.builder()
+        public Mono<LlmChatRequestData> initialize() {
+            return Mono.fromCallable(() -> LlmChatRequestData.builder()
                     .modelName(this.loadModelName(executionInfo))
                     .tokenCertification(this.loadTokenCertification(executionInfo))
                     .executionContextView(executionInfo.getExecutionContext().getContextView())
@@ -364,10 +351,11 @@ public class LlmChatRequestData {
                     .isStream(isStream)
                     .distinctToolCalls(executionInfo.isDistinctToolCalls())
                     .toolChoice(this.loadToolChoice(executionInfo))
-                    .structuredOutputType(structuredOutputType)
-                    .responseJsonSchema(responseJsonSchema)
+                    .structuredOutputType(executionInfo.getStructuredOutputType())
+                    .responseJsonSchema(executionInfo.getResponseJsonSchema())
                     .rawRequestCustomizerConfigure(executionInfo.getRawRequestCustomizerConfigure())
-                    .build();
+                    .build()
+            );
         }
 
         /**

@@ -50,7 +50,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.L
  * resources (like shared attribute maps) are properly cleaned up.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterceptorRegistry {

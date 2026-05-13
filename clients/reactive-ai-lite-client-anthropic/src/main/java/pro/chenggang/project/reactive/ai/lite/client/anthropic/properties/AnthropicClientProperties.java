@@ -32,7 +32,7 @@ import java.util.Set;
  * multiple authentication profiles and validates the configuration upon initialization.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter
@@ -99,7 +99,7 @@ public class AnthropicClientProperties implements InitializingBean {
      * and optional restrictions on which models can be used.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     @Setter
@@ -146,7 +146,7 @@ public class AnthropicClientProperties implements InitializingBean {
      * the application to switch between different Anthropic accounts or environments.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     @Setter

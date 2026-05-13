@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
  * outbound request data (such as the JSON body or headers) before it leaves the application.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderExecutionBeforeInterceptor extends LLmProviderExecutionInterceptor {

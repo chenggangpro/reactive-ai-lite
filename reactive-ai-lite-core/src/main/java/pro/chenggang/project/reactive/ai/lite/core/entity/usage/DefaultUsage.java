@@ -32,7 +32,7 @@ import org.springframework.lang.Nullable;
  * token counts are initialized to zero.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Jacksonized

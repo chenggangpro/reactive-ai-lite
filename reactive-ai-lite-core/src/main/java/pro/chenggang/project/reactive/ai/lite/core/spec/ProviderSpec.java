@@ -35,7 +35,7 @@ import java.util.function.Predicate;
  * system messages before moving on to configure the chat request itself.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ProviderSpec {

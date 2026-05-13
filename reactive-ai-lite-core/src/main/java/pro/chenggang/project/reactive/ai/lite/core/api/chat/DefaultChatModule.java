@@ -29,7 +29,7 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultExecutio
  * a reference to the LLM provider registry for provider lookups.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @RequiredArgsConstructor

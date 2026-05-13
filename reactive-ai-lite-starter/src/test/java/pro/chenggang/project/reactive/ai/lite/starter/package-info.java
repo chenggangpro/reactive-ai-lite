@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  * @since 0.1.0
  */

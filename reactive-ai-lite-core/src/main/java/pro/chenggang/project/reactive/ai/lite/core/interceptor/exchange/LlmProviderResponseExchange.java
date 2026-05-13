@@ -25,7 +25,7 @@ import java.util.Optional;
  * to surface any errors or exceptions that may have occurred during the execution of the request.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderResponseExchange extends LlmProviderExchange {

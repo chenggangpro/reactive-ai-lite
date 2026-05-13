@@ -30,7 +30,7 @@ import reactor.core.publisher.Mono;
  * the response into a Plain Old Java Object (POJO) or a specific collection type.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface StructuredExecution extends LlmClientExecution {

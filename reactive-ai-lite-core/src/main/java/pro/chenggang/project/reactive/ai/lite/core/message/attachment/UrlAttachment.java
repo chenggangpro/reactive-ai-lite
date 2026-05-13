@@ -29,7 +29,7 @@ import org.springframework.util.MimeType;
  * underlying AI provider is responsible for fetching the resource from the URL.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder

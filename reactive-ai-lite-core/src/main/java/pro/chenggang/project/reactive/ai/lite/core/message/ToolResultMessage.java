@@ -15,6 +15,9 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.message;
 
+import lombok.NonNull;
+import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultToolResultMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultToolResultMessage.DefaultToolResultMessageBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 
 /**
@@ -26,7 +29,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Role;
  * the output with its request.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ToolResultMessage extends Message {
@@ -66,4 +69,15 @@ public interface ToolResultMessage extends Message {
      * @return the result content of the tool execution
      */
     String content();
+
+    /**
+     * Creates a new builder for constructing a {@link ToolResultMessage} with the specified tool call ID.
+     *
+     * @param toolCallId the unique identifier of the tool call that produced this result
+     * @return a new {@link DefaultToolResultMessageBuilder} instance
+     */
+    static DefaultToolResultMessageBuilder newToolResultMessage(@NonNull String toolCallId) {
+        return DefaultToolResultMessage.builder()
+                .toolCallId(toolCallId);
+    }
 }

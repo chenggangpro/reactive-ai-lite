@@ -25,7 +25,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
  * that might be streamed, such as text segments, tool call requests, or usage metrics.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface StreamDataChunk {

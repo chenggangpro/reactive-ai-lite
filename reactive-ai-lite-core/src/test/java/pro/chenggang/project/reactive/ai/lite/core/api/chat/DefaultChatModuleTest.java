@@ -15,21 +15,39 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.api.chat;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
+@ExtendWith(MockitoExtension.class)
 class DefaultChatModuleTest {
 
-    @Test
-    void testDefaultChatModule() {
-        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
-        DefaultChatModule module = new DefaultChatModule(registry);
+    @Mock
+    private LlmProviderRegistry registry;
 
+    private DefaultChatModule module;
+
+    @BeforeEach
+    void setUp() {
+        module = new DefaultChatModule(registry);
+    }
+
+    @Test
+    @DisplayName("Should return correct client type")
+    void testType() {
         assertThat(module.type()).isEqualTo(LlmClientType.CHAT);
+    }
+
+    @Test
+    @DisplayName("Should create new completion context spec")
+    void testNewCompletionContext() {
         assertThat(module.newCompletionContext()).isNotNull();
     }
 }

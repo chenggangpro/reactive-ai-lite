@@ -32,7 +32,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.chunk.UsageStreamData
  * corresponding Java representation (implementations of {@link StreamDataChunk}).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
  * or aggregate the streamed data as it arrives.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderStreamResponseExchange extends LlmProviderResponseExchange {

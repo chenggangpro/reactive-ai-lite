@@ -15,7 +15,6 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
@@ -24,83 +23,44 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Subscription;
 import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
-import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
-import reactor.util.context.Context;
 
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
 /**
- * A {@link BaseSubscriber} implementation that parses a stream of JSON string chunks from an AI model's response.
+ * A utility class that parses a stream of JSON string chunks from an AI model's response.
  * <p>
  * This class is responsible for transforming a raw {@code Flux<String>} into a structured {@code Flux<RawStreamResponse>}.
- * It handles backpressure, aggregates related message parts (like tool calls), determines the data type of each chunk,
- * and emits them as discrete {@link RawStreamResponse} objects.
+ * It aggregates related message parts (like tool calls), determines the data type of each chunk,
+ * and emits them as discrete {@link RawStreamResponse} objects using high-level non-blocking reactive operators.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j
-public class StreamResponseParser extends BaseSubscriber<String> {
+public class StreamResponseParser {
 
     protected static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
-    private final Deque<ObjectNode> toolCallData = new ConcurrentLinkedDeque<>();
-    private final AtomicReference<StreamDataType> currentDataType = new AtomicReference<>();
-    private final AtomicBoolean inParsing = new AtomicBoolean(false);
-    private final AtomicBoolean cancelSignal = new AtomicBoolean(false);
-    private final AtomicLong requestDataCount = new AtomicLong(0);
-    private final Object monitor = new Object();
 
-    private final ExecutionContextView executionContextView;
-    private final FluxSink<RawStreamResponse> sink;
-    private final Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser;
-    private final Function<List<ObjectNode>, ObjectNode> rawToolCallMerger;
-    private final Map<String, Object> parsingAttributes = new ConcurrentHashMap<>();
-
-    /**
-     * Constructs a new StreamResponseParser.
-     *
-     * @param executionContextView A view of the current execution context.
-     * @param sink                 The {@link FluxSink} to push parsed {@link RawStreamResponse} objects to.
-     * @param streamChunkParser    A function to parse stream chunks from a JSON object.
-     * @param rawToolCallMerger    A function to merge multiple tool call chunks into a single representative JSON object.
-     */
-    protected StreamResponseParser(@NonNull ExecutionContextView executionContextView,
-                                   @NonNull FluxSink<RawStreamResponse> sink,
-                                   @NonNull Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser,
-                                   @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
-        this.executionContextView = executionContextView;
-        this.sink = sink;
-        this.streamChunkParser = streamChunkParser;
-        this.rawToolCallMerger = rawToolCallMerger;
+    private StreamResponseParser() {
+        // Utility class
     }
 
     /**
      * A static factory method to create a {@link Flux} of {@link RawStreamResponse} from a raw stream of JSON strings.
-     * <p>
-     * It sets up the reactive pipeline by creating a {@link StreamResponseParser} and connecting it to the upstream
-     * and downstream fluxes.
-     * </p>
      *
      * @param executionContextView A view of the current execution context.
      * @param rawStreamResponse    The raw stream of JSON strings from the provider.
@@ -112,270 +72,80 @@ public class StreamResponseParser extends BaseSubscriber<String> {
                                                               @NonNull Flux<String> rawStreamResponse,
                                                               @NonNull Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser,
                                                               @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
-        return Flux.create(fluxSink -> {
-            StreamResponseParser streamResponseParser = new StreamResponseParser(executionContextView, fluxSink, streamChunkParser, rawToolCallMerger);
-            fluxSink.onRequest(streamResponseParser::onSinkRequestData);
-            fluxSink.onCancel(streamResponseParser::onSinkCancel);
-            fluxSink.onDispose(streamResponseParser::onSinkDispose);
-            rawStreamResponse.subscribe(streamResponseParser);
+        return Flux.defer(() -> {
+            Map<String, Object> parsingAttributes = new ConcurrentHashMap<>();
+            List<ObjectNode> toolCallData = new ArrayList<>();
+            StreamDataType[] currentDataType = new StreamDataType[1];
+            return rawStreamResponse
+                    .filter(StringUtils::hasText)
+                    .takeUntil(SSE_DONE_PREDICATE)
+                    .flatMapIterable(value -> {
+                        if (SSE_DONE_PREDICATE.test(value)) {
+                            return List.of();
+                        }
+                        try {
+                            JsonNode treeNode = OBJECT_MAPPER.readTree(value);
+                            if (Objects.isNull(treeNode) || treeNode.isMissingNode() || treeNode.isNull() || !treeNode.isObject()) {
+                                throw new IllegalStateException("Invalid JSON chunk in stream response: " + value);
+                            }
+                            ObjectNode objectNode = (ObjectNode) treeNode;
+                            JsonStreamChunkSlide[] slides = streamChunkParser.apply(JsonChunkParsingData.builder()
+                                    .data(objectNode)
+                                    .parsingAttributes(parsingAttributes)
+                                    .build());
+                            return List.of(slides);
+                        } catch (Exception e) {
+                            throw reactor.core.Exceptions.propagate(e);
+                        }
+                    })
+                    .concatMapIterable(slide -> {
+                        StreamDataType streamDataType = slide.getStreamDataType();
+                        if (StreamDataType.ROLE.equals(streamDataType)) {
+                            return List.of(slide);
+                        }
+                        List<JsonStreamChunkSlide> toEmit = new ArrayList<>();
+                        if (StreamDataType.TOOL_CALL.equals(currentDataType[0]) && !StreamDataType.TOOL_CALL.equals(streamDataType)) {
+                            if (!toolCallData.isEmpty()) {
+                                toEmit.add(JsonStreamChunkSlide.builder()
+                                        .streamDataType(StreamDataType.TOOL_CALL)
+                                        .dataContent(rawToolCallMerger.apply(new ArrayList<>(toolCallData)))
+                                        .build());
+                                toolCallData.clear();
+                            }
+                        }
+                        currentDataType[0] = streamDataType;
+                        if (StreamDataType.TOOL_CALL.equals(streamDataType)) {
+                            toolCallData.add(slide.getDataContent());
+                        } else {
+                            toEmit.add(slide);
+                        }
+                        return toEmit;
+                    })
+                    .concatWith(Flux.defer(() -> {
+                        // Flush remaining tool calls on complete
+                        if (!toolCallData.isEmpty()) {
+                            JsonStreamChunkSlide merged = JsonStreamChunkSlide.builder()
+                                    .streamDataType(StreamDataType.TOOL_CALL)
+                                    .dataContent(rawToolCallMerger.apply(new ArrayList<>(toolCallData)))
+                                    .build();
+                            toolCallData.clear();
+                            return Flux.just(merged);
+                        }
+                        return Flux.empty();
+                    }))
+                    .map(slide -> RawStreamResponse.builder()
+                            .contextView(executionContextView)
+                            .dataType(slide.getStreamDataType())
+                            .dataContent(slide.getDataContent())
+                            .build()
+                    );
         });
-    }
-
-    @Override
-    public Context currentContext() {
-        return Context.of(this.sink.contextView());
-    }
-
-    @Override
-    protected void hookOnSubscribe(Subscription subscription) {
-        if (log.isTraceEnabled()) {
-            log.trace("[RawStreamResponseFlux]Hook on subscribe triggered");
-        }
-        if (!this.sink.isCancelled() && this.sink.requestedFromDownstream() > 0) {
-            request(1);
-        }
-    }
-
-    @Override
-    protected void hookOnNext(String value) {
-        synchronized (monitor) {
-            while (inParsing.get()) {
-                try {
-                    monitor.wait();
-                } catch (InterruptedException e) {
-                    this.sink.error(e);
-                    Thread.currentThread().interrupt();
-                }
-            }
-            inParsing.set(true);
-        }
-        try {
-            if (cancelSignal.get()) {
-                log.trace("[RawStreamResponseFlux]Hook on next triggered and cancel signal is set");
-                return;
-            }
-            this.parsingRawStreamResponse(value);
-        } finally {
-            synchronized (monitor) {
-                inParsing.set(false);
-                monitor.notifyAll();
-            }
-        }
-    }
-
-    private void parsingRawStreamResponse(String value) {
-        if (!StringUtils.hasText(value)) {
-            this.requestNext();
-            return;
-        }
-        boolean isDone = SSE_DONE_PREDICATE.test(value);
-        if (isDone) {
-            this.requestNext();
-            return;
-        }
-        ObjectNode objectNode;
-        try {
-            JsonNode treeNode = OBJECT_MAPPER.readTree(value);
-            if (Objects.isNull(treeNode) || treeNode.isMissingNode() || treeNode.isNull() || !treeNode.isObject()) {
-                this.sink.error(new IllegalStateException("Invalid JSON chunk in stream response: " + value));
-                onSinkCancel();
-                return;
-            }
-            objectNode = (ObjectNode) treeNode;
-        } catch (JsonProcessingException e) {
-            this.sink.error(e);
-            onSinkCancel();
-            return;
-        }
-        JsonStreamChunkSlide[] jsonStreamChunkSlides;
-        try {
-            jsonStreamChunkSlides = streamChunkParser.apply(JsonChunkParsingData.builder()
-                    .data(objectNode)
-                    .parsingAttributes(this.parsingAttributes)
-                    .build()
-            );
-        } catch (Exception e) {
-            this.sink.error(e);
-            onSinkCancel();
-            return;
-        }
-        if (jsonStreamChunkSlides.length == 0) {
-            this.requestNext();
-            return;
-        }
-        int maxIndex = jsonStreamChunkSlides.length - 1;
-        for (int i = 0; i < jsonStreamChunkSlides.length; i++) {
-            JsonStreamChunkSlide jsonStreamChunkSlide = jsonStreamChunkSlides[i];
-            StreamDataType streamDataType = jsonStreamChunkSlide.getStreamDataType();
-            // if value is role content then request next without checking remain count
-            if (StreamDataType.ROLE.equals(streamDataType)) {
-                RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
-                        .contextView(this.executionContextView)
-                        .dataType(StreamDataType.ROLE)
-                        .dataContent(objectNode)
-                        .build();
-                this.sink.next(rawStreamResponse);
-                this.requestDataCount.decrementAndGet();
-                toolCallData.add(objectNode);
-                if (i == maxIndex) {
-                    request(1);
-                }
-                continue;
-            }
-            if (StreamDataType.TOOL_CALL.equals(currentDataType.get()) && !StreamDataType.TOOL_CALL.equals(streamDataType)) {
-                List<ObjectNode> rawToolCalls = new ArrayList<>();
-                while (!toolCallData.isEmpty()) {
-                    rawToolCalls.add(toolCallData.poll());
-                }
-                ObjectNode allToolCalls = rawToolCallMerger.apply(rawToolCalls);
-                RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
-                        .contextView(this.executionContextView)
-                        .dataType(StreamDataType.TOOL_CALL)
-                        .dataContent(allToolCalls)
-                        .build();
-                this.sink.next(rawStreamResponse);
-                this.requestDataCount.decrementAndGet();
-                if (i == maxIndex) {
-                    this.requestNext();
-                }
-            }
-            currentDataType.set(streamDataType);
-            // answer content or reasoning content
-            if (StreamDataType.ANSWER_CONTENT.equals(streamDataType) || StreamDataType.REASONING_CONTENT.equals(streamDataType)) {
-                RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
-                        .contextView(this.executionContextView)
-                        .dataType(streamDataType)
-                        .dataContent(objectNode)
-                        .build();
-                this.sink.next(rawStreamResponse);
-                this.requestDataCount.decrementAndGet();
-                if (i == maxIndex) {
-                    this.requestNext();
-                }
-                continue;
-            }
-            // tool call content
-            if (StreamDataType.TOOL_CALL.equals(streamDataType)) {
-                toolCallData.add(objectNode);
-                if (i == maxIndex) {
-                    request(1);
-                }
-                continue;
-            }
-            // others content
-            RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
-                    .contextView(this.executionContextView)
-                    .dataType(streamDataType)
-                    .dataContent(objectNode)
-                    .build();
-            this.sink.next(rawStreamResponse);
-            this.requestDataCount.decrementAndGet();
-            if (i == maxIndex) {
-                this.requestNext();
-            }
-        }
-    }
-
-    @Override
-    protected void hookOnComplete() {
-        if (log.isTraceEnabled()) {
-            log.trace("[RawStreamResponseFlux]Hook on complete triggered");
-        }
-        synchronized (monitor) {
-            while (inParsing.get()) {
-                try {
-                    monitor.wait();
-                } catch (InterruptedException e) {
-                    this.sink.error(e);
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
-        // if there is tool call content left
-        if (StreamDataType.TOOL_CALL.equals(currentDataType.get()) && !toolCallData.isEmpty()) {
-            List<ObjectNode> rawToolCalls = new ArrayList<>();
-            while (!toolCallData.isEmpty()) {
-                rawToolCalls.add(toolCallData.poll());
-            }
-            ObjectNode allToolCalls = rawToolCallMerger.apply(rawToolCalls);
-            RawStreamResponse rawStreamResponse = RawStreamResponse.builder()
-                    .contextView(this.executionContextView)
-                    .dataType(StreamDataType.TOOL_CALL)
-                    .dataContent(allToolCalls)
-                    .build();
-            this.sink.next(rawStreamResponse);
-            this.requestDataCount.decrementAndGet();
-        }
-        this.sink.complete();
-        this.cleanup();
-    }
-
-    @Override
-    protected void hookOnCancel() {
-        if (log.isTraceEnabled()) {
-            log.trace("[RawStreamResponseFlux]Hook on cancel triggered");
-        }
-        this.cancelSignal.set(true);
-        this.sink.complete();
-        this.cleanup();
-    }
-
-    @Override
-    protected void hookOnError(Throwable throwable) {
-        log.debug("Error occurred during processing: {}", throwable.getMessage());
-        this.cancelSignal.set(true);
-        this.sink.error(throwable);
-        this.cleanup();
-    }
-
-    private void onSinkRequestData(long ln) {
-        log.trace("Requesting {} data from downstream", ln);
-        requestDataCount.accumulateAndGet(ln, Long::sum);
-        if (requestDataCount.get() > 0 && !this.inParsing.get()) {
-            requestNext();
-        }
-    }
-
-    private void onSinkCancel() {
-        if (log.isTraceEnabled()) {
-            log.trace("[FluxSink]On sink cancel");
-        }
-        this.cancelSignal.set(true);
-        this.cleanup();
-        cancel();
-    }
-
-    private void onSinkDispose() {
-        if (log.isTraceEnabled()) {
-            log.trace("[FluxSink]On sink dispose");
-        }
-        this.cancelSignal.set(true);
-        this.inParsing.set(false);
-        cleanup();
-        dispose();
-    }
-
-    private void cleanup() {
-        if (!this.toolCallData.isEmpty()) {
-            this.toolCallData.clear();
-        }
-        if (!this.parsingAttributes.isEmpty()) {
-            this.parsingAttributes.clear();
-        }
-    }
-
-    private void requestNext() {
-        if (!this.sink.isCancelled()
-                && !this.cancelSignal.get()
-                && this.requestDataCount.get() > 0) {
-            request(1);
-        }
     }
 
     /**
      * Represents a parsed data containing JSON data.
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     @Builder
@@ -422,7 +192,7 @@ public class StreamResponseParser extends BaseSubscriber<String> {
     /**
      * Represents a single slide or fragment of parsed JSON stream data.
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     @Builder

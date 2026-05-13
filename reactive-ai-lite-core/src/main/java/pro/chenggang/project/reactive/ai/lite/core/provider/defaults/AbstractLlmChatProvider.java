@@ -30,12 +30,12 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.HttpHeaderTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
@@ -47,13 +47,13 @@ import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser.Jso
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType.CHAT;
@@ -68,7 +68,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType.C
  * provider implementations via abstract template methods.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j
@@ -163,30 +163,6 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     protected abstract Mono<GeneralResponse> extraGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse);
 
     /**
-     * Extracts a {@link StructuredResponse} from the raw provider response based on a class type.
-     *
-     * @param toolDefinitions the tools that were available during the request
-     * @param rawResponse     the raw response data
-     * @param resultType      the class type to deserialize into
-     * @param <R>             the target type
-     * @return a Mono emitting the {@link StructuredResponse}
-     */
-    protected abstract <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull Class<R> resultType);
-
-    /**
-     * Extracts a {@link StructuredResponse} from the raw provider response based on a parameterized type.
-     *
-     * @param toolDefinitions the tools that were available during the request
-     * @param rawResponse     the raw response data
-     * @param resultType      the parameterized type reference to deserialize into
-     * @param <R>             the target type
-     * @return a Mono emitting the {@link StructuredResponse}
-     */
-    protected abstract <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
-                                                                                        @NonNull RawResponse rawResponse,
-                                                                                        @NonNull ParameterizedTypeReference<R> resultType);
-
-    /**
      * Extracts a standardized {@link StreamResponse} from a raw stream chunk.
      *
      * @param toolDefinitions   the tools that were available during the request
@@ -210,7 +186,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      */
     @Override
     public Mono<GeneralResponse> executeGeneral(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestData(executionInfo, false, null, null)
+        return this.initializeLlmRequestData(executionInfo, false)
                 .flatMap(llmRequestData -> this.executeInternalRaw(llmRequestData)
                         .flatMap(rawResponse -> this.extraGeneralResponse(llmRequestData.getToolDefinitions(), rawResponse))
                 );
@@ -221,7 +197,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      */
     @Override
     public Mono<RawResponse> executeGeneralRaw(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestData(executionInfo, false, null, null)
+        return this.initializeLlmRequestData(executionInfo, false)
                 .flatMap(this::executeInternalRaw);
     }
 
@@ -230,7 +206,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      */
     @Override
     public Flux<StreamResponse> executeStream(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestData(executionInfo, true, null, null)
+        return this.initializeLlmRequestData(executionInfo, true)
                 .flatMapMany(llmRequestData -> {
                             return this.generateRawRequestBody(llmRequestData)
                                     .flatMapMany(requestBody -> {
@@ -262,7 +238,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      */
     @Override
     public Flux<RawStreamResponse> executeStreamRaw(@NonNull ExecutionInfo executionInfo) {
-        return this.initializeLlmRequestData(executionInfo, true, null, null)
+        return this.initializeLlmRequestData(executionInfo, true)
                 .flatMapMany(llmRequestData -> {
                             return this.generateRawRequestBody(llmRequestData)
                                     .flatMapMany(requestBody -> {
@@ -286,59 +262,6 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                     });
                         }
                 );
-    }
-
-    /**
-     * Executes a structured chat request using a class type.
-     */
-    @Override
-    public <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType) {
-        return this.initializeLlmRequestData(executionInfo, false, resultType, null)
-                .flatMap(llmRequestData -> {
-                            return this.executeInternalRaw(llmRequestData)
-                                    .flatMap(rawResponse -> this.extractStructuredResponseContent(llmRequestData.getToolDefinitions(), rawResponse, resultType));
-                        }
-                );
-    }
-
-    /**
-     * Executes a structured chat request using a parameterized type.
-     */
-    @Override
-    public <R> Mono<StructuredResponse<R>> executeStructured(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType) {
-        return this.initializeLlmRequestData(executionInfo, false, resultType.getType(), null)
-                .flatMap(llmRequestData -> {
-                            return this.executeInternalRaw(llmRequestData)
-                                    .flatMap(rawResponse -> this.extractStructuredResponseContent(llmRequestData.getToolDefinitions(), rawResponse, resultType));
-                        }
-                );
-    }
-
-    /**
-     * Executes a structured chat request using a JSON schema string, returning raw JSON output.
-     */
-    @Override
-    public Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull String responseJsonSchema) {
-        return this.initializeLlmRequestData(executionInfo, false, null, responseJsonSchema)
-                .flatMap(this::executeInternalRaw);
-    }
-
-    /**
-     * Executes a structured chat request using a class type, returning raw JSON output.
-     */
-    @Override
-    public <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull Class<R> resultType) {
-        return this.initializeLlmRequestData(executionInfo, false, resultType, null)
-                .flatMap(this::executeInternalRaw);
-    }
-
-    /**
-     * Executes a structured chat request using a parameterized type, returning raw JSON output.
-     */
-    @Override
-    public <R> Mono<RawResponse> executeStructuredRaw(@NonNull ExecutionInfo executionInfo, @NonNull ParameterizedTypeReference<R> resultType) {
-        return this.initializeLlmRequestData(executionInfo, false, resultType.getType(), null)
-                .flatMap(this::executeInternalRaw);
     }
 
     /**
@@ -372,11 +295,10 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     /**
      * Initializes the {@link LlmChatRequestData} from the given execution info.
      */
-    private Mono<LlmChatRequestData> initializeLlmRequestData(@NonNull ExecutionInfo executionInfo, boolean isStream, Type structuredOutputType, String responseJsonSchema) {
-        return Mono.fromCallable(() -> LlmChatRequestData.LlmChatRequestDataInitializer
-                .of(certificationMap, defaultCertification, llmProviderInfo, executionInfo, isStream, structuredOutputType, responseJsonSchema)
-                .initialize()
-        );
+    private Mono<LlmChatRequestData> initializeLlmRequestData(@NonNull ExecutionInfo executionInfo, boolean isStream) {
+        return LlmChatRequestData.LlmChatRequestDataInitializer
+                .of(certificationMap, defaultCertification, llmProviderInfo, executionInfo, isStream)
+                .initialize();
     }
 
     /**
@@ -486,8 +408,10 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     protected Mono<ObjectNode> generateRawRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
         return Mono.fromCallable(() -> {
             ObjectNode rawRequestBody = this.initializeRequestBody(llmChatRequestData);
-            llmChatRequestData.getRawRequestCustomizerConfigure()
-                    .accept(llmChatRequestData.getExecutionContextView(), rawRequestBody);
+            BiConsumer<ExecutionContextView, ObjectNode> customizer = llmChatRequestData.getRawRequestCustomizerConfigure();
+            if (Objects.nonNull(customizer)) {
+                customizer.accept(llmChatRequestData.getExecutionContextView(), rawRequestBody);
+            }
             return rawRequestBody;
         });
     }

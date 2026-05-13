@@ -29,7 +29,7 @@ import lombok.extern.jackson.Jacksonized;
  * serialization/deserialization.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Jacksonized

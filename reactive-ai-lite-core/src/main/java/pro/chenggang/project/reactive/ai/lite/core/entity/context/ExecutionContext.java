@@ -27,7 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribu
  * safely expose its data to configuration functions.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

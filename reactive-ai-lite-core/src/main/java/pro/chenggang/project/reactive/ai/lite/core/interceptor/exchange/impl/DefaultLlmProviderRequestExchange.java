@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProvi
  * and modify this {@code ObjectNode} before the HTTP request is executed.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @SuperBuilder

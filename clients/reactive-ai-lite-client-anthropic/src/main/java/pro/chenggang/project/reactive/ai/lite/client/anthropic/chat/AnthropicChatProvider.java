@@ -1,7 +1,20 @@
+/*
+ *    Copyright 2025-2026 the original author or authors.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *       https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 package pro.chenggang.project.reactive.ai.lite.client.anthropic.chat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,7 +22,6 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.util.MimeType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -40,7 +52,6 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
@@ -84,7 +95,7 @@ import java.util.stream.Stream;
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j
@@ -399,7 +410,8 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
         return Mono.fromCallable(rawResponse::getResponseBody)
                 .handle((rawResponseBody, syncSink) -> {
                     var generalResponseBuilder = GeneralResponse.builder()
-                            .contextView(rawResponse.getContextView());
+                            .contextView(rawResponse.getContextView())
+                            .rawResponseBody(rawResponseBody);
                     JsonNode contentArrayNode = rawResponseBody.at("/content");
                     if (contentArrayNode.isMissingNode() || !contentArrayNode.isArray()) {
                         log.error("Failed to extract response message from response body. Response body: {}", rawResponseBody.toPrettyString());
@@ -489,121 +501,6 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
                 .toolDefinition(toolDefinition)
                 .function(toolCallFunction)
                 .build();
-    }
-
-    @Override
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull Class<R> resultType) {
-        return this.extractStructuredResponseContentInternal(
-                toolDefinitions,
-                rawResponse,
-                content -> {
-                    try {
-                        return OBJECT_MAPPER.readValue(content, resultType);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-        );
-    }
-
-    @Override
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
-                                                                               @NonNull RawResponse rawResponse,
-                                                                               @NonNull ParameterizedTypeReference<R> resultType) {
-        return this.extractStructuredResponseContentInternal(toolDefinitions,
-                rawResponse,
-                content -> {
-                    try {
-                        return OBJECT_MAPPER.readValue(content, new TypeReference<R>() {
-                                    @Override
-                                    public java.lang.reflect.Type getType() {
-                                        return resultType.getType();
-                                    }
-                                }
-                        );
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-        );
-    }
-
-    protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContentInternal(@NonNull List<ToolDefinition> toolDefinitions,
-                                                                                       @NonNull RawResponse rawResponse,
-                                                                                       @NonNull java.util.function.Function<String, R> textValueConverter) {
-        return Mono.fromCallable(rawResponse::getResponseBody)
-                .handle((rawResponseBody, syncSink) -> {
-                    var structuredResponseBuilder = StructuredResponse.<R>builder()
-                            .contextView(rawResponse.getContextView());
-                    JsonNode contentArrayNode = rawResponseBody.at("/content");
-                    if (contentArrayNode.isMissingNode() || !contentArrayNode.isArray()) {
-                        log.error("Failed to extract response message from response body. Response body: {}", rawResponseBody.toPrettyString());
-                        syncSink.error(new ResponseMessageExtractFailedException(rawResponseBody));
-                        return;
-                    }
-                    String answerContent = null;
-                    String reasoningContent = null;
-                    String thinkingSignature = null;
-                    List<AssistantToolCall> assistantToolCallList = new ArrayList<>();
-                    Map<String, ToolDefinition> toolDefinitionMapByIdentifier = toolDefinitions.stream()
-                            .collect(Collectors.toMap(
-                                    ToolDefinition::name,
-                                    java.util.function.Function.identity(),
-                                    (o1, o2) -> o1,
-                                    HashMap::new
-                            ));
-                    int toolCallIndex = 0;
-                    for (JsonNode contentNode : contentArrayNode) {
-                        JsonNode contentTypeNode = contentNode.at("/type");
-                        if (!contentTypeNode.isMissingNode() && contentTypeNode.isTextual() && !contentTypeNode.isNull()) {
-                            String contentType = contentTypeNode.textValue();
-                            if (Objects.isNull(answerContent) && "text".equalsIgnoreCase(contentType)) {
-                                answerContent = contentNode.get("text").textValue();
-                            } else if (Objects.isNull(reasoningContent) && "thinking".equalsIgnoreCase(contentType)) {
-                                reasoningContent = contentNode.get("thinking").textValue();
-                                thinkingSignature = contentNode.get("signature").textValue();
-                            } else if ("tool_use".equalsIgnoreCase(contentType)) {
-                                AssistantToolCall assistantToolCall = parseToolCall(toolDefinitionMapByIdentifier, (ObjectNode) contentNode, toolCallIndex);
-                                assistantToolCallList.add(assistantToolCall);
-                                toolCallIndex++;
-                            }
-                        }
-                    }
-                    R structuredValue = null;
-                    try {
-                        structuredValue = textValueConverter.apply(answerContent);
-                    } catch (Exception e) {
-                        log.error("Failed to parse content : {}", answerContent, e);
-                        syncSink.error(e);
-                        return;
-                    }
-                    if (!assistantToolCallList.isEmpty()) {
-                        ToolCallMessage toolCallMessage = DefaultToolCallMessage.builder()
-                                .toolCalls(assistantToolCallList)
-                                .content(answerContent)
-                                .reasoningContent(reasoningContent)
-                                .build();
-                        if (StringUtils.hasText(thinkingSignature)) {
-                            toolCallMessage.getAttributes()
-                                    .put("signature", thinkingSignature);
-                        }
-                        StructuredResponse<R> structuredResponse = structuredResponseBuilder.assistantTextMessage(toolCallMessage)
-                                .build();
-                        syncSink.next(structuredResponse);
-                        return;
-                    }
-                    AssistantTextMessage assistantTextMessage = DefaultAssistantTextMessage.builder()
-                            .content(answerContent)
-                            .reasoningContent(reasoningContent)
-                            .build();
-                    if (StringUtils.hasText(thinkingSignature)) {
-                        assistantTextMessage.getAttributes()
-                                .put("signature", thinkingSignature);
-                    }
-                    StructuredResponse<R> structuredResponse = structuredResponseBuilder.assistantTextMessage(assistantTextMessage)
-                            .build();
-                    syncSink.next(structuredResponse);
-                });
     }
 
     @Override

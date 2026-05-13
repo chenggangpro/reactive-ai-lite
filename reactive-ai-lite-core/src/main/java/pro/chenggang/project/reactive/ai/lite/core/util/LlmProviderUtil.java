@@ -41,7 +41,7 @@ import java.util.Objects;
  * returned by AI provider APIs during reactive WebClient operations.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public abstract class LlmProviderUtil {

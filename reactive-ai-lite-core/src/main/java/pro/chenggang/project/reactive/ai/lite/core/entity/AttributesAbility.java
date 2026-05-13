@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * allowing implementations to maintain contextual information throughout their lifecycle.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface AttributesAbility {

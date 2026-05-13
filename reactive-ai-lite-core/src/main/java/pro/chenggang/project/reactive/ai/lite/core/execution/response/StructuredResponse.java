@@ -29,7 +29,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
  * </p>
  *
  * @param <T> the type of the deserialized structured content
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

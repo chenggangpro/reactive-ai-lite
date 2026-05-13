@@ -24,7 +24,7 @@ package pro.chenggang.project.reactive.ai.lite.core.certification;
  * actual authentication token (e.g., an API key).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface TokenCertification extends ProviderCertification {

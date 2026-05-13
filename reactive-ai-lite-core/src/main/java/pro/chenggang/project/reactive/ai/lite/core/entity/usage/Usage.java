@@ -32,7 +32,7 @@ import java.util.function.Function;
  * tokens. It also provides access to the raw usage data returned by the API.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface Usage {
@@ -114,7 +114,7 @@ public interface Usage {
      * other tokens. The total tokens are automatically calculated as the sum of these values.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     class UsageBuilder {

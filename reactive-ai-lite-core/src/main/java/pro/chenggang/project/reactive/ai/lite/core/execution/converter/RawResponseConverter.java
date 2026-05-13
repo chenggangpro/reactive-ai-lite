@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawRespons
  * </p>
  *
  * @param <RESPONSE> the target type of the converted response
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @FunctionalInterface

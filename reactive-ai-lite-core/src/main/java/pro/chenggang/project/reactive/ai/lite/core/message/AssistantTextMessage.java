@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.Role;
  * model's internal "thoughts").
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface AssistantTextMessage extends Message, AttributesAbility {

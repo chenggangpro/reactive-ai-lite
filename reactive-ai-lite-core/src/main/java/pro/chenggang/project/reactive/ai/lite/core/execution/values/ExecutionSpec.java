@@ -51,7 +51,7 @@ import java.util.function.Function;
  * {@link ExecutionContext} and {@link ExecutionInfo}.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

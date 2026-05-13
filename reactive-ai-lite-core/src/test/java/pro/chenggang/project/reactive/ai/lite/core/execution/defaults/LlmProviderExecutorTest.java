@@ -15,100 +15,100 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.defaults;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.function.BiFunction;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class LlmProviderExecutorTest {
 
+    @Mock
+    private LlmProviderRegistry registry;
+
+    @Mock
+    private ExecutionSpec spec;
+
+    @Mock
+    private ExecutionContext executionContext;
+
+    @Mock
+    private LlmChatProvider provider;
+
+    @Mock
+    private ExecutionInfo executionInfo;
+
+    private LlmProviderExecutor executor;
+
+    @BeforeEach
+    void setUp() {
+        executor = LlmProviderExecutor.builder()
+                .llmProviderRegistry(registry)
+                .executionSpec(spec)
+                .build();
+        when(executionContext.getContextView()).thenReturn(org.mockito.Mockito.mock(ExecutionContextView.class));
+    }
+
     @Test
+    @DisplayName("Should successfully execute chat operation")
     void testExecuteChat() {
-        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
-        ExecutionSpec spec = mock(ExecutionSpec.class);
+        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-
-        ExecutionContext executionContext = mock(ExecutionContext.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
-
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        when(registry.getDefaultProvider(any())).thenReturn(provider);
-
-        ExecutionInfo executionInfo = mock(ExecutionInfo.class);
+        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
 
-        LlmProviderExecutor executor = LlmProviderExecutor.builder()
-                .llmProviderRegistry(registry)
-                .executionSpec(spec)
-                .build();
-
-        BiFunction<LlmChatProvider, ExecutionInfo, String> execution = (p, info) -> "result";
-
-        String result = executor.executeChat(execution);
-        assertThat(result).isEqualTo("result");
-        verify(spec).newExecutionContext();
-        verify(spec).newExecutionInfo(executionContext);
+        Mono<String> result = executor.executeChat((p, info) -> Mono.just("result"));
+        
+        StepVerifier.create(result)
+                .expectNext("result")
+                .verifyComplete();
     }
 
     @Test
+    @DisplayName("Should correctly load default provider")
     void testLoadLlmProviderDefault() {
-        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
-        ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
+        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
 
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        when(registry.getDefaultProvider(any())).thenReturn(provider);
-
-        LlmProviderExecutor executor = LlmProviderExecutor.builder()
-                .llmProviderRegistry(registry)
-                .executionSpec(spec)
-                .build();
-
-        LlmChatProvider result = executor.loadLlmProvider(mock(ExecutionContext.class), LlmProviderRegistry::getChatProvider);
-        assertThat(result).isEqualTo(provider);
+        StepVerifier.create(executor.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider))
+                .expectNext(provider)
+                .verifyComplete();
     }
 
     @Test
+    @DisplayName("Should successfully execute streaming chat operation")
     void testExecuteStream() {
-        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
-        ExecutionSpec spec = mock(ExecutionSpec.class);
+        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-
-        ExecutionContext executionContext = mock(ExecutionContext.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
-
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        when(registry.getDefaultProvider(any())).thenReturn(provider);
-
-        ExecutionInfo executionInfo = mock(ExecutionInfo.class);
+        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
 
-        LlmProviderExecutor executor = LlmProviderExecutor.builder()
-                .llmProviderRegistry(registry)
-                .executionSpec(spec)
-                .build();
+        RawStreamResponse chunk = org.mockito.Mockito.mock(RawStreamResponse.class);
+        Flux<RawStreamResponse> executionFlux = Flux.just(chunk);
 
-        RawStreamResponse chunk = mock(RawStreamResponse.class);
-        reactor.core.publisher.Flux<RawStreamResponse> execution = reactor.core.publisher.Flux.just(chunk);
-
-        reactor.core.publisher.Flux<RawStreamResponse> result = executor.executeChat((p, info) -> execution);
+        Flux<RawStreamResponse> result = executor.executeChatFlux((p, info) -> executionFlux);
 
         StepVerifier.create(result)
                 .expectNext(chunk)
@@ -116,28 +116,15 @@ class LlmProviderExecutorTest {
     }
 
     @Test
+    @DisplayName("Should throw error when provider is not found")
     void testExecuteChatWithNoProviderFound() {
-        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
-        ExecutionSpec spec = mock(ExecutionSpec.class);
+        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
+        when(registry.getDefaultProvider(any())).thenReturn(Mono.error(new IllegalStateException("not found")));
 
-        ExecutionContext executionContext = mock(ExecutionContext.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
-
-        // Return null for default provider
-        when(registry.getDefaultProvider(any())).thenReturn(null);
-
-        ExecutionInfo executionInfo = mock(ExecutionInfo.class);
-        when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-
-        LlmProviderExecutor executor = LlmProviderExecutor.builder()
-                .llmProviderRegistry(registry)
-                .executionSpec(spec)
-                .build();
-
-        // This should throw NPE because llmProvider is null
-        assertThatThrownBy(() -> executor.executeChat((p, info) -> p.info()))
-                .isInstanceOf(NullPointerException.class);
+        StepVerifier.create(executor.executeChat((p, info) -> Mono.just("test")))
+                .expectError(IllegalStateException.class)
+                .verify();
     }
 }

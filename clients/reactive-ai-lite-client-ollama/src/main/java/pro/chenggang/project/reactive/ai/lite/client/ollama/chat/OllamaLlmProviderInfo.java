@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.AbstractLlm
  * name and other relevant information needed for Ollama integration.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @SuperBuilder

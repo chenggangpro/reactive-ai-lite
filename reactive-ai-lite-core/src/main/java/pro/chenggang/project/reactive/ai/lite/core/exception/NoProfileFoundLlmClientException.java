@@ -29,7 +29,7 @@ import java.io.Serial;
  * not exist in the provider's registered {@link pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification}s.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

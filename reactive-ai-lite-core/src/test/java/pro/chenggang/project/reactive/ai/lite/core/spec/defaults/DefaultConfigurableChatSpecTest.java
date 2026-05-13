@@ -90,7 +90,7 @@ class DefaultConfigurableChatSpecTest {
 
     @Test
     void testExecutionHandlers() {
-        spec.model(ctx -> "gpt-4");
+        spec.model("gpt-4");
 
         GeneralExecution general = spec.general();
         assertThat(general).isNotNull();
@@ -104,7 +104,7 @@ class DefaultConfigurableChatSpecTest {
 
     @Test
     void testAdditionalConfigurableMethods() {
-        spec.model(ctx -> "gpt-4")
+        spec.model("gpt-4")
                 .distinctToolCalls(true);
         assertThat(spec.isDistinctToolCalls()).isTrue();
 

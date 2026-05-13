@@ -37,7 +37,7 @@ import java.util.List;
  * support JSON serialization and deserialization.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Jacksonized

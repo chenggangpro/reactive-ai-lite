@@ -30,7 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
  * used when an AI provider expects the API key in the request URL rather than in an HTTP header.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder

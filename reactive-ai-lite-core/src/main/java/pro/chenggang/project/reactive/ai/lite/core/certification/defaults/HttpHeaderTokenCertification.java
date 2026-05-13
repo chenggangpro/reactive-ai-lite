@@ -33,7 +33,7 @@ import java.util.List;
  * (e.g., Anthropic's "x-api-key").
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Builder

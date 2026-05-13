@@ -31,7 +31,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
  * during the streaming process.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter

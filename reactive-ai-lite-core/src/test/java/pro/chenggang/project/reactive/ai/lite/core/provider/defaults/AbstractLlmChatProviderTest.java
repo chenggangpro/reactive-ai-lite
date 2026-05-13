@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Publisher;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
@@ -34,7 +33,6 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
@@ -103,18 +101,6 @@ class AbstractLlmChatProviderTest {
         }
 
         @Override
-        protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse, @NonNull Class<R> resultType) {
-            return Mono.empty();
-        }
-
-        @Override
-        protected <R> Mono<StructuredResponse<R>> extractStructuredResponseContent(@NonNull List<ToolDefinition> toolDefinitions,
-                                                                                   @NonNull RawResponse rawResponse,
-                                                                                   @NonNull ParameterizedTypeReference<R> resultType) {
-            return Mono.empty();
-        }
-
-        @Override
         protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
             return Mono.empty();
         }
@@ -161,6 +147,7 @@ class AbstractLlmChatProviderTest {
                 .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
+                .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
         ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
@@ -183,6 +170,7 @@ class AbstractLlmChatProviderTest {
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "non-existent")
+                .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
         StepVerifier.create(provider.executeGeneralRaw(executionInfo))
@@ -210,6 +198,7 @@ class AbstractLlmChatProviderTest {
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "bearer")
+                .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
         ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
@@ -240,6 +229,7 @@ class AbstractLlmChatProviderTest {
                 .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
+                .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
         RawStreamResponse chunk = mock(RawStreamResponse.class);
@@ -251,62 +241,13 @@ class AbstractLlmChatProviderTest {
     }
 
     @Test
-    void testExecuteStructuredWithClass() {
-        ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
-                .modelNameConfigure(ctx -> "test-model")
-                .defaultProfile(true)
-                .build();
-
-        ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
-        when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.just(responseBody));
-
-        StepVerifier.create(provider.executeStructured(executionInfo, String.class))
-                .verifyComplete();
-    }
-
-    @Test
-    void testExecuteStructuredWithParameterizedType() {
-        ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
-                .modelNameConfigure(ctx -> "test-model")
-                .defaultProfile(true)
-                .build();
-
-        ParameterizedTypeReference<List<String>> typeRef = new ParameterizedTypeReference<>() {};
-        ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
-        when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.just(responseBody));
-
-        StepVerifier.create(provider.executeStructured(executionInfo, typeRef))
-                .verifyComplete();
-    }
-
-    @Test
-    void testExecuteStructuredRawWithSchema() {
-        ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
-                .modelNameConfigure(ctx -> "test-model")
-                .defaultProfile(true)
-                .build();
-
-        ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
-        when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.just(responseBody));
-
-        StepVerifier.create(provider.executeStructuredRaw(executionInfo, "{}"))
-                .expectNextMatches(resp -> resp.getResponseBody().equals(responseBody))
-                .verifyComplete();
-    }
-
-    @Test
     void testExecuteStream() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
                 .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
+                .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
         RawStreamResponse chunk = mock(RawStreamResponse.class);
@@ -325,29 +266,13 @@ class AbstractLlmChatProviderTest {
     }
 
     @Test
-    void testExecuteStructuredParameterized() {
-        ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
-                .modelNameConfigure(ctx -> "test-model")
-                .defaultProfile(true)
-                .build();
-
-        ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
-        when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.just(responseBody));
-
-        provider.executeStructured(executionInfo, new ParameterizedTypeReference<List<String>>() {})
-                .as(StepVerifier::create)
-                .verifyComplete();
-    }
-
-    @Test
     void testExecuteInternalRawWithException() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
                 .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
+                .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
         when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.error(new RuntimeException("intercept error")));

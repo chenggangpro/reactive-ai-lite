@@ -33,7 +33,7 @@ import java.util.Objects;
  * when and how to use the tool.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ToolDefinition {
@@ -110,7 +110,7 @@ public interface ToolDefinition {
      * type from which the schema will be automatically generated.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      * @see ToolDefinition
      * @see DefaultToolDefinition
      */

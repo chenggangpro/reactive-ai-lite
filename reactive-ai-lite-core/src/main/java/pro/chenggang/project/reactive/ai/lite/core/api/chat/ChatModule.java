@@ -25,7 +25,7 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec;
  * including the ability to create new completion contexts for chat interactions.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ChatModule extends LlmModule {

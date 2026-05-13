@@ -33,7 +33,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Attachment
  * configured for Jackson JSON serialization/deserialization.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Jacksonized

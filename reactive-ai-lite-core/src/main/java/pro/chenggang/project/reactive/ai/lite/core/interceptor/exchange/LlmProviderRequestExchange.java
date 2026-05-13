@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * the payload.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderRequestExchange extends LlmProviderExchange {

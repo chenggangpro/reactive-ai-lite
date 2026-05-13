@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
  * response after it is received (e.g., logging the response, extracting metadata).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LLmProviderInterceptorRegistry {
@@ -84,7 +84,7 @@ public interface LLmProviderInterceptorRegistry {
      * A data container holding all necessary context and payload information for interceptors
      * to inspect or modify during an execution cycle.
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @Getter
     @Builder

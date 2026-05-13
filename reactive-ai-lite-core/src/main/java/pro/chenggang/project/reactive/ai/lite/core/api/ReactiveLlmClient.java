@@ -25,7 +25,7 @@ import pro.chenggang.project.reactive.ai.lite.core.api.chat.ChatModule;
  * specialized modules.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ReactiveLlmClient {

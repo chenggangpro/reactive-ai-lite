@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * Anthropic Messages API Request.
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @JsonInclude(Include.NON_NULL)

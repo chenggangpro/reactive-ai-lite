@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  * stage in configuring an AI interaction.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface ExecutionContextSpec {

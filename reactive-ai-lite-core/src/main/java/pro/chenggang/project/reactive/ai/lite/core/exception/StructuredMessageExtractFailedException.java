@@ -34,13 +34,13 @@ import java.io.Serial;
  * @version 0.1.0
  */
 @Getter
-public class ResponseMessageExtractFailedException extends LlmClientException {
+public class StructuredMessageExtractFailedException extends LlmClientException {
 
     /**
      * Unique serial version identifier.
      */
     @Serial
-    private static final long serialVersionUID = -1794912786778873701L;
+    private static final long serialVersionUID = 4660326358199943232L;
 
     /**
      * The raw JSON response body that failed to be parsed.
@@ -48,23 +48,32 @@ public class ResponseMessageExtractFailedException extends LlmClientException {
     private final ObjectNode responseBody;
 
     /**
+     * The raw JSON content that failed to be pared as structured result
+     */
+    private final String content;
+
+    /**
      * Constructs a new exception indicating a failure to extract the response message.
      *
      * @param responseBody the raw, unparseable JSON response body
+     * @param content      the raw content
      */
-    public ResponseMessageExtractFailedException(@NonNull ObjectNode responseBody) {
-        super("Failed to extract response message from response body. Response body: \n" + responseBody.toPrettyString());
+    public StructuredMessageExtractFailedException(@NonNull ObjectNode responseBody, String content) {
+        super("Failed to deserialize structured content: " + content + " . Response body: \n" + responseBody.toPrettyString());
         this.responseBody = responseBody;
+        this.content = content;
     }
 
     /**
      * Constructs a new exception with an underlying cause for the extraction failure.
      *
      * @param responseBody the raw, unparseable JSON response body
+     * @param content      the raw content
      * @param cause        the exception that triggered the failure (e.g., a JSON processing error)
      */
-    public ResponseMessageExtractFailedException(@NonNull ObjectNode responseBody, @NonNull Throwable cause) {
+    public StructuredMessageExtractFailedException(@NonNull ObjectNode responseBody, String content, @NonNull Throwable cause) {
         super("Failed to extract response message from response body. Response body: \n" + responseBody.toPrettyString(), cause);
         this.responseBody = responseBody;
+        this.content = content;
     }
 }

@@ -27,7 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.core.message.Message;
  * stored and transmitted (e.g., via URL or Base64 encoding).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface Attachment {

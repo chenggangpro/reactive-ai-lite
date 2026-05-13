@@ -25,7 +25,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpe
  * the root for the execution strategy hierarchy.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmClientExecution {

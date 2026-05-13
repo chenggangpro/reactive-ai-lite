@@ -29,7 +29,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
  * the client type, and metadata about the provider handling the request.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderExchange extends AttributesAbility {

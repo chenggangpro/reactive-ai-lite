@@ -28,7 +28,7 @@ import lombok.extern.jackson.Jacksonized;
 import java.util.List;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @JsonInclude(Include.NON_NULL)

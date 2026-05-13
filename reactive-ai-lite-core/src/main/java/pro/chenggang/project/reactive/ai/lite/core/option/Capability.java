@@ -23,7 +23,7 @@ package pro.chenggang.project.reactive.ai.lite.core.option;
  * capable of fulfilling specific requests.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public enum Capability {

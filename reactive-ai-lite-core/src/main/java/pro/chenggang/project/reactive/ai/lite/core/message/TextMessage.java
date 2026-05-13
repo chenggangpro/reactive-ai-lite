@@ -32,7 +32,7 @@ import java.util.Objects;
  * the specific sender in multi-user or multi-agent scenarios.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface TextMessage extends Message {
@@ -103,7 +103,7 @@ public interface TextMessage extends Message {
      * role, name, and content properties.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     class TextMessageBuilder {

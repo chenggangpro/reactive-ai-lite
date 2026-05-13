@@ -29,6 +29,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import pro.chenggang.project.reactive.ai.lite.client.openai.OpenaiLlmClientTestApplicationTests;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
+import pro.chenggang.project.reactive.ai.lite.core.message.TextMessage;
+import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.tool.DefaultToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import reactor.test.StepVerifier;
@@ -36,7 +38,7 @@ import reactor.test.StepVerifier;
 import java.util.List;
 
 /**
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
@@ -47,7 +49,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Autowired
     ReactiveLlmClient reactiveLlmClient;
 
-    String modelName = "gpt-oss-20b-MXFP4-Q8"; // using oMLX instead
+    String model = "Qwen3-30B-A3B-Thinking-2507-Claude-4.5-Sonnet-High-Reasoning-Distill-qx86x-hi-mlx";  // using oMLX instead
 
     @Test
     void testChatGeneralExecute() {
@@ -57,8 +59,16 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .historicalMessage(List.of(
+                        TextMessage.newTextMessage(Role.USER)
+                                .content("你能做什么")
+                                .build(),
+                        TextMessage.newTextMessage(Role.ASSISTANT)
+                                .content("我是一名运维工程师，负责保障系统和服务的正常运行。熟悉各种监控工具，能够高效地处理故障和进行系统优化。还懂得如何进行数据备份和恢复，以保证数据安全。")
+                                .build()
+                ))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .maxCompletionTokens(contextView -> 100)
                 .general()
@@ -83,8 +93,16 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProfile()
                 .chatSpec()
                 .includeUsage()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .historicalMessage(List.of(
+                        TextMessage.newTextMessage(Role.USER)
+                                .content("你能做什么")
+                                .build(),
+                        TextMessage.newTextMessage(Role.ASSISTANT)
+                                .content("我是一名运维工程师，负责保障系统和服务的正常运行。熟悉各种监控工具，能够高效地处理故障和进行系统优化。还懂得如何进行数据备份和恢复，以保证数据安全。")
+                                .build()
+                ))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .maxCompletionTokens(contextView -> 50)
                 .stream()
@@ -109,7 +127,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
                 .maxCompletionTokens(contextView -> 50)
@@ -134,7 +152,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
@@ -167,7 +185,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
@@ -200,7 +218,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
@@ -234,7 +252,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .defaultProvider()
                 .defaultProfile()
                 .chatSpec()
-                .model(contextView -> modelName)
+                .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(

@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamR
  * </p>
  *
  * @param <STREAM_RESPONSE> the target type of the converted stream response
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @FunctionalInterface

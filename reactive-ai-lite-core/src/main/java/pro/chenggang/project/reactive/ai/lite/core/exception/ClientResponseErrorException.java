@@ -29,7 +29,7 @@ import java.io.Serial;
  * to provide access to the raw HTTP status, headers, and body if needed.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public class ClientResponseErrorException extends LlmClientException {

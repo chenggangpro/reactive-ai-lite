@@ -51,7 +51,7 @@ import java.util.function.Function;
  * stream, or structured).
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter(AccessLevel.PROTECTED)
@@ -90,10 +90,10 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @param defaultExecutionContextSpec the preceding execution context specification
      * @param defaultProviderSpec         the preceding provider specification
      */
-    protected DefaultConfigurableChatSpec(@NonNull LlmClientType llmClientType,
-                                          @NonNull LlmProviderRegistry llmProviderRegistry,
-                                          @NonNull DefaultExecutionContextSpec defaultExecutionContextSpec,
-                                          @NonNull DefaultProviderSpec defaultProviderSpec) {
+    public DefaultConfigurableChatSpec(@NonNull LlmClientType llmClientType,
+                                       @NonNull LlmProviderRegistry llmProviderRegistry,
+                                       @NonNull DefaultExecutionContextSpec defaultExecutionContextSpec,
+                                       @NonNull DefaultProviderSpec defaultProviderSpec) {
         this.llmClientType = llmClientType;
         this.llmProviderRegistry = llmProviderRegistry;
         this.defaultExecutionContextSpec = defaultExecutionContextSpec;

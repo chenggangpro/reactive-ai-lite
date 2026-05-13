@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  * reaching the terminal operation.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface LlmProviderRequestInterceptorChain {

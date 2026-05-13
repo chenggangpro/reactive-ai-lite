@@ -34,7 +34,7 @@ import java.util.Objects;
  * multi-modal content, such as an image alongside a text prompt.
  * </p>
  *
- * @author Cheng Gang
+ * @author Gang Cheng
  * @version 0.1.0
  */
 public interface MediaMessage extends Message {
@@ -98,7 +98,7 @@ public interface MediaMessage extends Message {
      * including role, name, content, reasoning content, and attachments.
      * </p>
      *
-     * @author Cheng Gang
+     * @author Gang Cheng
      */
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     class MediaMessageBuilder {
