@@ -34,7 +34,7 @@ class DefaultToolResultMessageTest {
 
         assertThat(message.toolCallId()).isEqualTo(toolCallId);
         assertThat(message.content()).isEqualTo(content);
-        assertThat(message.getRole()).isEqualTo(Role.TOOL.name().toLowerCase());
+        assertThat(message.getRole()).isEqualTo(Role.TOOL.name().toUpperCase());
         assertThat(message.getActualType()).isEqualTo(DefaultToolResultMessage.class);
     }
 }

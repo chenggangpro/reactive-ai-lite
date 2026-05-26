@@ -26,7 +26,7 @@ class DefaultMediaMessageTest {
 
     @Test
     void testBuilderAndGetters() {
-        String role = Role.USER.name().toLowerCase();
+        String role = Role.USER.name().toUpperCase();
         String content = "Here is an image";
         String name = "test-user";
         String reasoningContent = "I'm looking at the image";
