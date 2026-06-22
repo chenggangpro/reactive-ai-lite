@@ -27,6 +27,7 @@ import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
@@ -79,24 +80,33 @@ public class StreamResponseParser {
             return rawStreamResponse
                     .filter(StringUtils::hasText)
                     .takeUntil(SSE_DONE_PREDICATE)
-                    .flatMapIterable(value -> {
-                        if (SSE_DONE_PREDICATE.test(value)) {
-                            return List.of();
-                        }
-                        try {
-                            JsonNode treeNode = OBJECT_MAPPER.readTree(value);
+                    .concatMap(value -> {
+                        return Flux.<JsonStreamChunkSlide>create(fluxSink -> {
+                            if (SSE_DONE_PREDICATE.test(value)) {
+                                fluxSink.complete();
+                                return;
+                            }
+                            JsonNode treeNode;
+                            try {
+                                treeNode = OBJECT_MAPPER.readTree(value);
+                            } catch (Exception e) {
+                                fluxSink.error(Exceptions.propagate(e));
+                                return;
+                            }
                             if (Objects.isNull(treeNode) || treeNode.isMissingNode() || treeNode.isNull() || !treeNode.isObject()) {
-                                throw new IllegalStateException("Invalid JSON chunk in stream response: " + value);
+                                fluxSink.error(new IllegalStateException("Invalid JSON chunk in stream response: " + value));
+                                return;
                             }
                             ObjectNode objectNode = (ObjectNode) treeNode;
                             JsonStreamChunkSlide[] slides = streamChunkParser.apply(JsonChunkParsingData.builder()
                                     .data(objectNode)
                                     .parsingAttributes(parsingAttributes)
                                     .build());
-                            return List.of(slides);
-                        } catch (Exception e) {
-                            throw reactor.core.Exceptions.propagate(e);
-                        }
+                            for (JsonStreamChunkSlide slide : slides) {
+                                fluxSink.next(slide);
+                            }
+                            fluxSink.complete();
+                        });
                     })
                     .concatMapIterable(slide -> {
                         StreamDataType streamDataType = slide.getStreamDataType();
