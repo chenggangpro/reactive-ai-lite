@@ -19,7 +19,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec;
@@ -27,7 +26,6 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.ProviderSpec;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * The default implementation of {@link ExecutionContextSpec}.
@@ -61,10 +59,10 @@ public class DefaultExecutionContextSpec implements ExecutionContextSpec {
     private Map<String, Object> parentAttributes;
 
     /**
-     * A consumer to perform custom configuration on the execution context.
+     * A merger to perform custom configuration on the execution context.
      */
     @Getter(AccessLevel.PROTECTED)
-    private Consumer<ExecutionContext> contextConfigure;
+    private ContextMerger contextConfigure;
 
     /**
      * Creates a new instance of {@link DefaultExecutionContextSpec}.
@@ -92,13 +90,13 @@ public class DefaultExecutionContextSpec implements ExecutionContextSpec {
     }
 
     /**
-     * Provides a consumer for custom configuration of the execution context.
+     * Provides a context merger for custom configuration of the execution context.
      *
-     * @param contextConfigure a {@link Consumer} for custom configuration
+     * @param contextConfigure a {@link ContextMerger} to merge attributes and customize the context
      * @return this instance for method chaining
      */
     @Override
-    public ExecutionContextSpec contextConfigure(@NonNull Consumer<ExecutionContext> contextConfigure) {
+    public ExecutionContextSpec contextConfigure(@NonNull ContextMerger contextConfigure) {
         this.contextConfigure = contextConfigure;
         return this;
     }

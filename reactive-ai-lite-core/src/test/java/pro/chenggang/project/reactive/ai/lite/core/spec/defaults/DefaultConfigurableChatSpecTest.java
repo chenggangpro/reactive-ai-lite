@@ -45,7 +45,7 @@ class DefaultConfigurableChatSpecTest {
         registry = mock(LlmProviderRegistry.class);
         contextSpec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
         providerSpec = DefaultProviderSpec.of(LlmClientType.CHAT, registry, contextSpec);
-        spec = new DefaultConfigurableChatSpec(LlmClientType.CHAT, registry, contextSpec, providerSpec);
+        spec = new DefaultConfigurableChatSpec(LlmClientType.CHAT, registry, providerSpec);
     }
 
     @Test

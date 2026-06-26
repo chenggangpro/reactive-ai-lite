@@ -40,6 +40,6 @@ public interface ChatModule extends LlmModule {
      *
      * @return a new {@link ExecutionContextSpec} instance configured for chat completion operations
      */
-    ExecutionContextSpec newCompletionContext();
+    ExecutionContextSpec newChat();
 
 }

@@ -40,6 +40,8 @@ import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Gang Cheng
@@ -58,7 +60,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatGeneralExecute() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -90,7 +92,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStreamExecuteRaw() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -123,7 +125,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStructuredExecuteRaw() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -134,7 +136,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                         + "示例：{\"min_range\": \"192.168.0.1\", \"max_range\": \"192.168.0.255\"}"
                 ))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
-                .maxCompletionTokens(contextView -> 1000)
+                .maxCompletionTokens(contextView -> 4000)
                 .structured()
                 .execute(new ParameterizedTypeReference<ResultClass>() {})
                 .as(StepVerifier::create)
@@ -151,7 +153,13 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatGeneralExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
+                .contextConfigure((executionContext, parentAttributes) -> {
+                    if (Objects.nonNull(parentAttributes) && !parentAttributes.isEmpty()) {
+                        executionContext.getAttributes().putAll(parentAttributes);
+                    }
+                    executionContext.getAttributes().put("sequence", 0);
+                })
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -206,7 +214,16 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                             })
                             .orElse(List.of());
                     return reactiveLlmClient.chat()
-                            .newCompletionContext()
+                            .newChat()
+                            .parentAttributes(generalResponse.getExecutionContext().getAttributes())
+                            .contextConfigure((executionContext, parentAttributes) -> {
+                                Map<String, Object> attributes = executionContext.getAttributes();
+                                if (Objects.nonNull(parentAttributes) && !parentAttributes.isEmpty()) {
+                                    attributes.putAll(parentAttributes);
+                                }
+                                int sequence = executionContext.getAttribute("sequence");
+                                attributes.put("sequence", ++sequence);
+                            })
                             .providerSpec()
                             .defaultProvider()
                             .defaultProfile()
@@ -239,7 +256,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatGeneralExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -272,7 +289,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStreamExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -306,7 +323,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStreamExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()

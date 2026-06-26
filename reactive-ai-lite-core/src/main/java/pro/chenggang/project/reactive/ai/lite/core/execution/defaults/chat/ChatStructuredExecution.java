@@ -16,7 +16,9 @@
 package pro.chenggang.project.reactive.ai.lite.core.execution.defaults.chat;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.exception.StructuredMessageExtractFailedException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.StructuredExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.defaults.LlmProviderExecutor;
@@ -42,6 +44,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
  * @author Gang Cheng
  * @version 0.1.0
  */
+@Slf4j
 public class ChatStructuredExecution implements StructuredExecution {
 
     /**
@@ -88,32 +91,36 @@ public class ChatStructuredExecution implements StructuredExecution {
      */
     @Override
     public <R> Mono<StructuredResponse<R>> execute(@NonNull Class<R> resultType) {
-        return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> {
-            String schema = JsonSchemaUtil.generateForType(resultType);
-            ExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                    .structuredOutputType(resultType)
-                    .responseJsonSchema(schema)
-                    .build();
-            return llmChatProvider.executeGeneral(modifiedInfo)
-                    .handle((generalResponse, sink) -> {
-                        String content = generalResponse.getAssistantTextMessage().getContent();
-                        R structuredContent;
-                        try {
-                            structuredContent = OBJECT_MAPPER.readValue(content, resultType);
-                        } catch (Exception e) {
-                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
-                            return;
-                        }
-                        StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
-                                .contextView(generalResponse.getContextView())
-                                .rawResponseBody(generalResponse.getRawResponseBody())
-                                .usage(generalResponse.getUsage())
-                                .assistantTextMessage(generalResponse.getAssistantTextMessage())
-                                .structuredContent(structuredContent)
-                                .build();
-                        sink.next(structuredResponse);
-                    });
-        });
+        return llmProviderExecutor.<StructuredResponse<R>>executeChat((llmChatProvider, executionInfo) -> {
+                    String schema = JsonSchemaUtil.generateForType(resultType);
+                    ExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                            .structuredOutputType(resultType)
+                            .responseJsonSchema(schema)
+                            .build();
+                    return llmChatProvider.executeGeneral(modifiedInfo)
+                            .handle((generalResponse, sink) -> {
+                                String content = generalResponse.getAssistantTextMessage().getContent();
+                                R structuredContent;
+                                try {
+                                    structuredContent = OBJECT_MAPPER.readValue(content, resultType);
+                                } catch (Exception e) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
+                                    return;
+                                }
+                                StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
+                                        .executionContext(generalResponse.getExecutionContext())
+                                        .rawResponseBody(generalResponse.getRawResponseBody())
+                                        .usage(generalResponse.getUsage())
+                                        .assistantTextMessage(generalResponse.getAssistantTextMessage())
+                                        .structuredContent(structuredContent)
+                                        .build();
+                                sink.next(structuredResponse);
+                            });
+                })
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
     /**
@@ -121,32 +128,36 @@ public class ChatStructuredExecution implements StructuredExecution {
      */
     @Override
     public <R> Mono<StructuredResponse<R>> execute(@NonNull ParameterizedTypeReference<R> resultType) {
-        return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> {
-            String schema = JsonSchemaUtil.generateForType(resultType.getType());
-            ExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                    .structuredOutputType(resultType.getType())
-                    .responseJsonSchema(schema)
-                    .build();
-            return llmChatProvider.executeGeneral(modifiedInfo)
-                    .handle((generalResponse, sink) -> {
-                        String content = generalResponse.getAssistantTextMessage().getContent();
-                        R structuredContent;
-                        try {
-                            structuredContent = OBJECT_MAPPER.readValue(content, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
-                        } catch (Exception e) {
-                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
-                            return;
-                        }
-                        StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
-                                .contextView(generalResponse.getContextView())
-                                .rawResponseBody(generalResponse.getRawResponseBody())
-                                .usage(generalResponse.getUsage())
-                                .assistantTextMessage(generalResponse.getAssistantTextMessage())
-                                .structuredContent(structuredContent)
-                                .build();
-                        sink.next(structuredResponse);
-                    });
-        });
+        return llmProviderExecutor.<StructuredResponse<R>>executeChat((llmChatProvider, executionInfo) -> {
+                    String schema = JsonSchemaUtil.generateForType(resultType.getType());
+                    ExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                            .structuredOutputType(resultType.getType())
+                            .responseJsonSchema(schema)
+                            .build();
+                    return llmChatProvider.executeGeneral(modifiedInfo)
+                            .handle((generalResponse, sink) -> {
+                                String content = generalResponse.getAssistantTextMessage().getContent();
+                                R structuredContent;
+                                try {
+                                    structuredContent = OBJECT_MAPPER.readValue(content, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
+                                } catch (Exception e) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
+                                    return;
+                                }
+                                StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
+                                        .executionContext(generalResponse.getExecutionContext())
+                                        .rawResponseBody(generalResponse.getRawResponseBody())
+                                        .usage(generalResponse.getUsage())
+                                        .assistantTextMessage(generalResponse.getAssistantTextMessage())
+                                        .structuredContent(structuredContent)
+                                        .build();
+                                sink.next(structuredResponse);
+                            });
+                })
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
     /**
@@ -155,11 +166,15 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public Mono<RawResponse> executeRaw(@NonNull String responseJsonSchema) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> {
-            ExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                    .responseJsonSchema(responseJsonSchema)
-                    .build();
-            return llmChatProvider.executeGeneralRaw(modifiedInfo);
-        });
+                    ExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                            .responseJsonSchema(responseJsonSchema)
+                            .build();
+                    return llmChatProvider.executeGeneralRaw(modifiedInfo);
+                })
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
     /**
@@ -168,13 +183,17 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public <R> Mono<RawResponse> executeRaw(@NonNull Class<R> resultType) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> {
-            String schema = JsonSchemaUtil.generateForType(resultType);
-            ExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                    .structuredOutputType(resultType)
-                    .responseJsonSchema(schema)
-                    .build();
-            return llmChatProvider.executeGeneralRaw(modifiedInfo);
-        });
+                    String schema = JsonSchemaUtil.generateForType(resultType);
+                    ExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                            .structuredOutputType(resultType)
+                            .responseJsonSchema(schema)
+                            .build();
+                    return llmChatProvider.executeGeneralRaw(modifiedInfo);
+                })
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
     /**
@@ -183,13 +202,17 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public <R> Mono<RawResponse> executeRaw(@NonNull ParameterizedTypeReference<R> resultType) {
         return llmProviderExecutor.executeChat((llmChatProvider, executionInfo) -> {
-            String schema = JsonSchemaUtil.generateForType(resultType.getType());
-            ExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                    .structuredOutputType(resultType.getType())
-                    .responseJsonSchema(schema)
-                    .build();
-            return llmChatProvider.executeGeneralRaw(modifiedInfo);
-        });
+                    String schema = JsonSchemaUtil.generateForType(resultType.getType());
+                    ExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                            .structuredOutputType(resultType.getType())
+                            .responseJsonSchema(schema)
+                            .build();
+                    return llmChatProvider.executeGeneralRaw(modifiedInfo);
+                })
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
 }

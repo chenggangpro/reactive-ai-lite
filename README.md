@@ -82,11 +82,13 @@ private ReactiveLlmClient llmClient;
 
 public Mono<String> askQuestion(String question) {
     return llmClient.chat()
-        .newCompletionContext()
-        .providerSpec().defaultProvider().defaultProfile()
+        .newChat()
+        .providerSpec()
+        .defaultProvider()
+        .defaultProfile()
         .chatSpec()
-            .model(ctx -> "gpt-4o")
-            .textMessage(ctx -> question)
+        .model(ctx -> "gpt-4o")
+        .textMessage(ctx -> question)
         .general()
         .execute()
         .map(response -> response.getTextContent());
@@ -100,11 +102,13 @@ Handle real-time tokens using the streaming execution mode:
 ```java
 public Flux<String> streamAnswer(String question) {
     return llmClient.chat()
-        .newCompletionContext()
-        .providerSpec().defaultProvider().defaultProfile()
+        .newChat()
+        .providerSpec()
+        .defaultProvider()
+        .defaultProfile()
         .chatSpec()
-            .model(ctx -> "gpt-4o")
-            .textMessage(ctx -> question)
+        .model(ctx -> "gpt-4o")
+        .textMessage(ctx -> question)
         .stream()
         .execute()
         .map(chunk -> chunk.getTextContent());

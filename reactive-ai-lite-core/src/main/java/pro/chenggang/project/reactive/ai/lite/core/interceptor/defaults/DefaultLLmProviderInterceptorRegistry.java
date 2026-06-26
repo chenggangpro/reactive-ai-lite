@@ -92,7 +92,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                         .clientType(resourceDataInfo.getClientType())
                                                                         .attributes(resourceData.getT2())
                                                                         .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                        .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                        .executionContext(resourceDataInfo.getExecutionContext())
                                                                         .rawRequestBody(resourceDataInfo.getRawRequestBody())
                                                                         .build();
                                                             })
@@ -109,7 +109,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                     .clientType(resourceDataInfo.getClientType())
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .executionContext(resourceDataInfo.getExecutionContext())
                                                                     .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_REQUEST_BODY_ATTRIBUTE_KEY))
                                                                     .build())
                                                             .flatMap(afterChain::next);
@@ -124,7 +124,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                     .clientType(resourceDataInfo.getClientType())
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .executionContext(resourceDataInfo.getExecutionContext())
                                                                     .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_REQUEST_BODY_ATTRIBUTE_KEY))
                                                                     .error(err)
                                                                     .build())
@@ -140,7 +140,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                     .clientType(resourceDataInfo.getClientType())
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .executionContext(resourceDataInfo.getExecutionContext())
                                                                     .build())
                                                             .flatMap(afterChain::next);
                                                 })
@@ -175,7 +175,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                         .clientType(resourceDataInfo.getClientType())
                                                                         .attributes(resourceData.getT2())
                                                                         .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                        .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                        .executionContext(resourceDataInfo.getExecutionContext())
                                                                         .rawRequestBody(resourceDataInfo.getRawRequestBody())
                                                                         .build();
                                                             })
@@ -189,7 +189,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                                     .clientType(resourceDataInfo.getClientType())
                                                                                     .attributes(resourceData.getT2())
                                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                                    .executionContext(resourceDataInfo.getExecutionContext())
                                                                                     .rawStreamResponse(rawStreamResponseFlux)
                                                                                     .build())
                                                                             .flatMap(afterChain::next);
@@ -209,7 +209,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                     .clientType(resourceDataInfo.getClientType())
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
-                                                                    .executionContextView(resourceDataInfo.getExecutionContextView())
+                                                                    .executionContext(resourceDataInfo.getExecutionContext())
                                                                     .error(err)
                                                                     .build())
                                                             .flatMap(afterChain::next);

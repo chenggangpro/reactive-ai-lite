@@ -46,8 +46,8 @@ class DefaultChatModuleTest {
     }
 
     @Test
-    @DisplayName("Should create new completion context spec")
-    void testNewCompletionContext() {
-        assertThat(module.newCompletionContext()).isNotNull();
+    @DisplayName("Should create new chat spec")
+    void testNewChat() {
+        assertThat(module.newChat()).isNotNull();
     }
 }

@@ -13,25 +13,30 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package pro.chenggang.project.reactive.ai.lite.core.execution.values;
+package pro.chenggang.project.reactive.ai.lite.core.exception;
 
-import org.junit.jupiter.api.Test;
+import lombok.Getter;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.io.Serial;
 
-class ExecutionSpecTest {
+/**
+ * Exception thrown when the required {@link ExecutionContext} is missing or lost
+ * during the reactive execution pipeline.
+ *
+ * @author Gang Cheng
+ * @version 0.1.0
+ */
+@Getter
+public class ExecutionContextLossException extends LlmClientException {
 
-    @Test
-    void testNewExecutionInfo() {
-        ExecutionSpec spec = ExecutionSpec.builder()
-                .llmClientType(LlmClientType.CHAT)
-                .modelNameConfigure(__ -> "gpt-4")
-                .build();
+    @Serial
+    private static final long serialVersionUID = -5817966634060158470L;
 
-        ExecutionContext context = ExecutionContext.newContext();
-        ExecutionInfo info = spec.newExecutionInfo(context);
-        assertThat(info.getModelNameConfigure()).isEqualTo(spec.getModelNameConfigure());
+    /**
+     * Constructs a new {@link ExecutionContextLossException} with a default error message.
+     */
+    public ExecutionContextLossException() {
+        super("Missing running execution context of type " + ExecutionContext.class.getName());
     }
 }

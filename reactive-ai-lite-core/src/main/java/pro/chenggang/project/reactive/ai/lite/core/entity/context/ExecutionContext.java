@@ -16,48 +16,51 @@
 package pro.chenggang.project.reactive.ai.lite.core.entity.context;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribute;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec.ContextMerger;
+import reactor.util.context.Context;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents the mutable execution context for reactive AI operations.
  * <p>
- * This class manages the execution state and parsingAttributes during the lifecycle of an AI request.
+ * This class manages the execution state and attributes during the lifecycle of an AI request.
  * It acts as a thread-safe container for storing contextual metadata and shared data across
- * interceptors and handlers. It also exposes a read-only {@link ExecutionContextView} to
- * safely expose its data to configuration functions.
+ * interceptors, providers, and execution engines.
+ * </p>
+ * <p>
+ * The execution context is typically bound to and propagated through the Reactor {@link Context}.
+ * It extends {@link AbstractAttribute} to provide a concurrent key-value store for arbitrary data,
+ * allowing modular components in the pipeline to exchange information dynamically.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see AbstractAttribute
+ * @see Context
  */
+@Slf4j
 @Getter
 public class ExecutionContext extends AbstractAttribute {
 
     /**
-     * A read-only view of the parsingAttributes contained within this execution context.
-     * <p>
-     * This view is used to safely expose the context data to dynamic configuration
-     * functions without allowing modification of the underlying state.
-     * </p>
-     */
-    private final ExecutionContextView contextView;
-
-    /**
      * Constructs a new {@link ExecutionContext}.
      * <p>
-     * It initializes the attribute map (inherited from {@link AbstractAttribute})
-     * and creates the corresponding read-only view.
+     * Initializes the thread-safe backing attribute map inherited from {@link AbstractAttribute}.
      * </p>
      */
     private ExecutionContext() {
-        this.contextView = new ExecutionContextView(this.getAttributes());
     }
 
     /**
      * Creates a new instance of an {@link ExecutionContext}.
      * <p>
      * This factory method is the primary way to instantiate a fresh execution context
-     * at the beginning of an AI operation.
+     * at the beginning of an AI request pipeline.
      * </p>
      *
      * @return a new, empty {@link ExecutionContext} instance
@@ -66,4 +69,38 @@ public class ExecutionContext extends AbstractAttribute {
         return new ExecutionContext();
     }
 
+    /**
+     * Initializes the {@link ExecutionContext} in the Reactor {@link Context} if it is not already present.
+     * <p>
+     * If an existing context is found, it will merge any parent attributes using the provided {@link ContextMerger}.
+     * Otherwise, a new execution context is created, parent attributes are merged, and it is stored in the Reactor context.
+     * </p>
+     *
+     * @param context          the current Reactor context
+     * @param parentAttributes the attributes from the parent context, can be null
+     * @param contextConfigure the merger logic to combine parent attributes and customize the context, can be null
+     * @return the Reactor context containing the initialized or existing {@link ExecutionContext}
+     */
+    public static Context initializeContextIfNecessary(Context context, Map<String, Object> parentAttributes, ContextMerger contextConfigure) {
+        Optional<ExecutionContext> optionalExecutionContext = context.getOrEmpty(ExecutionContext.class);
+        if (optionalExecutionContext.isPresent()) {
+            ExecutionContext executionContext = optionalExecutionContext.get();
+            if (Objects.nonNull(contextConfigure)) {
+                contextConfigure.merge(executionContext, parentAttributes);
+            }
+            log.debug("Existing execution context : {} and parent attributes size: {}", executionContext, Objects.nonNull(parentAttributes) ? parentAttributes.size() : 0);
+            return context;
+        }
+        ExecutionContext executionContext = ExecutionContext.newContext();
+        if (Objects.nonNull(contextConfigure)) {
+            contextConfigure.merge(executionContext, parentAttributes);
+        }
+        log.debug("Initial execution context: {}", executionContext);
+        return context.put(ExecutionContext.class, executionContext);
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "@" + Integer.toHexString(this.hashCode()) + " with " + this.getAttributes().size() + " attributes";
+    }
 }

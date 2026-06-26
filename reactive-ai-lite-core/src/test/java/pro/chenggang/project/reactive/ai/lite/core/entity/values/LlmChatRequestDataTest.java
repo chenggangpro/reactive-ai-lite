@@ -37,7 +37,6 @@ class LlmChatRequestDataTest {
     void testInitializer() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .build();
@@ -53,7 +52,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getModelName()).isEqualTo("gpt-4");
         assertThat(data.getTokenCertification()).hasValue(defaultCert);
@@ -63,7 +64,6 @@ class LlmChatRequestDataTest {
     void testInitializerWithProfileMissing() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "not-found")
@@ -80,7 +80,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        assertThatThrownBy(() -> initializer.initialize().block())
+        assertThatThrownBy(() -> initializer.initialize()
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                        .block())
                 .isInstanceOf(NoProfileFoundLlmClientException.class);
     }
 
@@ -88,7 +90,6 @@ class LlmChatRequestDataTest {
     void testInitializerFull() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ ->"gpt-4")
                 .defaultProfile(true)
                 .systemMessageConfigure(__ ->"system-msg")
@@ -114,7 +115,9 @@ class LlmChatRequestDataTest {
                 true
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getModelName()).isEqualTo("gpt-4");
         assertThat(data.getTokenCertification()).hasValue(defaultCert);
@@ -142,7 +145,6 @@ class LlmChatRequestDataTest {
         when(toolNoName.name()).thenReturn("");
 
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ ->"gpt-4")
                 .defaultProfile(true)
                 .toolsConfigure(__ ->List.of(tool1, toolDuplicate, toolNoName))
@@ -159,7 +161,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getToolDefinitions()).hasSize(1);
         assertThat(data.getToolDefinitions().get(0).name()).isEqualTo("tool1");
@@ -169,7 +173,6 @@ class LlmChatRequestDataTest {
     void testInitializerWithProfilePicker() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ ->"gpt-4")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "custom")
@@ -187,7 +190,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getTokenCertification()).hasValue(customCert);
     }
@@ -196,7 +201,6 @@ class LlmChatRequestDataTest {
     void testInitializerWithMinimalConfig() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .build();
@@ -212,7 +216,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getModelName()).isEqualTo("gpt-4");
     }
@@ -222,7 +228,6 @@ class LlmChatRequestDataTest {
         ExecutionContext executionContext = ExecutionContext.newContext();
         // ExecutionInfo with null configurators
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .build();
@@ -238,7 +243,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getTemperature()).isEmpty();
         assertThat(data.getTopP()).isEmpty();
@@ -249,7 +256,6 @@ class LlmChatRequestDataTest {
     void testInitializerWithHistoricalAndMediaMessages() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .historicalMessageConfigure(__ -> List.of(mock(pro.chenggang.project.reactive.ai.lite.core.message.Message.class)))
@@ -268,7 +274,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getHistoricalMessages()).hasSize(1);
         assertThat(data.getUserMediaMessage()).isPresent();
@@ -279,7 +287,6 @@ class LlmChatRequestDataTest {
     void testInitializerWithDefaultSystemMessage() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .defaultSystemMessageConfigure(ctx -> "default-system")
@@ -296,7 +303,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getSystemMessage().getContent()).isEqualTo("default-system");
     }
@@ -305,7 +314,6 @@ class LlmChatRequestDataTest {
     void testInitializerWithNullTools() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .toolsConfigure(__ -> Collections.emptyList())
@@ -323,7 +331,9 @@ class LlmChatRequestDataTest {
                 false
         );
 
-        LlmChatRequestData data = initializer.initialize().block();
+        LlmChatRequestData data = initializer.initialize()
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block();
         assertThat(data).isNotNull();
         assertThat(data.getToolDefinitions()).isEmpty();
         assertThat(data.getToolResultMessages()).isEmpty();

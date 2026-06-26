@@ -21,7 +21,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry.InterceptedDataInfo.InterceptedDataInfoBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
@@ -104,10 +104,10 @@ public interface LLmProviderInterceptorRegistry {
         private final LlmProviderInfo llmProviderInfo;
 
         /**
-         * A read-only view of the execution context, useful for passing correlation IDs or tracing data.
+         * The execution context, useful for passing correlation IDs or tracing data.
          */
         @NonNull
-        private final ExecutionContextView executionContextView;
+        private final ExecutionContext executionContext;
 
         /**
          * The raw JSON request body that will be sent to the provider.

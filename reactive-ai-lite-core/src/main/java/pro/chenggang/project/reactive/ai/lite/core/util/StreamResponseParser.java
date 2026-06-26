@@ -24,7 +24,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import reactor.core.Exceptions;
@@ -63,13 +63,13 @@ public class StreamResponseParser {
     /**
      * A static factory method to create a {@link Flux} of {@link RawStreamResponse} from a raw stream of JSON strings.
      *
-     * @param executionContextView A view of the current execution context.
+     * @param executionContext     The execution context that was used to generate this response.
      * @param rawStreamResponse    The raw stream of JSON strings from the provider.
      * @param streamChunkParser    A function to parse stream chunks from a JSON object.
      * @param rawToolCallMerger    A function to merge multiple tool call chunks into a single representative JSON object.
      * @return A new {@link Flux} that emits parsed {@link RawStreamResponse} objects.
      */
-    public static Flux<RawStreamResponse> parseStreamResponse(@NonNull ExecutionContextView executionContextView,
+    public static Flux<RawStreamResponse> parseStreamResponse(@NonNull ExecutionContext executionContext,
                                                               @NonNull Flux<String> rawStreamResponse,
                                                               @NonNull Function<JsonChunkParsingData, JsonStreamChunkSlide[]> streamChunkParser,
                                                               @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
@@ -144,7 +144,7 @@ public class StreamResponseParser {
                         return Flux.empty();
                     }))
                     .map(slide -> RawStreamResponse.builder()
-                            .contextView(executionContextView)
+                            .executionContext(executionContext)
                             .dataType(slide.getStreamDataType())
                             .dataContent(slide.getDataContent())
                             .build()

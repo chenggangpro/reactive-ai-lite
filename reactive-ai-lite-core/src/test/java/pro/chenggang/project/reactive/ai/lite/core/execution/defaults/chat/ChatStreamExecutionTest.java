@@ -22,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.StreamExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
@@ -65,7 +64,6 @@ class ChatStreamExecutionTest {
     void setUp() {
         lenient().when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         execution = ChatStreamExecution.of(registry, spec);
-        lenient().when(executionContext.getContextView()).thenReturn(org.mockito.Mockito.mock(ExecutionContextView.class));
     }
 
     @Test
@@ -78,7 +76,6 @@ class ChatStreamExecutionTest {
     @DisplayName("Should successfully execute stream")
     void testExecute() {
         StreamResponse response = mock(StreamResponse.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
@@ -93,7 +90,6 @@ class ChatStreamExecutionTest {
     @DisplayName("Should successfully execute raw stream")
     void testExecuteRaw() {
         RawStreamResponse response = mock(RawStreamResponse.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);

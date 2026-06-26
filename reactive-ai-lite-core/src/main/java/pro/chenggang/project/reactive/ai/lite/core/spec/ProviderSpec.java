@@ -16,7 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.spec;
 
 import lombok.NonNull;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 
 import java.util.Set;
@@ -60,7 +60,7 @@ public interface ProviderSpec {
      * @param providerFilter a {@link BiPredicate} to test each provider against the execution context
      * @return this {@link ProviderSpec} instance for method chaining
      */
-    ProviderSpec firstProvider(@NonNull BiPredicate<LlmProviderInfo, ExecutionContextView> providerFilter);
+    ProviderSpec firstProvider(@NonNull BiPredicate<LlmProviderInfo, ExecutionContext> providerFilter);
 
     /**
      * Selects the first available AI provider that matches the given predicate.
@@ -96,7 +96,7 @@ public interface ProviderSpec {
      * @param profilePicker a {@link BiFunction} that determines which profile to use
      * @return this {@link ProviderSpec} instance for method chaining
      */
-    ProviderSpec profile(@NonNull BiFunction<ExecutionContextView, Set<String>, String> profilePicker);
+    ProviderSpec profile(@NonNull BiFunction<ExecutionContext, Set<String>, String> profilePicker);
 
     /**
      * Selects a specific profile by its static name.
@@ -123,7 +123,7 @@ public interface ProviderSpec {
      * @param defaultSystemMessageProvider a {@link Function} that generates the system message string
      * @return this {@link ProviderSpec} instance for method chaining
      */
-    ProviderSpec defaultSystemMessage(@NonNull Function<ExecutionContextView, String> defaultSystemMessageProvider);
+    ProviderSpec defaultSystemMessage(@NonNull Function<ExecutionContext, String> defaultSystemMessageProvider);
 
     /**
      * Sets a static default system message for the chat conversation.

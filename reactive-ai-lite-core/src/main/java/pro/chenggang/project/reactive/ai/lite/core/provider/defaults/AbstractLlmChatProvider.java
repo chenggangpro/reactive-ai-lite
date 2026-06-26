@@ -30,7 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.HttpHeaderTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
@@ -213,19 +213,16 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                         return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                                                 .clientType(CHAT)
                                                 .llmProviderInfo(this.llmProviderInfo)
-                                                .executionContextView(llmRequestData.getExecutionContextView())
+                                                .executionContext(llmRequestData.getExecutionContext())
                                                 .rawRequestBody(requestBody)
                                                 .build()
                                                 .interceptStream(this.lLmProviderInterceptorRegistry,
-                                                        Flux.deferContextual(contextView -> {
-                                                            return StreamResponseParser.parseStreamResponse(
-                                                                            llmRequestData.getExecutionContextView(),
-                                                                            this.getRawStreamResponseFlux(llmRequestData, requestBody),
-                                                                            this::extractStreamChunks,
-                                                                            rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
-                                                                    )
-                                                                    .contextWrite(contextView);
-                                                        })
+                                                        StreamResponseParser.parseStreamResponse(
+                                                                llmRequestData.getExecutionContext(),
+                                                                this.getRawStreamResponseFlux(llmRequestData, requestBody),
+                                                                this::extractStreamChunks,
+                                                                rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
+                                                        )
                                                 );
                                     })
                                     .concatMap(rawStreamResponse -> this.extractStreamResponseContent(llmRequestData.getToolDefinitions(), rawStreamResponse));
@@ -245,19 +242,16 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                                         return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                                                 .clientType(CHAT)
                                                 .llmProviderInfo(this.llmProviderInfo)
-                                                .executionContextView(llmRequestData.getExecutionContextView())
+                                                .executionContext(llmRequestData.getExecutionContext())
                                                 .rawRequestBody(requestBody)
                                                 .build()
                                                 .interceptStream(this.lLmProviderInterceptorRegistry,
-                                                        Flux.deferContextual(contextView -> {
-                                                            return StreamResponseParser.parseStreamResponse(
-                                                                            llmRequestData.getExecutionContextView(),
-                                                                            this.getRawStreamResponseFlux(llmRequestData, requestBody),
-                                                                            this::extractStreamChunks,
-                                                                            rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
-                                                                    )
-                                                                    .contextWrite(contextView);
-                                                        })
+                                                        StreamResponseParser.parseStreamResponse(
+                                                                llmRequestData.getExecutionContext(),
+                                                                this.getRawStreamResponseFlux(llmRequestData, requestBody),
+                                                                this::extractStreamChunks,
+                                                                rawToolCallMessages -> this.mergeRawToolCallMessages(rawToolCallMessages, llmRequestData.isDistinctToolCalls())
+                                                        )
                                                 );
                                     });
                         }
@@ -276,7 +270,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                     return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                             .clientType(CHAT)
                             .llmProviderInfo(this.llmProviderInfo)
-                            .executionContextView(llmChatRequestData.getExecutionContextView())
+                            .executionContext(llmChatRequestData.getExecutionContext())
                             .rawRequestBody(requestBody)
                             .build()
                             .interceptGeneral(this.lLmProviderInterceptorRegistry,
@@ -286,7 +280,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                 })
                 .map(rawResponseBody -> {
                     return RawResponse.builder()
-                            .contextView(llmChatRequestData.getExecutionContextView())
+                            .executionContext(llmChatRequestData.getExecutionContext())
                             .responseBody(rawResponseBody)
                             .build();
                 });
@@ -408,9 +402,9 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     protected Mono<ObjectNode> generateRawRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
         return Mono.fromCallable(() -> {
             ObjectNode rawRequestBody = this.initializeRequestBody(llmChatRequestData);
-            BiConsumer<ExecutionContextView, ObjectNode> customizer = llmChatRequestData.getRawRequestCustomizerConfigure();
+            BiConsumer<ExecutionContext, ObjectNode> customizer = llmChatRequestData.getRawRequestCustomizerConfigure();
             if (Objects.nonNull(customizer)) {
-                customizer.accept(llmChatRequestData.getExecutionContextView(), rawRequestBody);
+                customizer.accept(llmChatRequestData.getExecutionContext(), rawRequestBody);
             }
             return rawRequestBody;
         });

@@ -17,7 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl;
 
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderExchange;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
@@ -28,8 +28,8 @@ import java.util.Map;
  * An abstract base implementation of the {@link LlmProviderExchange} interface.
  * <p>
  * This class provides the common data structure and accessor methods for all
- * interceptor exchange types. It stores the mutable parsingAttributes map, the read-only
- * execution context view, the client type, and the provider metadata. Subclasses
+ * interceptor exchange types. It stores the mutable parsingAttributes map, the
+ * execution context, the client type, and the provider metadata. Subclasses
  * (like request, general response, or stream response exchanges) extend this
  * to add phase-specific payload data.
  * </p>
@@ -59,10 +59,10 @@ public abstract class AbstractLlmProviderExchange implements LlmProviderExchange
     protected final LlmProviderInfo llmProviderInfo;
 
     /**
-     * A read-only view of the execution context.
+     * The execution context.
      */
     @NonNull
-    protected final ExecutionContextView executionContextView;
+    protected final ExecutionContext executionContext;
 
     /**
      * Retrieves the mutable parsingAttributes map.
@@ -75,13 +75,13 @@ public abstract class AbstractLlmProviderExchange implements LlmProviderExchange
     }
 
     /**
-     * Retrieves the read-only execution context view.
+     * Retrieves the execution context.
      *
-     * @return the execution context view
+     * @return the execution context
      */
     @Override
-    public ExecutionContextView contextView() {
-        return this.executionContextView;
+    public ExecutionContext executionContext() {
+        return this.executionContext;
     }
 
     /**

@@ -22,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.GeneralExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
@@ -64,7 +63,6 @@ class ChatGeneralExecutionTest {
     void setUp() {
         lenient().when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         execution = ChatGeneralExecution.of(registry, spec);
-        lenient().when(executionContext.getContextView()).thenReturn(org.mockito.Mockito.mock(ExecutionContextView.class));
     }
 
     @Test
@@ -77,7 +75,6 @@ class ChatGeneralExecutionTest {
     @DisplayName("Should successfully execute chat")
     void testExecute() {
         GeneralResponse response = mock(GeneralResponse.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
@@ -92,7 +89,6 @@ class ChatGeneralExecutionTest {
     @DisplayName("Should successfully execute raw chat")
     void testExecuteRaw() {
         RawResponse response = mock(RawResponse.class);
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);

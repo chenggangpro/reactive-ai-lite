@@ -18,7 +18,7 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry.InterceptedDataInfo;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
@@ -76,7 +76,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -113,7 +113,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -139,7 +139,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -165,7 +165,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -194,7 +194,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -224,7 +224,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -260,7 +260,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -290,7 +290,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -319,7 +319,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 
@@ -348,7 +348,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
                 .clientType(LlmClientType.CHAT)
                 .llmProviderInfo(mock(LlmProviderInfo.class))
-                .executionContextView(mock(ExecutionContextView.class))
+                .executionContext(mock(ExecutionContext.class))
                 .rawRequestBody(JsonNodeFactory.instance.objectNode())
                 .build();
 

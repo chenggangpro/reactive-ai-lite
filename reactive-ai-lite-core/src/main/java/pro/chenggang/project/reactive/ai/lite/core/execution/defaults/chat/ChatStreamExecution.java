@@ -16,6 +16,8 @@
 package pro.chenggang.project.reactive.ai.lite.core.execution.defaults.chat;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.StreamExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.defaults.LlmProviderExecutor;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
@@ -36,6 +38,7 @@ import reactor.core.publisher.Flux;
  * @author Gang Cheng
  * @version 0.1.0
  */
+@Slf4j
 public class ChatStreamExecution implements StreamExecution {
 
     /**
@@ -84,7 +87,11 @@ public class ChatStreamExecution implements StreamExecution {
      */
     @Override
     public Flux<StreamResponse> execute() {
-        return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStream);
+        return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStream)
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
     /**
@@ -94,7 +101,11 @@ public class ChatStreamExecution implements StreamExecution {
      */
     @Override
     public Flux<RawStreamResponse> executeRaw() {
-        return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStreamRaw);
+        return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStreamRaw)
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
 }

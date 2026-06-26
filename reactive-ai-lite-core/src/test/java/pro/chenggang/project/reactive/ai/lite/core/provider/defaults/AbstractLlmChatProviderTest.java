@@ -144,7 +144,6 @@ class AbstractLlmChatProviderTest {
     void testExecuteGeneralRaw() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
                 .toolsConfigure(__ -> Collections.emptyList())
@@ -153,7 +152,8 @@ class AbstractLlmChatProviderTest {
         ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
         when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.just(responseBody));
 
-        StepVerifier.create(provider.executeGeneralRaw(executionInfo))
+        StepVerifier.create(provider.executeGeneralRaw(executionInfo)
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectNextMatches(rawResponse -> {
                     assertThat(rawResponse.getResponseBody()).isEqualTo(responseBody);
                     return true;
@@ -166,14 +166,14 @@ class AbstractLlmChatProviderTest {
         // Use a profile that doesn't exist
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "non-existent")
                 .toolsConfigure(__ -> Collections.emptyList())
                 .build();
 
-        StepVerifier.create(provider.executeGeneralRaw(executionInfo))
+        StepVerifier.create(provider.executeGeneralRaw(executionInfo)
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectError(pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException.class)
                 .verify();
     }
@@ -194,7 +194,6 @@ class AbstractLlmChatProviderTest {
 
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "bearer")
@@ -204,7 +203,8 @@ class AbstractLlmChatProviderTest {
         ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
         when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.just(responseBody));
 
-        StepVerifier.create(bearerProvider.executeGeneralRaw(executionInfo))
+        StepVerifier.create(bearerProvider.executeGeneralRaw(executionInfo)
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectNextMatches(rawResponse -> {
                     assertThat(rawResponse.getResponseBody()).isEqualTo(responseBody);
                     return true;
@@ -226,7 +226,6 @@ class AbstractLlmChatProviderTest {
     void testExecuteStreamRaw() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
                 .toolsConfigure(__ -> Collections.emptyList())
@@ -235,7 +234,8 @@ class AbstractLlmChatProviderTest {
         RawStreamResponse chunk = mock(RawStreamResponse.class);
         when(interceptorRegistry.interceptStream(any(), any())).thenReturn(reactor.core.publisher.Flux.just(chunk));
 
-        StepVerifier.create(provider.executeStreamRaw(executionInfo))
+        StepVerifier.create(provider.executeStreamRaw(executionInfo)
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectNext(chunk)
                 .verifyComplete();
     }
@@ -244,7 +244,6 @@ class AbstractLlmChatProviderTest {
     void testExecuteStream() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
                 .toolsConfigure(__ -> Collections.emptyList())
@@ -253,7 +252,8 @@ class AbstractLlmChatProviderTest {
         RawStreamResponse chunk = mock(RawStreamResponse.class);
         when(interceptorRegistry.interceptStream(any(), any())).thenReturn(reactor.core.publisher.Flux.just(chunk));
 
-        StepVerifier.create(provider.executeStream(executionInfo))
+        StepVerifier.create(provider.executeStream(executionInfo)
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .verifyComplete();
     }
 
@@ -269,7 +269,6 @@ class AbstractLlmChatProviderTest {
     void testExecuteInternalRawWithException() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ExecutionInfo executionInfo = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(ctx -> "test-model")
                 .defaultProfile(true)
                 .toolsConfigure(__ -> Collections.emptyList())
@@ -277,7 +276,8 @@ class AbstractLlmChatProviderTest {
 
         when(interceptorRegistry.interceptGeneral(any(), any())).thenReturn(Mono.error(new RuntimeException("intercept error")));
 
-        StepVerifier.create(provider.executeGeneralRaw(executionInfo))
+        StepVerifier.create(provider.executeGeneralRaw(executionInfo)
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectError(RuntimeException.class)
                 .verify();
     }

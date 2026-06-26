@@ -24,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
@@ -65,13 +64,11 @@ class LlmProviderExecutorTest {
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-        when(executionContext.getContextView()).thenReturn(org.mockito.Mockito.mock(ExecutionContextView.class));
     }
 
     @Test
     @DisplayName("Should successfully execute chat operation")
     void testExecuteChat() {
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
@@ -79,7 +76,7 @@ class LlmProviderExecutorTest {
 
         Mono<String> result = executor.executeChat((p, info) -> Mono.just("result"));
         
-        StepVerifier.create(result)
+        StepVerifier.create(result.contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectNext("result")
                 .verifyComplete();
     }
@@ -99,7 +96,6 @@ class LlmProviderExecutorTest {
     @Test
     @DisplayName("Should successfully execute streaming chat operation")
     void testExecuteStream() {
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
@@ -110,7 +106,7 @@ class LlmProviderExecutorTest {
 
         Flux<RawStreamResponse> result = executor.executeChatFlux((p, info) -> executionFlux);
 
-        StepVerifier.create(result)
+        StepVerifier.create(result.contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectNext(chunk)
                 .verifyComplete();
     }
@@ -118,12 +114,12 @@ class LlmProviderExecutorTest {
     @Test
     @DisplayName("Should throw error when provider is not found")
     void testExecuteChatWithNoProviderFound() {
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.error(new IllegalStateException("not found")));
 
-        StepVerifier.create(executor.executeChat((p, info) -> Mono.just("test")))
+        StepVerifier.create(executor.executeChat((p, info) -> Mono.just("test"))
+                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
                 .expectError(IllegalStateException.class)
                 .verify();
     }

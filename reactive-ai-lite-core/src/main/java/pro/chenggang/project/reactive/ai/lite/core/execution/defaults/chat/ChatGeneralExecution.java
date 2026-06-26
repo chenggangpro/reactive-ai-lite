@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.execution.defaults.chat;
 
 import lombok.NonNull;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.GeneralExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.defaults.LlmProviderExecutor;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
@@ -84,7 +85,11 @@ public class ChatGeneralExecution implements GeneralExecution {
      */
     @Override
     public Mono<GeneralResponse> execute() {
-        return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneral);
+        return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneral)
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
     /**
@@ -94,7 +99,11 @@ public class ChatGeneralExecution implements GeneralExecution {
      */
     @Override
     public Mono<RawResponse> executeRaw() {
-        return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneralRaw);
+        return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneralRaw)
+                .contextWrite(context -> {
+                    ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
+                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                });
     }
 
 }

@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.GeneralExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.StreamExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.StructuredExecution;
@@ -62,24 +62,22 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
     @NonNull
     private final LlmProviderRegistry llmProviderRegistry;
     @NonNull
-    private final DefaultExecutionContextSpec defaultExecutionContextSpec;
-    @NonNull
     private final DefaultProviderSpec defaultProviderSpec;
 
-    private Function<ExecutionContextView, String> toolChoiceConfigure;
-    private Function<ExecutionContextView, String> modelNameConfigure;
-    private Function<ExecutionContextView, Double> temperatureConfigure;
-    private Function<ExecutionContextView, Double> topPConfigure;
-    private Function<ExecutionContextView, Boolean> includeUsageConfigure;
-    private Function<ExecutionContextView, String> reasoningConfigure;
-    private Function<ExecutionContextView, String> textMessageConfigure;
-    private Function<ExecutionContextView, MediaMessage> mediaMessageConfigure;
-    private Function<ExecutionContextView, String> systemMessageConfigure;
-    private Function<ExecutionContextView, List<Message>> historicalMessageConfigure;
-    private Function<ExecutionContextView, Integer> maxCompletionTokensConfigure;
-    private Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
-    private Function<ExecutionContextView, Collection<ToolResultMessage>> toolsResultMessageConfigure;
-    private BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure;
+    private Function<ExecutionContext, String> toolChoiceConfigure;
+    private Function<ExecutionContext, String> modelNameConfigure;
+    private Function<ExecutionContext, Double> temperatureConfigure;
+    private Function<ExecutionContext, Double> topPConfigure;
+    private Function<ExecutionContext, Boolean> includeUsageConfigure;
+    private Function<ExecutionContext, String> reasoningConfigure;
+    private Function<ExecutionContext, String> textMessageConfigure;
+    private Function<ExecutionContext, MediaMessage> mediaMessageConfigure;
+    private Function<ExecutionContext, String> systemMessageConfigure;
+    private Function<ExecutionContext, List<Message>> historicalMessageConfigure;
+    private Function<ExecutionContext, Integer> maxCompletionTokensConfigure;
+    private Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure;
+    private Function<ExecutionContext, Collection<ToolResultMessage>> toolsResultMessageConfigure;
+    private BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure;
     private boolean distinctToolCalls;
 
     /**
@@ -87,16 +85,13 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      *
      * @param llmClientType               the type of client
      * @param llmProviderRegistry         the registry for looking up providers
-     * @param defaultExecutionContextSpec the preceding execution context specification
      * @param defaultProviderSpec         the preceding provider specification
      */
     public DefaultConfigurableChatSpec(@NonNull LlmClientType llmClientType,
                                        @NonNull LlmProviderRegistry llmProviderRegistry,
-                                       @NonNull DefaultExecutionContextSpec defaultExecutionContextSpec,
                                        @NonNull DefaultProviderSpec defaultProviderSpec) {
         this.llmClientType = llmClientType;
         this.llmProviderRegistry = llmProviderRegistry;
-        this.defaultExecutionContextSpec = defaultExecutionContextSpec;
         this.defaultProviderSpec = defaultProviderSpec;
     }
 
@@ -107,7 +102,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec model(@NonNull Function<ExecutionContextView, String> modelNameConfigure) {
+    public ConfigurableChatSpec model(@NonNull Function<ExecutionContext, String> modelNameConfigure) {
         this.modelNameConfigure = modelNameConfigure;
         return this;
     }
@@ -119,7 +114,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec temperature(@NonNull Function<ExecutionContextView, Double> temperatureConfigure) {
+    public ConfigurableChatSpec temperature(@NonNull Function<ExecutionContext, Double> temperatureConfigure) {
         this.temperatureConfigure = temperatureConfigure;
         return this;
     }
@@ -131,7 +126,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec topP(@NonNull Function<ExecutionContextView, Double> topPConfigure) {
+    public ConfigurableChatSpec topP(@NonNull Function<ExecutionContext, Double> topPConfigure) {
         this.topPConfigure = topPConfigure;
         return this;
     }
@@ -143,7 +138,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContextView, Boolean> includeUsageConfigure) {
+    public ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContext, Boolean> includeUsageConfigure) {
         this.includeUsageConfigure = includeUsageConfigure;
         return this;
     }
@@ -155,7 +150,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContextView, String> reasoningConfigure) {
+    public ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContext, String> reasoningConfigure) {
         this.reasoningConfigure = reasoningConfigure;
         return this;
     }
@@ -167,7 +162,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec textMessage(@NonNull Function<ExecutionContextView, String> textMessageConfigure) {
+    public ConfigurableChatSpec textMessage(@NonNull Function<ExecutionContext, String> textMessageConfigure) {
         this.textMessageConfigure = textMessageConfigure;
         return this;
     }
@@ -179,7 +174,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec mediaMessage(@NonNull Function<ExecutionContextView, MediaMessage> mediaMessageConfigure) {
+    public ConfigurableChatSpec mediaMessage(@NonNull Function<ExecutionContext, MediaMessage> mediaMessageConfigure) {
         this.mediaMessageConfigure = mediaMessageConfigure;
         return this;
     }
@@ -191,7 +186,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec systemMessage(@NonNull Function<ExecutionContextView, String> systemMessageConfigure) {
+    public ConfigurableChatSpec systemMessage(@NonNull Function<ExecutionContext, String> systemMessageConfigure) {
         this.systemMessageConfigure = systemMessageConfigure;
         return this;
     }
@@ -203,7 +198,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec historicalMessage(@NonNull Function<ExecutionContextView, List<Message>> historicalMessageConfigure) {
+    public ConfigurableChatSpec historicalMessage(@NonNull Function<ExecutionContext, List<Message>> historicalMessageConfigure) {
         this.historicalMessageConfigure = historicalMessageConfigure;
         return this;
     }
@@ -215,7 +210,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec maxCompletionTokens(@NonNull Function<ExecutionContextView, Integer> maxCompletionTokensConfigure) {
+    public ConfigurableChatSpec maxCompletionTokens(@NonNull Function<ExecutionContext, Integer> maxCompletionTokensConfigure) {
         this.maxCompletionTokensConfigure = maxCompletionTokensConfigure;
         return this;
     }
@@ -227,7 +222,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec tools(@NonNull Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure) {
+    public ConfigurableChatSpec tools(@NonNull Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure) {
         this.toolsConfigure = toolsConfigure;
         return this;
     }
@@ -251,7 +246,7 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec toolChoice(@NonNull Function<ExecutionContextView, String> toolChoiceConfigure) {
+    public ConfigurableChatSpec toolChoice(@NonNull Function<ExecutionContext, String> toolChoiceConfigure) {
         this.toolChoiceConfigure = toolChoiceConfigure;
         return this;
     }
@@ -263,13 +258,13 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ConfigurableChatSpec toolsResponse(@NonNull Function<ExecutionContextView, Collection<ToolResultMessage>> toolsResultMessageConfigure) {
+    public ConfigurableChatSpec toolsResponse(@NonNull Function<ExecutionContext, Collection<ToolResultMessage>> toolsResultMessageConfigure) {
         this.toolsResultMessageConfigure = toolsResultMessageConfigure;
         return this;
     }
 
     @Override
-    public ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure) {
+    public ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure) {
         this.rawRequestCustomizerConfigure = rawRequestCustomizerConfigure;
         return this;
     }
@@ -318,8 +313,8 @@ public class DefaultConfigurableChatSpec implements ConfigurableChatSpec {
             builder.rawRequestCustomizerConfigure(this.rawRequestCustomizerConfigure);
         }
         return builder.llmClientType(llmClientType)
-                .parentAttributes(defaultExecutionContextSpec.getParentAttributes())
-                .contextConfigure(defaultExecutionContextSpec.getContextConfigure())
+                .parentAttributes(defaultProviderSpec.getParentAttributes())
+                .contextConfigure(defaultProviderSpec.getContextConfigure())
                 .defaultProvider(defaultProviderSpec.isDefaultProvider())
                 .providerFilter(defaultProviderSpec.getProviderFilter())
                 .defaultProfile(defaultProviderSpec.isDefaultProfile())

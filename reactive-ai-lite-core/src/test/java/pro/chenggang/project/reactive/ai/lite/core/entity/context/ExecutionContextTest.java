@@ -26,13 +26,12 @@ class ExecutionContextTest {
         ExecutionContext context = ExecutionContext.newContext();
         assertThat(context).isNotNull();
         assertThat(context.getAttributes()).isNotNull();
-        assertThat(context.getContextView()).isNotNull();
     }
 
     @Test
     void testAttributesMutation() {
         ExecutionContext context = ExecutionContext.newContext();
         context.getAttributes().put("key", "value");
-        assertThat(context.getContextView().getAttributes()).containsEntry("key", "value");
+        assertThat(context.getAttributes()).containsEntry("key", "value");
     }
 }

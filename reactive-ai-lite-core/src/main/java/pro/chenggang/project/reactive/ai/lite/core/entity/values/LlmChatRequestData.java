@@ -24,7 +24,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
+import pro.chenggang.project.reactive.ai.lite.core.exception.ExecutionContextLossException;
 import pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
@@ -64,11 +65,11 @@ import java.util.function.Function;
 public class LlmChatRequestData {
 
     /**
-     * A read-only view of the execution context.
+     * The execution context.
      */
     @Getter
     @NonNull
-    private final ExecutionContextView executionContextView;
+    private final ExecutionContext executionContext;
 
     /**
      * The authentication certification required for the provider API.
@@ -171,7 +172,7 @@ public class LlmChatRequestData {
      * A customizer for the raw request object node.
      */
     @Getter
-    private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure;
+    private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure;
 
     /**
      * Gets the token certification as an Optional.
@@ -333,29 +334,35 @@ public class LlmChatRequestData {
          * @return a populated {@link LlmChatRequestData} instance
          */
         public Mono<LlmChatRequestData> initialize() {
-            return Mono.fromCallable(() -> LlmChatRequestData.builder()
-                    .modelName(this.loadModelName(executionInfo))
-                    .tokenCertification(this.loadTokenCertification(executionInfo))
-                    .executionContextView(executionInfo.getExecutionContext().getContextView())
-                    .systemMessage(this.loadSystemMessage(executionInfo))
-                    .userTextMessage(this.loadUserMessage(executionInfo))
-                    .userMediaMessage(this.loadMediaMessage(executionInfo))
-                    .historicalMessages(this.loadHistoricalMessage(executionInfo))
-                    .temperature(this.loadTemperature(executionInfo))
-                    .topP(this.loadTopP(executionInfo))
-                    .includeUsage(this.loadIncludeUsage(executionInfo))
-                    .reasoning(this.loadReasoning(executionInfo))
-                    .maxCompletionTokens(this.loadMaxCompletionTokens(executionInfo))
-                    .toolDefinitions(this.loadToolDefinitions(executionInfo))
-                    .toolResultMessages(this.loadToolResultMessage(executionInfo))
-                    .isStream(isStream)
-                    .distinctToolCalls(executionInfo.isDistinctToolCalls())
-                    .toolChoice(this.loadToolChoice(executionInfo))
-                    .structuredOutputType(executionInfo.getStructuredOutputType())
-                    .responseJsonSchema(executionInfo.getResponseJsonSchema())
-                    .rawRequestCustomizerConfigure(executionInfo.getRawRequestCustomizerConfigure())
-                    .build()
-            );
+            return Mono.deferContextual(contextView -> Mono.justOrEmpty(contextView.getOrEmpty(ExecutionContext.class))
+                            .ofType(ExecutionContext.class)
+                            .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
+                    )
+                    .flatMap(executionContext -> {
+                        return Mono.fromCallable(() -> LlmChatRequestData.builder()
+                                .executionContext(executionContext)
+                                .modelName(this.loadModelName(executionInfo, executionContext))
+                                .tokenCertification(this.loadTokenCertification(executionInfo, executionContext))
+                                .systemMessage(this.loadSystemMessage(executionInfo, executionContext))
+                                .userTextMessage(this.loadUserMessage(executionInfo, executionContext))
+                                .userMediaMessage(this.loadMediaMessage(executionInfo, executionContext))
+                                .historicalMessages(this.loadHistoricalMessage(executionInfo, executionContext))
+                                .temperature(this.loadTemperature(executionInfo, executionContext))
+                                .topP(this.loadTopP(executionInfo, executionContext))
+                                .includeUsage(this.loadIncludeUsage(executionInfo, executionContext))
+                                .reasoning(this.loadReasoning(executionInfo, executionContext))
+                                .maxCompletionTokens(this.loadMaxCompletionTokens(executionInfo, executionContext))
+                                .toolDefinitions(this.loadToolDefinitions(executionInfo, executionContext))
+                                .toolResultMessages(this.loadToolResultMessage(executionInfo, executionContext))
+                                .isStream(isStream)
+                                .distinctToolCalls(executionInfo.isDistinctToolCalls())
+                                .toolChoice(this.loadToolChoice(executionInfo, executionContext))
+                                .structuredOutputType(executionInfo.getStructuredOutputType())
+                                .responseJsonSchema(executionInfo.getResponseJsonSchema())
+                                .rawRequestCustomizerConfigure(executionInfo.getRawRequestCustomizerConfigure())
+                                .build()
+                        );
+                    });
         }
 
         /**
@@ -365,16 +372,15 @@ public class LlmChatRequestData {
          * @return the resolved {@link TokenCertification}
          * @throws NoProfileFoundLlmClientException if a valid profile cannot be determined
          */
-        protected TokenCertification loadTokenCertification(@NonNull ExecutionInfo executionInfo) {
+        protected TokenCertification loadTokenCertification(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
             if (executionInfo.isDefaultProfile()) {
                 return this.defaultCertification;
             }
-            ExecutionContextView executionContextView = executionInfo.getExecutionContext().getContextView();
-            BiFunction<ExecutionContextView, Set<String>, String> profilePicker = executionInfo.getProfilePicker();
+            BiFunction<ExecutionContext, Set<String>, String> profilePicker = executionInfo.getProfilePicker();
             if (Objects.isNull(profilePicker)) {
                 throw new NoProfileFoundLlmClientException(this.llmProviderInfo);
             }
-            String pickedProfile = profilePicker.apply(executionContextView, this.llmProviderInfo.profiles());
+            String pickedProfile = profilePicker.apply(executionContext, this.llmProviderInfo.profiles());
             if (Objects.isNull(pickedProfile) || !this.certificationMap.containsKey(pickedProfile)) {
                 throw new NoProfileFoundLlmClientException(this.llmProviderInfo, pickedProfile);
             }
@@ -388,8 +394,8 @@ public class LlmChatRequestData {
          * @return the model name
          * @throws IllegalArgumentException if the model name is empty or null
          */
-        protected String loadModelName(@NonNull ExecutionInfo executionInfo) {
-            String modelName = executionInfo.getModelNameConfigure().apply(executionInfo.getExecutionContext().getContextView());
+        protected String loadModelName(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            String modelName = executionInfo.getModelNameConfigure().apply(executionContext);
             if (!StringUtils.hasText(modelName)) {
                 throw new IllegalArgumentException("Model name cannot be null or empty");
             }
@@ -402,14 +408,14 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info containing system message configurations
          * @return the configured system message
          */
-        protected TextMessage loadSystemMessage(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, String> defaultSystemMessageConfigure = executionInfo.getDefaultSystemMessageConfigure();
-            Function<ExecutionContextView, String> systemMessageConfigure = executionInfo.getSystemMessageConfigure();
+        protected TextMessage loadSystemMessage(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, String> defaultSystemMessageConfigure = executionInfo.getDefaultSystemMessageConfigure();
+            Function<ExecutionContext, String> systemMessageConfigure = executionInfo.getSystemMessageConfigure();
             String systemMessage = "";
             if (Objects.nonNull(systemMessageConfigure)) {
-                systemMessage = systemMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                systemMessage = systemMessageConfigure.apply(executionContext);
             } else if (Objects.nonNull(defaultSystemMessageConfigure)) {
-                systemMessage = defaultSystemMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                systemMessage = defaultSystemMessageConfigure.apply(executionContext);
             }
             return TextMessage.newTextMessage(Role.SYSTEM)
                     .content(systemMessage)
@@ -422,12 +428,12 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info containing historical messages configurations
          * @return the historical messages, or an empty list if none
          */
-        protected List<Message> loadHistoricalMessage(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, List<Message>> historicalMessageConfigure = executionInfo.getHistoricalMessageConfigure();
+        protected List<Message> loadHistoricalMessage(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, List<Message>> historicalMessageConfigure = executionInfo.getHistoricalMessageConfigure();
             if (Objects.isNull(historicalMessageConfigure)) {
                 return List.of();
             }
-            return historicalMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+            return historicalMessageConfigure.apply(executionContext);
         }
 
         /**
@@ -436,11 +442,11 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info containing the text message configuration
          * @return the user's text message
          */
-        protected TextMessage loadUserMessage(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, String> textMessageConfigure = executionInfo.getTextMessageConfigure();
+        protected TextMessage loadUserMessage(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, String> textMessageConfigure = executionInfo.getTextMessageConfigure();
             String userMessage = "";
             if (Objects.nonNull(textMessageConfigure)) {
-                userMessage = textMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                userMessage = textMessageConfigure.apply(executionContext);
             }
             return TextMessage.newTextMessage(Role.USER)
                     .content(userMessage)
@@ -453,11 +459,11 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info containing the media message configuration
          * @return the media message, or null if none
          */
-        protected MediaMessage loadMediaMessage(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, MediaMessage> mediaMessageConfigure = executionInfo.getMediaMessageConfigure();
+        protected MediaMessage loadMediaMessage(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, MediaMessage> mediaMessageConfigure = executionInfo.getMediaMessageConfigure();
             MediaMessage mediaMessage = null;
             if (Objects.nonNull(mediaMessageConfigure)) {
-                mediaMessage = mediaMessageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                mediaMessage = mediaMessageConfigure.apply(executionContext);
             }
             return mediaMessage;
         }
@@ -468,11 +474,11 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return the temperature, or null if not configured
          */
-        protected Double loadTemperature(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, Double> temperatureConfigure = executionInfo.getTemperatureConfigure();
+        protected Double loadTemperature(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, Double> temperatureConfigure = executionInfo.getTemperatureConfigure();
             Double temperature = null;
             if (Objects.nonNull(temperatureConfigure)) {
-                temperature = temperatureConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                temperature = temperatureConfigure.apply(executionContext);
             }
             return temperature;
         }
@@ -483,11 +489,11 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return the Top-P value, or null if not configured
          */
-        protected Double loadTopP(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, Double> topPConfigure = executionInfo.getTopPConfigure();
+        protected Double loadTopP(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, Double> topPConfigure = executionInfo.getTopPConfigure();
             Double topP = null;
             if (Objects.nonNull(topPConfigure)) {
-                topP = topPConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                topP = topPConfigure.apply(executionContext);
             }
             return topP;
         }
@@ -498,12 +504,12 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return true if usage should be included, false otherwise
          */
-        protected boolean loadIncludeUsage(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, Boolean> includeUsageConfigure = executionInfo.getIncludeUsageConfigure();
+        protected boolean loadIncludeUsage(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, Boolean> includeUsageConfigure = executionInfo.getIncludeUsageConfigure();
             if (Objects.isNull(includeUsageConfigure)) {
                 return false;
             }
-            Boolean includeUsage = includeUsageConfigure.apply(executionInfo.getExecutionContext().getContextView());
+            Boolean includeUsage = includeUsageConfigure.apply(executionContext);
             return Boolean.TRUE.equals(includeUsage);
         }
 
@@ -513,12 +519,12 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return the reasoning instructions, or null if not configured
          */
-        protected String loadReasoning(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, String> reasoningConfigure = executionInfo.getReasoningConfigure();
+        protected String loadReasoning(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, String> reasoningConfigure = executionInfo.getReasoningConfigure();
             if (Objects.isNull(reasoningConfigure)) {
                 return null;
             }
-            return reasoningConfigure.apply(executionInfo.getExecutionContext().getContextView());
+            return reasoningConfigure.apply(executionContext);
         }
 
         /**
@@ -527,11 +533,11 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return the max tokens, or null if not configured
          */
-        protected Integer loadMaxCompletionTokens(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, Integer> maxCompletionTokensConfigure = executionInfo.getMaxCompletionTokensConfigure();
+        protected Integer loadMaxCompletionTokens(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, Integer> maxCompletionTokensConfigure = executionInfo.getMaxCompletionTokensConfigure();
             Integer maxCompletionTokens = null;
             if (Objects.nonNull(maxCompletionTokensConfigure)) {
-                maxCompletionTokens = maxCompletionTokensConfigure.apply(executionInfo.getExecutionContext().getContextView());
+                maxCompletionTokens = maxCompletionTokensConfigure.apply(executionContext);
             }
             return maxCompletionTokens;
         }
@@ -545,12 +551,12 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return a list of valid tool definitions
          */
-        protected List<ToolDefinition> loadToolDefinitions(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure = executionInfo.getToolsConfigure();
+        protected List<ToolDefinition> loadToolDefinitions(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure = executionInfo.getToolsConfigure();
             if (Objects.isNull(toolsConfigure)) {
                 return List.of();
             }
-            Collection<ToolDefinition> toolDefinitions = toolsConfigure.apply(executionInfo.getExecutionContext().getContextView());
+            Collection<ToolDefinition> toolDefinitions = toolsConfigure.apply(executionContext);
             if (Objects.isNull(toolDefinitions) || toolDefinitions.isEmpty()) {
                 return List.of();
             }
@@ -580,12 +586,12 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return the tool choice string, or null if not configured
          */
-        protected String loadToolChoice(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, String> toolChoiceConfigure = executionInfo.getToolChoiceConfigure();
+        protected String loadToolChoice(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, String> toolChoiceConfigure = executionInfo.getToolChoiceConfigure();
             if (Objects.isNull(toolChoiceConfigure)) {
                 return null;
             }
-            return toolChoiceConfigure.apply(executionInfo.getExecutionContext().getContextView());
+            return toolChoiceConfigure.apply(executionContext);
         }
 
         /**
@@ -594,12 +600,12 @@ public class LlmChatRequestData {
          * @param executionInfo the execution info
          * @return a list of tool result messages
          */
-        protected List<ToolResultMessage> loadToolResultMessage(@NonNull ExecutionInfo executionInfo) {
-            Function<ExecutionContextView, Collection<ToolResultMessage>> toolsConfigure = executionInfo.getToolResultMessageConfigure();
+        protected List<ToolResultMessage> loadToolResultMessage(@NonNull ExecutionInfo executionInfo, @NonNull ExecutionContext executionContext) {
+            Function<ExecutionContext, Collection<ToolResultMessage>> toolsConfigure = executionInfo.getToolResultMessageConfigure();
             if (Objects.isNull(toolsConfigure)) {
                 return List.of();
             }
-            Collection<ToolResultMessage> toolCallResponses = toolsConfigure.apply(executionInfo.getExecutionContext().getContextView());
+            Collection<ToolResultMessage> toolCallResponses = toolsConfigure.apply(executionContext);
             if (Objects.isNull(toolCallResponses) || toolCallResponses.isEmpty()) {
                 return List.of();
             }

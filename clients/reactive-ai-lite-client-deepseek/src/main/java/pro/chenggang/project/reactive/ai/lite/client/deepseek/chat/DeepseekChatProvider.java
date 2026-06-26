@@ -37,7 +37,6 @@ import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.ResponseFormat
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.dto.ResponseFormat.Type;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.UriTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.entity.usage.Usage;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmChatRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.exception.ResponseMessageExtractFailedException;
@@ -327,7 +326,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
         return Mono.fromCallable(rawResponse::getResponseBody)
                 .handle((rawResponseBody, syncSink) -> {
                     var generalResponseBuilder = GeneralResponse.builder()
-                            .contextView(rawResponse.getContextView())
+                            .executionContext(rawResponse.getExecutionContext())
                             .rawResponseBody(rawResponseBody);
                     JsonNode messageNode = rawResponseBody.at("/choices/0/message");
                     if (messageNode.isMissingNode() || !messageNode.isObject()) {
@@ -426,14 +425,13 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
     protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
         StreamDataType streamDataType = rawStreamResponse.getDataType();
         ObjectNode dataContent = rawStreamResponse.getDataContent();
-        ExecutionContextView contextView = rawStreamResponse.getContextView();
         if (StreamDataType.UNKNOWN.equals(streamDataType)) {
             return Mono.fromCallable(() -> {
                 RawStreamDataChunk rawStreamDataChunk = RawStreamDataChunk.builder()
                         .value(dataContent)
                         .build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(rawStreamDataChunk)
                         .build();
             });
@@ -448,7 +446,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                 }
                 TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(textStreamDataChunk)
                         .build();
             });
@@ -463,7 +461,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                 }
                 TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(textStreamDataChunk)
                         .build();
             });
@@ -478,7 +476,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                 }
                 TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(textStreamDataChunk)
                         .build();
             });
@@ -493,7 +491,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                 }
                 ToolCallStreamDataChunk callStreamDataChunk = chunkBuilder.build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(callStreamDataChunk)
                         .build();
             });
@@ -512,7 +510,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                 }
                 UsageStreamDataChunk usageStreamDataChunk = chunkBuilder.build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(usageStreamDataChunk)
                         .build();
             });
@@ -527,7 +525,7 @@ public class DeepseekChatProvider extends AbstractLlmChatProvider {
                 }
                 TextStreamDataChunk textStreamDataChunk = chunkBuilder.build();
                 return StreamResponse.builder()
-                        .contextView(contextView)
+                        .executionContext(rawStreamResponse.getExecutionContext())
                         .dataChunk(textStreamDataChunk)
                         .build();
             });

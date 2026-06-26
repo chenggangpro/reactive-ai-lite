@@ -17,7 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.util;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import reactor.core.publisher.Flux;
@@ -26,14 +26,12 @@ import reactor.test.StepVerifier;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.mockito.Mockito.mock;
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
 class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponse() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"text\": \"Hello\"}", "{\"text\": \" World\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -45,7 +43,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
@@ -55,7 +53,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithDone() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"text\": \"Hello\"}", "[DONE]");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -67,7 +64,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
@@ -76,13 +73,12 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseInvalidJson() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("invalid json");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[0];
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectError()
@@ -91,7 +87,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithRole() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"role\": \"assistant\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -103,7 +98,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ROLE)
@@ -112,7 +107,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithToolCall() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"tool\": \"part1\"}", "{\"tool\": \"part2\"}", "{\"text\": \"end\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> {
@@ -140,7 +134,7 @@ class StreamResponseParserTest {
             return merged;
         };
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.TOOL_CALL && resp.getDataContent().has("merged"))
@@ -150,7 +144,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithToolCallAtEnd() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"tool\": \"part1\"}", "{\"tool\": \"part2\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -166,7 +159,7 @@ class StreamResponseParserTest {
             return merged;
         };
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.TOOL_CALL && resp.getDataContent().has("merged"))
@@ -175,7 +168,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithUsage() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"usage\": {}}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -187,7 +179,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.USAGE)
@@ -196,7 +188,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithMultipleChunks() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"data\": \"multiple\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -212,7 +203,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ROLE)
@@ -222,13 +213,12 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseEmptyJson() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[0];
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .verifyComplete();
@@ -236,7 +226,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseWithReasoning() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"reasoning\": \"thinking\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -248,7 +237,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.REASONING_CONTENT)
@@ -257,7 +246,6 @@ class StreamResponseParserTest {
 
     @Test
     void testParseStreamResponseDataTransition() {
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
         Flux<String> rawStream = Flux.just("{\"data\": \"transition\"}");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
@@ -269,7 +257,7 @@ class StreamResponseParserTest {
 
         Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(contextView, rawStream, parser, merger);
+        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
 
         StepVerifier.create(parsedStream)
                 .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ROLE)

@@ -18,13 +18,15 @@ package pro.chenggang.project.reactive.ai.lite.core.spec.defaults;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec.ContextMerger;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ProviderSpec;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -54,9 +56,16 @@ public class DefaultProviderSpec implements ProviderSpec {
     private final LlmProviderRegistry llmProviderRegistry;
 
     /**
-     * The execution context specification that preceded this provider configuration.
+     * Attributes inherited from a parent execution context, if any.
      */
-    private final DefaultExecutionContextSpec defaultExecutionContextSpec;
+    @Getter(AccessLevel.PROTECTED)
+    private final Map<String, Object> parentAttributes;
+
+    /**
+     * A consumer to perform custom configuration on the execution context.
+     */
+    @Getter(AccessLevel.PROTECTED)
+    private final ContextMerger contextConfigure;
 
     /**
      * Flag indicating whether to use the default provider.
@@ -74,19 +83,19 @@ public class DefaultProviderSpec implements ProviderSpec {
      * The predicate used to dynamically select a provider based on its info and context.
      */
     @Getter(AccessLevel.PROTECTED)
-    private BiPredicate<LlmProviderInfo, ExecutionContextView> providerFilter;
+    private BiPredicate<LlmProviderInfo, ExecutionContext> providerFilter;
 
     /**
      * The function used to dynamically select a profile based on context and available profiles.
      */
     @Getter(AccessLevel.PROTECTED)
-    private BiFunction<ExecutionContextView, Set<String>, String> profilePicker;
+    private BiFunction<ExecutionContext, Set<String>, String> profilePicker;
 
     /**
      * The function used to dynamically generate the default system message.
      */
     @Getter(AccessLevel.PROTECTED)
-    private Function<ExecutionContextView, String> defaultSystemMessageProvider;
+    private Function<ExecutionContext, String> defaultSystemMessageProvider;
 
     /**
      * Constructs a new {@link DefaultProviderSpec}.
@@ -98,7 +107,8 @@ public class DefaultProviderSpec implements ProviderSpec {
     protected DefaultProviderSpec(@NonNull LlmClientType llmClientType, @NonNull LlmProviderRegistry llmProviderRegistry, @NonNull DefaultExecutionContextSpec defaultExecutionContextSpec) {
         this.llmClientType = llmClientType;
         this.llmProviderRegistry = llmProviderRegistry;
-        this.defaultExecutionContextSpec = defaultExecutionContextSpec;
+        this.parentAttributes = defaultExecutionContextSpec.getParentAttributes();
+        this.contextConfigure = defaultExecutionContextSpec.getContextConfigure();
     }
 
     /**
@@ -137,7 +147,7 @@ public class DefaultProviderSpec implements ProviderSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ProviderSpec firstProvider(@NonNull BiPredicate<LlmProviderInfo, ExecutionContextView> providerFilter) {
+    public ProviderSpec firstProvider(@NonNull BiPredicate<LlmProviderInfo, ExecutionContext> providerFilter) {
         this.defaultProvider = false;
         this.providerFilter = providerFilter;
         return this;
@@ -167,7 +177,7 @@ public class DefaultProviderSpec implements ProviderSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ProviderSpec profile(@NonNull BiFunction<ExecutionContextView, Set<String>, String> profilePicker) {
+    public ProviderSpec profile(@NonNull BiFunction<ExecutionContext, Set<String>, String> profilePicker) {
         this.defaultProfile = false;
         this.profilePicker = profilePicker;
         return this;
@@ -180,7 +190,7 @@ public class DefaultProviderSpec implements ProviderSpec {
      * @return this instance for method chaining
      */
     @Override
-    public ProviderSpec defaultSystemMessage(@NonNull Function<ExecutionContextView, String> defaultSystemMessageProvider) {
+    public ProviderSpec defaultSystemMessage(@NonNull Function<ExecutionContext, String> defaultSystemMessageProvider) {
         this.defaultSystemMessageProvider = defaultSystemMessageProvider;
         return this;
     }
@@ -192,6 +202,6 @@ public class DefaultProviderSpec implements ProviderSpec {
      */
     @Override
     public ConfigurableChatSpec chatSpec() {
-        return new DefaultConfigurableChatSpec(this.llmClientType, this.llmProviderRegistry, defaultExecutionContextSpec, this);
+        return new DefaultConfigurableChatSpec(this.llmClientType, this.llmProviderRegistry, this);
     }
 }

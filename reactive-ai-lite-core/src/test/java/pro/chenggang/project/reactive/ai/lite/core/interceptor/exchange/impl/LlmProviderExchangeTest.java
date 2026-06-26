@@ -18,7 +18,7 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
@@ -35,20 +35,20 @@ class LlmProviderExchangeTest {
     void testDefaultLlmProviderRequestExchange() {
         LlmClientType clientType = LlmClientType.CHAT;
         LlmProviderInfo info = mock(LlmProviderInfo.class);
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
+        ExecutionContext contextView = mock(ExecutionContext.class);
         ObjectNode requestBody = JsonNodeFactory.instance.objectNode();
 
         DefaultLlmProviderRequestExchange exchange = DefaultLlmProviderRequestExchange.builder()
                 .attributes(new HashMap<>())
                 .clientType(clientType)
                 .llmProviderInfo(info)
-                .executionContextView(contextView)
+                .executionContext(contextView)
                 .rawRequestBody(requestBody)
                 .build();
 
         assertThat(exchange.clientType()).isEqualTo(clientType);
         assertThat(exchange.llmProviderInfo()).isEqualTo(info);
-        assertThat(exchange.contextView()).isEqualTo(contextView);
+        assertThat(exchange.executionContext()).isEqualTo(contextView);
         assertThat(exchange.rawRequestBody()).isEqualTo(requestBody);
     }
 
@@ -56,7 +56,7 @@ class LlmProviderExchangeTest {
     void testDefaultLlmProviderGeneralResponseExchange() {
         LlmClientType clientType = LlmClientType.CHAT;
         LlmProviderInfo info = mock(LlmProviderInfo.class);
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
+        ExecutionContext contextView = mock(ExecutionContext.class);
         ObjectNode responseBody = JsonNodeFactory.instance.objectNode();
         Throwable error = new RuntimeException("err");
 
@@ -64,7 +64,7 @@ class LlmProviderExchangeTest {
                 .attributes(new HashMap<>())
                 .clientType(clientType)
                 .llmProviderInfo(info)
-                .executionContextView(contextView)
+                .executionContext(contextView)
                 .rawResponseBody(responseBody)
                 .error(error)
                 .build();
@@ -77,14 +77,14 @@ class LlmProviderExchangeTest {
     void testDefaultLlmProviderStreamResponseExchange() {
         LlmClientType clientType = LlmClientType.CHAT;
         LlmProviderInfo info = mock(LlmProviderInfo.class);
-        ExecutionContextView contextView = mock(ExecutionContextView.class);
+        ExecutionContext contextView = mock(ExecutionContext.class);
         Flux<RawStreamResponse> stream = Flux.empty();
 
         DefaultLlmProviderStreamResponseExchange exchange = DefaultLlmProviderStreamResponseExchange.builder()
                 .attributes(new HashMap<>())
                 .clientType(clientType)
                 .llmProviderInfo(info)
-                .executionContextView(contextView)
+                .executionContext(contextView)
                 .rawStreamResponse(stream)
                 .build();
 

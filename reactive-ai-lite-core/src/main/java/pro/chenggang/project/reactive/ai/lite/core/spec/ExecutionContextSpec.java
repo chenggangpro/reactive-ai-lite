@@ -19,7 +19,7 @@ import lombok.NonNull;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.Objects;
 
 /**
  * A specification for configuring the execution context of an AI operation.
@@ -50,15 +50,14 @@ public interface ExecutionContextSpec {
      * Provides a mechanism for custom or advanced configuration of the
      * execution context.
      * <p>
-     * The provided consumer is invoked with the {@link ExecutionContext} instance
-     * after it has been initialized with the standard settings, allowing for arbitrary
-     * attribute manipulation.
+     * The provided merger is invoked with the {@link ExecutionContext} instance
+     * and parent attributes to perform custom merging and setup.
      * </p>
      *
-     * @param contextConfigure a {@link Consumer} that accepts the {@link ExecutionContext} for further setup
+     * @param contextConfigure a {@link ContextMerger} to merge attributes and customize the context
      * @return this {@link ExecutionContextSpec} instance for method chaining
      */
-    ExecutionContextSpec contextConfigure(@NonNull Consumer<ExecutionContext> contextConfigure);
+    ExecutionContextSpec contextConfigure(@NonNull ContextMerger contextConfigure);
 
     /**
      * Transitions from context configuration to provider specification.
@@ -71,4 +70,30 @@ public interface ExecutionContextSpec {
      * @return a {@link ProviderSpec} instance for further configuration
      */
     ProviderSpec providerSpec();
+
+    /**
+     * Functional interface used to merge parent attributes and apply custom configurations
+     * to the active {@link ExecutionContext}.
+     */
+    @FunctionalInterface
+    interface ContextMerger {
+
+        /**
+         * A default merger implementation that appends all non-empty parent attributes
+         * directly into the execution context's attribute map.
+         */
+        ContextMerger APPEND_ALL = (executionContext, parentAttributes) -> {
+            if (Objects.nonNull(parentAttributes) && !parentAttributes.isEmpty()) {
+                executionContext.getAttributes().putAll(parentAttributes);
+            }
+        };
+
+        /**
+         * Merges parent attributes and custom configurations into the given execution context.
+         *
+         * @param executionContext the active execution context to populate
+         * @param parentAttributes the attributes from the parent context, can be null
+         */
+        void merge(ExecutionContext executionContext, Map<String, Object> parentAttributes);
+    }
 }

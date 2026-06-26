@@ -39,7 +39,7 @@ class ConfigurableChatSpecTest {
         contextSpec = DefaultExecutionContextSpec.of(LlmClientType.CHAT, registry);
         providerSpec = DefaultProviderSpec.of(LlmClientType.CHAT, registry, contextSpec);
         // Using DefaultConfigurableChatSpec to test the interface methods
-        spec = new DefaultConfigurableChatSpec(LlmClientType.CHAT, registry, contextSpec, providerSpec);
+        spec = new DefaultConfigurableChatSpec(LlmClientType.CHAT, registry, providerSpec);
     }
 
     @Test

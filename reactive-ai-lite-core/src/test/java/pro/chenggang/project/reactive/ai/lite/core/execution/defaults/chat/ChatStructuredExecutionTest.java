@@ -25,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.core.ParameterizedTypeReference;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.execution.StructuredExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
@@ -69,11 +68,9 @@ class ChatStructuredExecutionTest {
     void setUp() {
         lenient().when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         execution = ChatStructuredExecution.of(registry, spec);
-        lenient().when(executionContext.getContextView()).thenReturn(mock(ExecutionContextView.class));
         
-        // Fix for Builder/ExecutionInfo: ensure executionContext and modelNameConfigure are not null
+        // Fix for Builder/ExecutionInfo: ensure modelNameConfigure is not null
         ExecutionInfo.ExecutionInfoBuilder infoBuilder = ExecutionInfo.builder()
-                .executionContext(executionContext)
                 .modelNameConfigure(__ -> "test-model");
         
         lenient().when(executionInfo.toBuilder()).thenReturn(infoBuilder);
@@ -93,7 +90,6 @@ class ChatStructuredExecutionTest {
         when(assistantTextMessage.getContent()).thenReturn("\"test\"");
         when(generalResponse.getAssistantTextMessage()).thenReturn(assistantTextMessage);
 
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
@@ -109,7 +105,6 @@ class ChatStructuredExecutionTest {
     void testExecuteRawSchema() {
         RawResponse response = mock(RawResponse.class);
         String schema = "{}";
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
@@ -129,7 +124,6 @@ class ChatStructuredExecutionTest {
         when(generalResponse.getAssistantTextMessage()).thenReturn(assistantTextMessage);
 
         ParameterizedTypeReference<String> typeRef = new ParameterizedTypeReference<String>() {};
-        when(spec.newExecutionContext()).thenReturn(executionContext);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);

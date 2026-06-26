@@ -22,7 +22,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
@@ -37,12 +36,12 @@ import java.util.function.Function;
 
 /**
  * An immutable container that holds all the dynamic configuration functions
- * and the actual runtime context necessary to construct an LLM request.
+ * necessary to construct an LLM request.
  * <p>
  * During the execution phase, the provider iterates over the functions defined in this
- * object, applying them to the encapsulated {@link ExecutionContext} to resolve
- * the static values needed for the final payload (e.g., resolving the specific model name,
- * temperature, or list of historical messages).
+ * object, applying them to the active runtime {@link ExecutionContext} (typically obtained
+ * from the Reactor context) to resolve the static values needed for the final payload
+ * (e.g., resolving the specific model name, temperature, or list of historical messages).
  * </p>
  *
  * @author Gang Cheng
@@ -54,12 +53,6 @@ import java.util.function.Function;
 public class ExecutionInfo {
 
     /**
-     * The mutable execution context that tracks state and parsingAttributes for this specific run.
-     */
-    @NonNull
-    private final ExecutionContext executionContext;
-
-    /**
      * Indicates whether the default profile should be used.
      */
     private final boolean defaultProfile;
@@ -67,83 +60,83 @@ public class ExecutionInfo {
     /**
      * A function to dynamically pick a profile from a set of available profiles.
      */
-    private final BiFunction<ExecutionContextView, Set<String>, String> profilePicker;
+    private final BiFunction<ExecutionContext, Set<String>, String> profilePicker;
 
     /**
      * A function to dynamically configure the default system message.
      */
-    private final Function<ExecutionContextView, String> defaultSystemMessageConfigure;
+    private final Function<ExecutionContext, String> defaultSystemMessageConfigure;
 
     /**
      * A function to dynamically configure the specific model name to use.
      */
     @NonNull
-    private final Function<ExecutionContextView, String> modelNameConfigure;
+    private final Function<ExecutionContext, String> modelNameConfigure;
 
     /**
      * A function to dynamically configure the temperature setting.
      */
-    private final Function<ExecutionContextView, Double> temperatureConfigure;
+    private final Function<ExecutionContext, Double> temperatureConfigure;
 
     /**
      * A function to dynamically configure the Top-P sampling parameter.
      */
-    private final Function<ExecutionContextView, Double> topPConfigure;
+    private final Function<ExecutionContext, Double> topPConfigure;
 
     /**
      * A function to dynamically determine whether usage metrics should be requested.
      */
-    private final Function<ExecutionContextView, Boolean> includeUsageConfigure;
+    private final Function<ExecutionContext, Boolean> includeUsageConfigure;
 
     /**
      * A function to dynamically configure reasoning or thinking parameters.
      */
-    private final Function<ExecutionContextView, String> reasoningConfigure;
+    private final Function<ExecutionContext, String> reasoningConfigure;
 
     /**
      * A function to dynamically configure the maximum number of completion tokens to generate.
      */
-    private final Function<ExecutionContextView, Integer> maxCompletionTokensConfigure;
+    private final Function<ExecutionContext, Integer> maxCompletionTokensConfigure;
 
     /**
      * A function to dynamically configure the user's text message.
      */
-    private final Function<ExecutionContextView, String> textMessageConfigure;
+    private final Function<ExecutionContext, String> textMessageConfigure;
 
     /**
      * A function to dynamically configure a user's media message.
      */
-    private final Function<ExecutionContextView, MediaMessage> mediaMessageConfigure;
+    private final Function<ExecutionContext, MediaMessage> mediaMessageConfigure;
 
     /**
      * A function to dynamically configure the system message.
      */
-    private final Function<ExecutionContextView, String> systemMessageConfigure;
+    private final Function<ExecutionContext, String> systemMessageConfigure;
 
     /**
      * A function to dynamically configure the conversation history.
      */
-    private final Function<ExecutionContextView, List<Message>> historicalMessageConfigure;
+    private final Function<ExecutionContext, List<Message>> historicalMessageConfigure;
 
     /**
      * A function to dynamically configure the set of available tools.
      */
-    private final Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure;
+    private final Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure;
 
     /**
      * A function to dynamically configure the tool choice behavior.
      */
-    private final Function<ExecutionContextView, String> toolChoiceConfigure;
+    private final Function<ExecutionContext, String> toolChoiceConfigure;
 
     /**
      * A function to dynamically configure the tool execution results to send back to the model.
      */
-    private final Function<ExecutionContextView, Collection<ToolResultMessage>> toolResultMessageConfigure;
+    private final Function<ExecutionContext, Collection<ToolResultMessage>> toolResultMessageConfigure;
 
     /**
      * A consumer to dynamically customize the raw request JSON object before it is sent.
      */
-    private final BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure;
+    private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure;
 
     /**
      * A flag indicating whether distinct tool calls should be enforced.

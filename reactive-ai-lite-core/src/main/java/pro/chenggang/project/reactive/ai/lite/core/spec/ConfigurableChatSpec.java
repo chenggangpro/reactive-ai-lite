@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
@@ -42,7 +42,7 @@ import static pro.chenggang.project.reactive.ai.lite.core.option.BuildInPrompt.S
  * options such as the model, temperature, messages, and tools.
  * <p>
  * Most configuration methods come in two forms: one that accepts a static value,
- * and another that accepts a {@code Function<ExecutionContextView, T>} for dynamic
+ * and another that accepts a {@code Function<ExecutionContext, T>} for dynamic
  * configuration based on the request context.
  * </p>
  *
@@ -57,7 +57,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param modelNameConfigure a function that returns the model name based on the execution context
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec model(@NonNull Function<ExecutionContextView, String> modelNameConfigure);
+    ConfigurableChatSpec model(@NonNull Function<ExecutionContext, String> modelNameConfigure);
 
     /**
      * Sets a static model name for the chat request.
@@ -75,7 +75,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param temperatureConfigure a function that returns the temperature value based on the execution context
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec temperature(@NonNull Function<ExecutionContextView, Double> temperatureConfigure);
+    ConfigurableChatSpec temperature(@NonNull Function<ExecutionContext, Double> temperatureConfigure);
 
     /**
      * Sets a static temperature for the chat request.
@@ -97,7 +97,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
 
-    ConfigurableChatSpec topP(@NonNull Function<ExecutionContextView, Double> topPConfigure);
+    ConfigurableChatSpec topP(@NonNull Function<ExecutionContext, Double> topPConfigure);
 
     /**
      * Sets a static Top-P value for the chat request.
@@ -121,7 +121,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      *                              execution context
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContextView, Boolean> includeUsageConfigure);
+    ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContext, Boolean> includeUsageConfigure);
 
     /**
      * Statically configures the chat request to include usage metadata (e.g., token counts)
@@ -146,7 +146,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param reasoningConfigure a function that returns the reasoning string based on the execution context
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContextView, String> reasoningConfigure);
+    ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContext, String> reasoningConfigure);
 
     /**
      * Sets a static reasoning or system-level instruction for the model.
@@ -172,7 +172,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param systemMessageConfigure a function that returns the system message based on the execution context
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec systemMessage(@NonNull Function<ExecutionContextView, String> systemMessageConfigure);
+    ConfigurableChatSpec systemMessage(@NonNull Function<ExecutionContext, String> systemMessageConfigure);
 
     /**
      * Sets a static system message for the chat request.
@@ -193,7 +193,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param historicalMessageConfigure a function that returns a collection of historical messages
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec historicalMessage(@NonNull Function<ExecutionContextView, List<Message>> historicalMessageConfigure);
+    ConfigurableChatSpec historicalMessage(@NonNull Function<ExecutionContext, List<Message>> historicalMessageConfigure);
 
     /**
      * Sets a static collection of historical messages for the chat request.
@@ -214,7 +214,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param textMessageConfigure a function that returns the user's text message
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec textMessage(@NonNull Function<ExecutionContextView, String> textMessageConfigure);
+    ConfigurableChatSpec textMessage(@NonNull Function<ExecutionContext, String> textMessageConfigure);
 
     /**
      * Sets the user's text message for the chat request.
@@ -232,7 +232,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param mediaMessageConfigure a function that returns the media message
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec mediaMessage(@NonNull Function<ExecutionContextView, MediaMessage> mediaMessageConfigure);
+    ConfigurableChatSpec mediaMessage(@NonNull Function<ExecutionContext, MediaMessage> mediaMessageConfigure);
 
     /**
      * Sets a media message with text content and a list of attachments.
@@ -251,7 +251,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param maxCompletionTokensConfigure a function that returns the maximum number of tokens
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec maxCompletionTokens(@NonNull Function<ExecutionContextView, Integer> maxCompletionTokensConfigure);
+    ConfigurableChatSpec maxCompletionTokens(@NonNull Function<ExecutionContext, Integer> maxCompletionTokensConfigure);
 
     /**
      * Sets the maximum number of tokens to generate in the completion.
@@ -269,7 +269,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param toolsConfigure a function that returns a collection of tool definitions
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec tools(@NonNull Function<ExecutionContextView, Collection<ToolDefinition>> toolsConfigure);
+    ConfigurableChatSpec tools(@NonNull Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure);
 
     /**
      * Sets a static collection of tools (e.g., functions) available to the model.
@@ -302,7 +302,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param toolChoiceConfigure a function that returns the tool choice string
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec toolChoice(@NonNull Function<ExecutionContextView, String> toolChoiceConfigure);
+    ConfigurableChatSpec toolChoice(@NonNull Function<ExecutionContext, String> toolChoiceConfigure);
 
     /**
      * Sets a static tool choice behavior for the model.
@@ -320,7 +320,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param toolResultMessageConfigure a function that returns a collection of tool call result messages
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec toolsResponse(@NonNull Function<ExecutionContextView, Collection<ToolResultMessage>> toolResultMessageConfigure);
+    ConfigurableChatSpec toolsResponse(@NonNull Function<ExecutionContext, Collection<ToolResultMessage>> toolResultMessageConfigure);
 
     /**
      * Provides a static collection of result messages from tool calls.
@@ -340,7 +340,7 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @param rawRequestCustomizerConfigure a consumer that accepts the execution context and the raw request ObjectNode
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
-    ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContextView, ObjectNode> rawRequestCustomizerConfigure);
+    ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure);
 
     /**
      * Configures a customizer for the raw request object (JSON node).

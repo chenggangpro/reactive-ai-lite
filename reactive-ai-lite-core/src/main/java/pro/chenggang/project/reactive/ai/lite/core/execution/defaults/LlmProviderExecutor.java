@@ -20,8 +20,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContextView;
+import pro.chenggang.project.reactive.ai.lite.core.exception.ExecutionContextLossException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
@@ -48,6 +49,7 @@ import java.util.function.Predicate;
  * @author Gang Cheng
  * @version 0.1.0
  */
+@Slf4j
 @Builder
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class LlmProviderExecutor {
@@ -79,14 +81,19 @@ public class LlmProviderExecutor {
      * @return a {@link Mono} emitting the result of the specified execution
      */
     public <R> Mono<R> executeChat(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, Mono<R>> specifiedExecution) {
-        return Mono.defer(() -> {
-            ExecutionContext executionContext = this.executionSpec.newExecutionContext();
-            return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
-                    .flatMap(llmProvider -> {
-                        ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-                        return specifiedExecution.apply(llmProvider, executionInfo);
+        return Mono.deferContextual(contextView -> Mono.justOrEmpty(contextView.getOrEmpty(ExecutionContext.class))
+                        .ofType(ExecutionContext.class)
+                        .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
+                )
+                .flatMap(executionContext -> {
+                    return Mono.defer(() -> {
+                        return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
+                                .flatMap(llmProvider -> {
+                                    ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
+                                    return specifiedExecution.apply(llmProvider, executionInfo);
+                                });
                     });
-        });
+                });
     }
 
     /**
@@ -103,14 +110,18 @@ public class LlmProviderExecutor {
      * @return a {@link Flux} emitting the results of the specified execution
      */
     public <R> Flux<R> executeChatFlux(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, Flux<R>> specifiedExecution) {
-        return Flux.defer(() -> {
-            ExecutionContext executionContext = this.executionSpec.newExecutionContext();
-            return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
-                    .flatMapMany(llmProvider -> {
-                        ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-                        return specifiedExecution.apply(llmProvider, executionInfo);
+        return Flux.deferContextual(contextView -> Mono.justOrEmpty(contextView.getOrEmpty(ExecutionContext.class))
+                .ofType(ExecutionContext.class)
+                .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
+                .flatMapMany(executionContext -> {
+                    return Flux.defer(() -> {
+                        return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
+                                .flatMapMany(llmProvider -> {
+                                    ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
+                                    return specifiedExecution.apply(llmProvider, executionInfo);
+                                });
                     });
-        });
+                }));
     }
 
     /**
@@ -131,12 +142,11 @@ public class LlmProviderExecutor {
         if (executionSpec.isDefaultProvider()) {
             return (Mono<P>) llmProviderRegistry.getDefaultProvider(capability);
         }
-        ExecutionContextView executionContextView = executionContext.getContextView();
         return providerLoader.apply(llmProviderRegistry, llmProviderInfo -> {
                     if (Objects.isNull(executionSpec.getProviderFilter())) {
                         return true;
                     }
-                    return executionSpec.getProviderFilter().test(llmProviderInfo, executionContextView);
+                    return executionSpec.getProviderFilter().test(llmProviderInfo, executionContext);
                 }
         );
     }

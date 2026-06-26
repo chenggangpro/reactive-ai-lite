@@ -53,17 +53,8 @@ public class DefaultChatModule implements ChatModule {
         return LlmClientType.CHAT;
     }
 
-    /**
-     * Creates a new default execution context for chat completion operations.
-     * <p>
-     * This method initializes and returns a new {@link DefaultExecutionContextSpec}
-     * configured with the CHAT client type and the current provider registry.
-     * </p>
-     *
-     * @return a new {@link ExecutionContextSpec} instance configured for chat operations
-     */
     @Override
-    public ExecutionContextSpec newCompletionContext() {
+    public ExecutionContextSpec newChat() {
         return DefaultExecutionContextSpec.of(type(), llmProviderRegistry);
     }
 }

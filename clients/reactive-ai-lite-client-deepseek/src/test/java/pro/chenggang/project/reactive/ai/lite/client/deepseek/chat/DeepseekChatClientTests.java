@@ -53,7 +53,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecute() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -77,7 +77,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteRaw() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -102,7 +102,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStructuredExecuteRaw() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -113,7 +113,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
                         + "示例：{\"min_range\": \"192.168.0.1\", \"max_range\": \"192.168.0.255\"}"
                 ))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
-                .maxCompletionTokens(contextView -> 1000)
+                .maxCompletionTokens(contextView -> 4000)
                 .structured()
                 .execute(new ParameterizedTypeReference<ResultClass>() {})
                 .as(StepVerifier::create)
@@ -130,7 +130,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -163,7 +163,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -196,7 +196,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -230,7 +230,7 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()

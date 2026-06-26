@@ -54,7 +54,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatGeneralExecute() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -87,7 +87,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatStreamExecuteRaw() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -122,7 +122,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatStructuredExecuteRaw() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -130,7 +130,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
-                .maxCompletionTokens(contextView -> 50)
+                .maxCompletionTokens(contextView -> 4000)
                 .structured()
                 .execute(new ParameterizedTypeReference<ResultClass>() {})
                 .as(StepVerifier::create)
@@ -147,7 +147,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatGeneralExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -180,7 +180,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatGeneralExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -213,7 +213,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatStreamExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
@@ -247,7 +247,7 @@ public class OpenaiChatClientTests extends OpenaiLlmClientTestApplicationTests {
     @Test
     void testChatStreamExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newCompletionContext()
+                .newChat()
                 .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
