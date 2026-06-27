@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange.RAW_REQUEST_BODY_ATTRIBUTE_KEY;
+import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange.RAW_RESPONSE_BODY_ATTRIBUTE_KEY;
 
 /**
  * The default implementation of the {@link LLmProviderInterceptorRegistry}.
@@ -99,7 +99,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                             .flatMap(chain::next);
                                                 })
                                                 .then(generalExecution)
-                                                .doOnNext(rawResponseData -> resourceData.getT2().put(RAW_REQUEST_BODY_ATTRIBUTE_KEY, rawResponseData));
+                                                .doOnNext(rawResponseData -> resourceData.getT2().put(RAW_RESPONSE_BODY_ATTRIBUTE_KEY, rawResponseData));
                                     },
                                     resourceData -> {
                                         InterceptedDataInfo resourceDataInfo = resourceData.getT1();
@@ -110,7 +110,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
                                                                     .executionContext(resourceDataInfo.getExecutionContext())
-                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_REQUEST_BODY_ATTRIBUTE_KEY))
+                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_RESPONSE_BODY_ATTRIBUTE_KEY))
                                                                     .build())
                                                             .flatMap(afterChain::next);
                                                 })
@@ -125,7 +125,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
                                                                     .executionContext(resourceDataInfo.getExecutionContext())
-                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_REQUEST_BODY_ATTRIBUTE_KEY))
+                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_RESPONSE_BODY_ATTRIBUTE_KEY))
                                                                     .error(err)
                                                                     .build())
                                                             .flatMap(afterChain::next);

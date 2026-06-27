@@ -32,9 +32,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public interface LlmProviderRequestExchange extends LlmProviderExchange {
 
     /**
-     * The key used to store the raw request body within the parsingAttributes map.
+     * The key used to store the raw response body within the parsingAttributes map.
      */
-    String RAW_REQUEST_BODY_ATTRIBUTE_KEY = LlmProviderRequestExchange.class.getName() + ".raw-request-body";
+    String RAW_RESPONSE_BODY_ATTRIBUTE_KEY = LlmProviderRequestExchange.class.getName() + ".raw-response-body";
 
     /**
      * Retrieves the raw JSON request body that will be sent to the provider.

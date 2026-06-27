@@ -32,7 +32,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -109,7 +108,6 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         if (!isEnableLogging.get()) {
             return chain.next(exchange);
         }
-        Map<String, Object> attributes = exchange.getAttributes();
         exchange.getAttributes()
                 .compute(EXECUTION_INSTANT_ATTR_KEY, (k, v) -> {
                             if (Objects.nonNull(v)) {
