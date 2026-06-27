@@ -77,7 +77,7 @@ class ChatStreamExecutionTest {
     void testExecute() {
         StreamResponse response = mock(StreamResponse.class);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeStream(any())).thenReturn(Flux.just(response));
 
@@ -91,7 +91,7 @@ class ChatStreamExecutionTest {
     void testExecuteRaw() {
         RawStreamResponse response = mock(RawStreamResponse.class);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeStreamRaw(any())).thenReturn(Flux.just(response));
 

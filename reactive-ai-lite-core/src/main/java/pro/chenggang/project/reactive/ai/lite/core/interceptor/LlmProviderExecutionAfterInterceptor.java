@@ -31,7 +31,7 @@ import reactor.core.publisher.Mono;
  * @author Gang Cheng
  * @version 0.1.0
  */
-public interface LlmProviderExecutionAfterInterceptor extends LLmProviderExecutionInterceptor {
+public interface LlmProviderExecutionAfterInterceptor extends LlmProviderExecutionInterceptor {
 
     /**
      * Intercepts a general, non-streaming response from the LLM provider.

@@ -86,13 +86,12 @@ public class LlmProviderExecutor {
                         .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
                 )
                 .flatMap(executionContext -> {
-                    return Mono.defer(() -> {
-                        return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
-                                .flatMap(llmProvider -> {
-                                    ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-                                    return specifiedExecution.apply(llmProvider, executionInfo);
-                                });
-                    });
+                    return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
+                            .cast(LlmChatProvider.class)
+                            .flatMap(llmProvider -> {
+                                ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
+                                return specifiedExecution.apply(llmProvider, executionInfo);
+                            });
                 });
     }
 
@@ -114,13 +113,12 @@ public class LlmProviderExecutor {
                 .ofType(ExecutionContext.class)
                 .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
                 .flatMapMany(executionContext -> {
-                    return Flux.defer(() -> {
-                        return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
-                                .flatMapMany(llmProvider -> {
-                                    ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-                                    return specifiedExecution.apply(llmProvider, executionInfo);
-                                });
-                    });
+                    return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
+                            .cast(LlmChatProvider.class)
+                            .flatMapMany(llmProvider -> {
+                                ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
+                                return specifiedExecution.apply(llmProvider, executionInfo);
+                            });
                 }));
     }
 
@@ -136,11 +134,11 @@ public class LlmProviderExecutor {
      * @param <P>              the type of the {@link LlmProvider} to load
      * @return a {@link Mono} emitting the loaded LLM provider
      */
-    @SuppressWarnings("unchecked")
-    public <P extends LlmProvider> Mono<P> loadLlmProvider(@NonNull ExecutionContext executionContext, @NonNull BiFunction<LlmProviderRegistry, Predicate<LlmProviderInfo>, Mono<P>> providerLoader) {
+    public Mono<? extends LlmProvider> loadLlmProvider(@NonNull ExecutionContext executionContext,
+                                                       @NonNull BiFunction<LlmProviderRegistry, Predicate<LlmProviderInfo>, Mono<? extends LlmProvider>> providerLoader) {
         Capability capability = executionSpec.getLlmClientType().getCapability();
         if (executionSpec.isDefaultProvider()) {
-            return (Mono<P>) llmProviderRegistry.getDefaultProvider(capability);
+            return llmProviderRegistry.getDefaultProvider(capability);
         }
         return providerLoader.apply(llmProviderRegistry, llmProviderInfo -> {
                     if (Objects.isNull(executionSpec.getProviderFilter())) {

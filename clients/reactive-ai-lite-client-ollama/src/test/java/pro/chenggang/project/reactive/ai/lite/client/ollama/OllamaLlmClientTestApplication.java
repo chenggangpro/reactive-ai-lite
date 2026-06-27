@@ -22,10 +22,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import pro.chenggang.project.reactive.ai.lite.core.api.DefaultReactiveLlmClient;
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults.DefaultLLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults.DefaultLlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.logging.LlmProviderExecutionLoggingInterceptor;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.DefaultLlmProviderRegistry;
@@ -46,9 +46,9 @@ public class OllamaLlmClientTestApplication {
 
     @ConditionalOnMissingBean
     @Bean
-    public LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry(ObjectProvider<LlmProviderExecutionBeforeInterceptor> beforeInterceptorObjectProvider,
+    public LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry(ObjectProvider<LlmProviderExecutionBeforeInterceptor> beforeInterceptorObjectProvider,
                                                                          ObjectProvider<LlmProviderExecutionAfterInterceptor> afterInterceptorObjectProvider) {
-        return new DefaultLLmProviderInterceptorRegistry(beforeInterceptorObjectProvider.stream().toList(), afterInterceptorObjectProvider.stream().toList());
+        return new DefaultLlmProviderInterceptorRegistry(beforeInterceptorObjectProvider.stream().toList(), afterInterceptorObjectProvider.stream().toList());
     }
 
     @Bean

@@ -33,7 +33,7 @@ import java.util.Set;
  * @author Gang Cheng
  * @version 0.1.0
  */
-public interface LLmProviderExecutionInterceptor extends Ordered {
+public interface LlmProviderExecutionInterceptor extends Ordered {
 
     /**
      * Declares the set of client types that this interceptor supports.

@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
+import pro.chenggang.project.reactive.ai.lite.core.exception.LlmClientException;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import java.util.List;
@@ -158,7 +159,7 @@ public interface ToolCallMessage extends AssistantTextMessage {
             try {
                 return OBJECT_MAPPER.readTree(this.arguments);
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                throw new LlmClientException("Failed to parse tool call arguments: " + this.arguments, e);
             }
         }
     }

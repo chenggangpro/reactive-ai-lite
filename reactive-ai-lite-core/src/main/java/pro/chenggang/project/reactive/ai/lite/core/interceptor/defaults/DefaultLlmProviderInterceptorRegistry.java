@@ -17,10 +17,11 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl.DefaultLlmProviderGeneralResponseExchange;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl.DefaultLlmProviderRequestExchange;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.impl.DefaultLlmProviderStreamResponseExchange;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderRequestExchange.RAW_RESPONSE_BODY_ATTRIBUTE_KEY;
 
 /**
- * The default implementation of the {@link LLmProviderInterceptorRegistry}.
+ * The default implementation of the {@link LlmProviderInterceptorRegistry}.
  * <p>
  * This class orchestrates the execution of interceptor chains around the core LLM request.
  * It initializes and sorts the "before" and "after" interceptor chains per client type.
@@ -53,18 +54,19 @@ import static pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.L
  * @author Gang Cheng
  * @version 0.1.0
  */
-public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterceptorRegistry {
+@Slf4j
+public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterceptorRegistry {
 
     private final Map<LlmClientType, LlmProviderExecutionBeforeInterceptorChain> beforeInterceptorChainMap;
     private final Map<LlmClientType, LlmProviderExecutionAfterInterceptorChain> afterInterceptorChainMap;
 
     /**
-     * Constructs a new {@link DefaultLLmProviderInterceptorRegistry}.
+     * Constructs a new {@link DefaultLlmProviderInterceptorRegistry}.
      *
      * @param beforeInterceptors the list of before interceptors
      * @param afterInterceptors  the list of after interceptors
      */
-    public DefaultLLmProviderInterceptorRegistry(@NonNull List<LlmProviderExecutionBeforeInterceptor> beforeInterceptors, @NonNull List<LlmProviderExecutionAfterInterceptor> afterInterceptors) {
+    public DefaultLlmProviderInterceptorRegistry(@NonNull List<LlmProviderExecutionBeforeInterceptor> beforeInterceptors, @NonNull List<LlmProviderExecutionAfterInterceptor> afterInterceptors) {
         this.beforeInterceptorChainMap = initBeforeInterceptorChainMap(beforeInterceptors);
         this.afterInterceptorChainMap = initAfterInterceptorChainMap(afterInterceptors);
     }
@@ -160,7 +162,7 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
      * @return the intercepted execution Flux
      */
     @Override
-    public Flux<RawStreamResponse> interceptStream(@NonNull LLmProviderInterceptorRegistry.InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution) {
+    public Flux<RawStreamResponse> interceptStream(@NonNull LlmProviderInterceptorRegistry.InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution) {
         return Flux.deferContextual(contextView -> Mono.justOrEmpty(contextView)
                 .defaultIfEmpty(Context.empty())
                 .flatMapMany(context -> {
@@ -194,9 +196,12 @@ public class DefaultLLmProviderInterceptorRegistry implements LLmProviderInterce
                                                                                     .build())
                                                                             .flatMap(afterChain::next);
                                                                 })
-                                                                .cast(RawStreamResponse.class);
-                                                        return Flux.just(interceptorExecution, rawStreamResponseFlux)
-                                                                .flatMap(Flux::from);
+                                                                .cast(RawStreamResponse.class)
+                                                                .onErrorResume(err -> {
+                                                                    log.error("Error occurred while intercepting stream response", err);
+                                                                    return Mono.empty();
+                                                                });
+                                                        return Flux.merge(interceptorExecution, rawStreamResponseFlux);
                                                     });
                                                 }));
                                     },

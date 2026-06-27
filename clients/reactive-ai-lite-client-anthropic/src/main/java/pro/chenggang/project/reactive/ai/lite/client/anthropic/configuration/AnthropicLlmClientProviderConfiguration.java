@@ -28,7 +28,7 @@ import pro.chenggang.project.reactive.ai.lite.client.anthropic.properties.Anthro
 import pro.chenggang.project.reactive.ai.lite.client.anthropic.properties.AnthropicClientProperties.ChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 
 import java.util.List;
@@ -51,7 +51,7 @@ public class AnthropicLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, AnthropicClientProperties AnthropicClientProperties, LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, AnthropicClientProperties AnthropicClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         ChatProvider chatProvider = AnthropicClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()

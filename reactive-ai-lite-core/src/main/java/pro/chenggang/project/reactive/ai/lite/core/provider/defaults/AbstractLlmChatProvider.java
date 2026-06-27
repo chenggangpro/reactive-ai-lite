@@ -37,7 +37,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawRespons
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
@@ -77,7 +77,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     /**
      * The registry for executing interceptors before, during, and after LLM requests.
      */
-    private final LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry;
+    private final LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry;
 
     /**
      * A map storing available token certifications, keyed by profile name.
@@ -103,7 +103,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      */
     protected AbstractLlmChatProvider(@NonNull List<TokenCertification> certifications,
                                       @NonNull Function<Map<String, TokenCertification>, LlmProviderInfo> llmProviderInfoInitializer,
-                                      @NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+                                      @NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         this.lLmProviderInterceptorRegistry = lLmProviderInterceptorRegistry;
         certifications.forEach(cert -> certificationMap.put(cert.profile(), cert));
         this.llmProviderInfo = llmProviderInfoInitializer.apply(this.certificationMap);
@@ -210,7 +210,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                 .flatMapMany(llmRequestData -> {
                             return this.generateRawRequestBody(llmRequestData)
                                     .flatMapMany(requestBody -> {
-                                        return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
+                                        return LlmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                                                 .clientType(CHAT)
                                                 .llmProviderInfo(this.llmProviderInfo)
                                                 .executionContext(llmRequestData.getExecutionContext())
@@ -239,7 +239,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
                 .flatMapMany(llmRequestData -> {
                             return this.generateRawRequestBody(llmRequestData)
                                     .flatMapMany(requestBody -> {
-                                        return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
+                                        return LlmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                                                 .clientType(CHAT)
                                                 .llmProviderInfo(this.llmProviderInfo)
                                                 .executionContext(llmRequestData.getExecutionContext())
@@ -267,7 +267,7 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
     protected Mono<RawResponse> executeInternalRaw(@NonNull LlmChatRequestData llmChatRequestData) {
         return this.generateRawRequestBody(llmChatRequestData)
                 .flatMap(requestBody -> {
-                    return LLmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
+                    return LlmProviderInterceptorRegistry.newInterceptedDataInfoBuilder()
                             .clientType(CHAT)
                             .llmProviderInfo(this.llmProviderInfo)
                             .executionContext(llmChatRequestData.getExecutionContext())
@@ -376,20 +376,13 @@ public abstract class AbstractLlmChatProvider implements LlmChatProvider {
      * @return a Mono emitting the ResponseSpec
      */
     protected Mono<ResponseSpec> toResponseSpec(LlmChatRequestData llmChatRequestData, ObjectNode body) {
-        return Mono.create(sink -> {
-            RequestBodySpec requestBodySpec;
-            try {
-                requestBodySpec = this.initializeRequestBodySpec(llmChatRequestData);
-                if (Objects.nonNull(body)) {
-                    requestBodySpec.bodyValue(body);
-                }
-            } catch (Exception e) {
-                sink.error(e);
-                return;
+        return Mono.fromCallable(() -> {
+            RequestBodySpec requestBodySpec = this.initializeRequestBodySpec(llmChatRequestData);
+            if (Objects.nonNull(body)) {
+                requestBodySpec.bodyValue(body);
             }
-            ResponseSpec responseSpec = requestBodySpec.retrieve()
+            return requestBodySpec.retrieve()
                     .onStatus(HttpStatusCode::isError, LlmProviderUtil::handleClientResponseError);
-            sink.success(responseSpec);
         });
     }
 

@@ -22,8 +22,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.cfg.CoercionAction;
 import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import pro.chenggang.project.reactive.ai.lite.core.exception.LlmClientException;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Utility class for common JSON operations across the framework.
@@ -73,6 +75,9 @@ public abstract class JsonRelatedUtil {
      * @throws RuntimeException if deserialization fails
      */
     public static Map<String, Object> jsonToMap(String json) {
+        if (Objects.isNull(json)) {
+            return Map.of();
+        }
         return jsonToMap(json, OBJECT_MAPPER);
     }
 
@@ -88,7 +93,7 @@ public abstract class JsonRelatedUtil {
         try {
             return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new LlmClientException("Failed to convert to map with json string: " + json, e);
         }
     }
 }

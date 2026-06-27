@@ -26,6 +26,7 @@ import pro.chenggang.project.reactive.ai.lite.core.spec.ProviderSpec;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The default implementation of {@link ExecutionContextSpec}.
@@ -84,7 +85,7 @@ public class DefaultExecutionContextSpec implements ExecutionContextSpec {
     @Override
     public ExecutionContextSpec parentAttributes(Map<String, Object> parentAttributes) {
         if (Objects.nonNull(parentAttributes)) {
-            this.parentAttributes = parentAttributes;
+            this.parentAttributes = new ConcurrentHashMap<>(parentAttributes);
         }
         return this;
     }

@@ -34,7 +34,7 @@ class DefaultAssistantTextMessageMessageTest {
 
         assertThat(message.getContent()).isEqualTo(content);
         assertThat(message.getReasoningContent()).isEqualTo(reasoningContent);
-        assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toUpperCase());
+        assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toLowerCase());
         assertThat(message.getActualType()).isEqualTo(DefaultAssistantTextMessage.class);
     }
 }

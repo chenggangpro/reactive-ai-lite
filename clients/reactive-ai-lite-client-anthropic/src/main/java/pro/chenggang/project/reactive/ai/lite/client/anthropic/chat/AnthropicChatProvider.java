@@ -51,7 +51,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
@@ -113,7 +113,7 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
                                   @NonNull String name,
                                   Set<String> supportedModels,
                                   @NonNull List<TokenCertification> certifications,
-                                  @NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry,
+                                  @NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry,
                                   @NonNull String apiVersion) {
         super(certifications,
                 (certificationMap) -> AnthropicLlmProviderInfo.builder()
@@ -808,10 +808,10 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
                                 .build();
                     }
                     if (message instanceof MediaMessage mediaMessage) {
-                        return this.buildMediaMessage(Role.valueOf(mediaMessage.getRole()), mediaMessage);
+                        return this.buildMediaMessage(Role.fromValue(mediaMessage.getRole()), mediaMessage);
                     }
                     if (message instanceof TextMessage textMessage) {
-                        return this.buildTextMessage(Role.valueOf(textMessage.getRole()), textMessage);
+                        return this.buildTextMessage(Role.fromValue(textMessage.getRole()), textMessage);
                     }
                     if (message instanceof AssistantTextMessage assistantTextMessage) {
                         String reasoningContent = assistantTextMessage.getReasoningContent();

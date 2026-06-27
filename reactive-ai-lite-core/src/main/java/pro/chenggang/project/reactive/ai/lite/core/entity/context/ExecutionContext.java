@@ -23,7 +23,6 @@ import reactor.util.context.Context;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Represents the mutable execution context for reactive AI operations.
@@ -81,17 +80,10 @@ public class ExecutionContext extends AbstractAttribute {
      * @param contextConfigure the merger logic to combine parent attributes and customize the context, can be null
      * @return the Reactor context containing the initialized or existing {@link ExecutionContext}
      */
-    public static Context initializeContextIfNecessary(Context context, Map<String, Object> parentAttributes, ContextMerger contextConfigure) {
-        Optional<ExecutionContext> optionalExecutionContext = context.getOrEmpty(ExecutionContext.class);
-        if (optionalExecutionContext.isPresent()) {
-            ExecutionContext executionContext = optionalExecutionContext.get();
-            if (Objects.nonNull(contextConfigure)) {
-                contextConfigure.merge(executionContext, parentAttributes);
-            }
-            log.debug("Existing execution context : {} and parent attributes size: {}", executionContext, Objects.nonNull(parentAttributes) ? parentAttributes.size() : 0);
-            return context;
-        }
+    public static Context initializeExecutionContext(Context context, Map<String, Object> parentAttributes, ContextMerger contextConfigure) {
         ExecutionContext executionContext = ExecutionContext.newContext();
+        context.<ExecutionContext>getOrEmpty(ExecutionContext.class)
+                .ifPresent(existing -> executionContext.getAttributes().putAll(existing.getAttributes()));
         if (Objects.nonNull(contextConfigure)) {
             contextConfigure.merge(executionContext, parentAttributes);
         }

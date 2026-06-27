@@ -62,7 +62,7 @@ public abstract class AbstractAttribute implements AttributesAbility {
      * @param attributes the initial map of parsingAttributes, or {@code null} to create a new empty map
      */
     protected AbstractAttribute(@Nullable Map<String, Object> attributes) {
-        this.attributes = Objects.isNull(attributes) ? new ConcurrentHashMap<>() : attributes;
+        this.attributes = Objects.isNull(attributes) ? new ConcurrentHashMap<>() : new ConcurrentHashMap<>(attributes);
     }
 
     /**

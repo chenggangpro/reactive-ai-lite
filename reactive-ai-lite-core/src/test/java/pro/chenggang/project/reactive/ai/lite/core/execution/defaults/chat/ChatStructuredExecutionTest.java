@@ -91,7 +91,7 @@ class ChatStructuredExecutionTest {
         when(generalResponse.getAssistantTextMessage()).thenReturn(assistantTextMessage);
 
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeGeneral(any())).thenReturn(Mono.just(generalResponse));
 
@@ -106,7 +106,7 @@ class ChatStructuredExecutionTest {
         RawResponse response = mock(RawResponse.class);
         String schema = "{}";
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeGeneralRaw(any())).thenReturn(Mono.just(response));
 
@@ -125,7 +125,7 @@ class ChatStructuredExecutionTest {
 
         ParameterizedTypeReference<String> typeRef = new ParameterizedTypeReference<String>() {};
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeGeneral(any())).thenReturn(Mono.just(generalResponse));
 

@@ -15,6 +15,12 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.option;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
+
 /**
  * Represents the different capabilities or functionalities that an AI model or provider can support.
  * <p>
@@ -26,28 +32,32 @@ package pro.chenggang.project.reactive.ai.lite.core.option;
  * @author Gang Cheng
  * @version 0.1.0
  */
+@Getter
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public enum Capability {
 
     /**
      * Represents chat or conversational AI capabilities, typically involving text-based interactions.
      */
-    CHAT,
+    CHAT(LlmChatProvider.class),
 
     /**
      * Represents audio processing capabilities, such as speech-to-text or text-to-speech.
      */
-    AUDIO,
+    AUDIO(null),
 
     /**
      * Represents image generation or analysis capabilities.
      */
-    IMAGE,
+    IMAGE(null),
 
     /**
      * Represents the capability to generate embeddings or vector representations of text or other data.
      */
-    EMBEDDING,
+    EMBEDDING(null),
 
     ;
 
+
+    private final Class<? extends LlmProvider> providerClass;
 }

@@ -71,7 +71,7 @@ class LlmProviderExecutorTest {
     void testExecuteChat() {
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
 
         Mono<String> result = executor.executeChat((p, info) -> Mono.just("result"));
@@ -86,9 +86,9 @@ class LlmProviderExecutorTest {
     void testLoadLlmProviderDefault() {
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
 
-        StepVerifier.create(executor.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider))
+        StepVerifier.create(executor.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider).cast(LlmChatProvider.class))
                 .expectNext(provider)
                 .verifyComplete();
     }
@@ -98,7 +98,7 @@ class LlmProviderExecutorTest {
     void testExecuteStream() {
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
 
         RawStreamResponse chunk = org.mockito.Mockito.mock(RawStreamResponse.class);

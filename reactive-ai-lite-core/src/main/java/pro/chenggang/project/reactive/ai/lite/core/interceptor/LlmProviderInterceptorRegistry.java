@@ -23,7 +23,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry.InterceptedDataInfo.InterceptedDataInfoBuilder;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry.InterceptedDataInfo.InterceptedDataInfoBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Flux;
@@ -42,7 +42,7 @@ import reactor.core.publisher.Mono;
  * @author Gang Cheng
  * @version 0.1.0
  */
-public interface LLmProviderInterceptorRegistry {
+public interface LlmProviderInterceptorRegistry {
 
     /**
      * Intercepts a general (non-streaming) execution.
@@ -122,7 +122,7 @@ public interface LLmProviderInterceptorRegistry {
          * @param generalExecution               the core execution mono
          * @return the intercepted Mono
          */
-        public Mono<ObjectNode> interceptGeneral(@NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Mono<ObjectNode> generalExecution) {
+        public Mono<ObjectNode> interceptGeneral(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Mono<ObjectNode> generalExecution) {
             return lLmProviderInterceptorRegistry.interceptGeneral(this, generalExecution);
         }
 
@@ -133,7 +133,7 @@ public interface LLmProviderInterceptorRegistry {
          * @param streamExecution                the core execution flux
          * @return the intercepted Flux
          */
-        public Flux<RawStreamResponse> interceptStream(@NonNull LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Flux<RawStreamResponse> streamExecution) {
+        public Flux<RawStreamResponse> interceptStream(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Flux<RawStreamResponse> streamExecution) {
             return lLmProviderInterceptorRegistry.interceptStream(this, streamExecution);
         }
     }

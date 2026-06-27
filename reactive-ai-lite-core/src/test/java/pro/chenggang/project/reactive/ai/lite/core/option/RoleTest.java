@@ -23,9 +23,9 @@ class RoleTest {
 
     @Test
     void testValues() {
-        assertThat(Role.SYSTEM.getValue()).isEqualTo("SYSTEM");
-        assertThat(Role.USER.getValue()).isEqualTo("USER");
-        assertThat(Role.ASSISTANT.getValue()).isEqualTo("ASSISTANT");
-        assertThat(Role.TOOL.getValue()).isEqualTo("TOOL");
+        assertThat(Role.SYSTEM.getValue()).isEqualTo("system");
+        assertThat(Role.USER.getValue()).isEqualTo("user");
+        assertThat(Role.ASSISTANT.getValue()).isEqualTo("assistant");
+        assertThat(Role.TOOL.getValue()).isEqualTo("tool");
     }
 }

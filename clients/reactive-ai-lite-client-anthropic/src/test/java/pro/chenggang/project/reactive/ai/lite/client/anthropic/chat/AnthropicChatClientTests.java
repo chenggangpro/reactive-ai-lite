@@ -239,8 +239,9 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                                     )
                             )
                             .toolsResponse(toolResultMessages)
-                            .general()
-                            .execute();
+                            .stream()
+                            .executeRaw()
+                            .collectList();
                 })
                 .as(StepVerifier::create)
                 .consumeNextWith(response -> {

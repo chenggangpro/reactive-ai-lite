@@ -50,7 +50,7 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
     /**
      * A map storing the default provider assigned to each capability.
      */
-    private final Map<Capability, LlmProvider> defaultProviderContainer = new HashMap<>();
+    private final Map<Capability, LlmProvider> defaultProviderContainer;
 
     /**
      * An immutable list of all successfully registered and validated providers.
@@ -73,6 +73,7 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
             throw new IllegalArgumentException("At least one LlmProvider must be provided.");
         }
         List<LlmProvider> validProviders = new ArrayList<>();
+        Map<Capability, LlmProvider> tempDefaultProviderContainer = new HashMap<>();
         for (LlmProvider llmProvider : providers) {
             LlmProviderInfo llmProviderInfo = llmProvider.info();
             if (Objects.isNull(llmProviderInfo)) {
@@ -80,9 +81,15 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
             }
             validProviders.add(llmProvider);
             if (llmProviderInfo.isDefault()) {
-                defaultProviderContainer.putIfAbsent(llmProvider.capability(), llmProvider);
+                LlmProvider existing = tempDefaultProviderContainer.putIfAbsent(llmProvider.capability(), llmProvider);
+                if (existing != null) {
+                    log.warn("Multiple default providers detected for capability {}. Keeping {} and ignoring {}.",
+                            llmProvider.capability(), existing, llmProvider
+                    );
+                }
             }
         }
+        this.defaultProviderContainer = Map.copyOf(tempDefaultProviderContainer);
         this.providers = List.copyOf(validProviders);
         log.info("Initialized {} LlmProvider instances.", validProviders.size());
     }
@@ -94,8 +101,9 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
      * @return a {@link Mono} emitting the default {@link LlmProvider} for that capability
      */
     @Override
-    public Mono<LlmProvider> getDefaultProvider(@NonNull Capability capability) {
+    public Mono<? extends LlmProvider> getDefaultProvider(@NonNull Capability capability) {
         return Mono.justOrEmpty(defaultProviderContainer.get(capability))
+                .ofType(capability.getProviderClass())
                 .switchIfEmpty(Mono.error(() -> new IllegalArgumentException("At least one default LlmProvider is required for " + capability + ". Use 'LlmProvider.info().isDefault()' to mark a provider as default.")));
     }
 

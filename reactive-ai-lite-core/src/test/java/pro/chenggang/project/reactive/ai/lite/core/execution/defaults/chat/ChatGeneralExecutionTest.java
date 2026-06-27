@@ -76,7 +76,7 @@ class ChatGeneralExecutionTest {
     void testExecute() {
         GeneralResponse response = mock(GeneralResponse.class);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeGeneral(any())).thenReturn(Mono.just(response));
 
@@ -90,7 +90,7 @@ class ChatGeneralExecutionTest {
     void testExecuteRaw() {
         RawResponse response = mock(RawResponse.class);
         when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.just(provider));
+        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
         when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
         when(provider.executeGeneralRaw(any())).thenReturn(Mono.just(response));
 

@@ -32,14 +32,14 @@ class DefaultLlmProviderRegistryTest {
 
     @Test
     void testRegistryInitialization() {
-        LlmProvider provider = mock(LlmProvider.class);
+        LlmChatProvider provider = mock(LlmChatProvider.class);
         LlmProviderInfo info = mock(LlmProviderInfo.class);
         when(provider.info()).thenReturn(info);
         when(provider.capability()).thenReturn(Capability.CHAT);
         when(info.isDefault()).thenReturn(true);
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
+        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT).cast(LlmChatProvider.class))
                 .expectNext(provider)
                 .verifyComplete();
     }
@@ -83,28 +83,28 @@ class DefaultLlmProviderRegistryTest {
         LlmProvider provider = mock(LlmProvider.class);
         when(provider.info()).thenReturn(null);
 
-        LlmProvider validProvider = mock(LlmProvider.class);
+        LlmChatProvider validProvider = mock(LlmChatProvider.class);
         LlmProviderInfo info = mock(LlmProviderInfo.class);
         when(validProvider.info()).thenReturn(info);
         when(validProvider.capability()).thenReturn(Capability.CHAT);
         when(info.isDefault()).thenReturn(true);
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(java.util.Arrays.asList(provider, validProvider));
-        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
+        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT).cast(LlmChatProvider.class))
                 .expectNext(validProvider)
                 .verifyComplete();
     }
 
     @Test
     void testGetDefaultProviderNotFound() {
-        LlmProvider provider = mock(LlmProvider.class);
+        LlmChatProvider provider = mock(LlmChatProvider.class);
         LlmProviderInfo info = mock(LlmProviderInfo.class);
         when(provider.info()).thenReturn(info);
         when(provider.capability()).thenReturn(Capability.CHAT);
-        when(info.isDefault()).thenReturn(true);
+        when(info.isDefault()).thenReturn(false);
 
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        StepVerifier.create(registry.getDefaultProvider(Capability.AUDIO))
+        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
                 .expectError(IllegalArgumentException.class)
                 .verify();
     }

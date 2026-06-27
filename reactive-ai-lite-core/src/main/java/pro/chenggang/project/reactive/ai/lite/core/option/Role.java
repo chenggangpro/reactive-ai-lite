@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.option;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.NonNull;
 
 import java.util.Locale;
 
@@ -80,7 +81,23 @@ public enum Role {
      * @return the lowercase string representation of this role (e.g., "system", "user", "assistant", "tool")
      */
     public String getValue() {
-        return this.name().toUpperCase(Locale.ROOT);
+        return this.name().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Retrieves the corresponding {@link Role} enum from a string value.
+     * <p>
+     * This method performs a case-insensitive match by converting the provided
+     * string value to uppercase before looking up the enum constant. It is typically
+     * used when deserializing or parsing role values from external sources.
+     * </p>
+     *
+     * @param value the string representation of the role (e.g., "system", "user")
+     * @return the corresponding {@link Role} enum constant
+     * @throws IllegalArgumentException if the specified enum type has no constant with the specified name
+     */
+    public static Role fromValue(@NonNull String value) {
+        return Role.valueOf(value.toUpperCase(Locale.ROOT));
     }
 
 }

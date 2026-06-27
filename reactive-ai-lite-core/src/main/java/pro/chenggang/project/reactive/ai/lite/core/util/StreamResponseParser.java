@@ -30,7 +30,6 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -75,74 +74,45 @@ public class StreamResponseParser {
                                                               @NonNull Function<List<ObjectNode>, ObjectNode> rawToolCallMerger) {
         return Flux.defer(() -> {
             Map<String, Object> parsingAttributes = new ConcurrentHashMap<>();
-            List<ObjectNode> toolCallData = new ArrayList<>();
-            StreamDataType[] currentDataType = new StreamDataType[1];
             return rawStreamResponse
                     .filter(StringUtils::hasText)
                     .takeUntil(SSE_DONE_PREDICATE)
                     .concatMap(value -> {
-                        return Flux.<JsonStreamChunkSlide>create(fluxSink -> {
-                            if (SSE_DONE_PREDICATE.test(value)) {
-                                fluxSink.complete();
-                                return;
-                            }
-                            JsonNode treeNode;
-                            try {
-                                treeNode = OBJECT_MAPPER.readTree(value);
-                            } catch (Exception e) {
-                                fluxSink.error(Exceptions.propagate(e));
-                                return;
-                            }
+                        if (SSE_DONE_PREDICATE.test(value)) {
+                            return Flux.empty();
+                        }
+                        try {
+                            JsonNode treeNode = OBJECT_MAPPER.readTree(value);
                             if (Objects.isNull(treeNode) || treeNode.isMissingNode() || treeNode.isNull() || !treeNode.isObject()) {
-                                fluxSink.error(new IllegalStateException("Invalid JSON chunk in stream response: " + value));
-                                return;
+                                return Flux.error(new IllegalStateException("Invalid JSON chunk in stream response: " + value));
                             }
                             ObjectNode objectNode = (ObjectNode) treeNode;
                             JsonStreamChunkSlide[] slides = streamChunkParser.apply(JsonChunkParsingData.builder()
                                     .data(objectNode)
                                     .parsingAttributes(parsingAttributes)
                                     .build());
-                            for (JsonStreamChunkSlide slide : slides) {
-                                fluxSink.next(slide);
-                            }
-                            fluxSink.complete();
-                        });
+                            return Flux.fromArray(slides);
+                        } catch (Exception e) {
+                            return Flux.error(Exceptions.propagate(e));
+                        }
                     })
-                    .concatMapIterable(slide -> {
-                        StreamDataType streamDataType = slide.getStreamDataType();
-                        if (StreamDataType.ROLE.equals(streamDataType)) {
-                            return List.of(slide);
+                    .bufferUntilChanged(JsonStreamChunkSlide::getStreamDataType)
+                    .flatMapIterable(bufferedSlides -> {
+                        if (bufferedSlides.isEmpty()) {
+                            return List.of();
                         }
-                        List<JsonStreamChunkSlide> toEmit = new ArrayList<>();
-                        if (StreamDataType.TOOL_CALL.equals(currentDataType[0]) && !StreamDataType.TOOL_CALL.equals(streamDataType)) {
-                            if (!toolCallData.isEmpty()) {
-                                toEmit.add(JsonStreamChunkSlide.builder()
-                                        .streamDataType(StreamDataType.TOOL_CALL)
-                                        .dataContent(rawToolCallMerger.apply(new ArrayList<>(toolCallData)))
-                                        .build());
-                                toolCallData.clear();
-                            }
-                        }
-                        currentDataType[0] = streamDataType;
-                        if (StreamDataType.TOOL_CALL.equals(streamDataType)) {
-                            toolCallData.add(slide.getDataContent());
-                        } else {
-                            toEmit.add(slide);
-                        }
-                        return toEmit;
-                    })
-                    .concatWith(Flux.defer(() -> {
-                        // Flush remaining tool calls on complete
-                        if (!toolCallData.isEmpty()) {
-                            JsonStreamChunkSlide merged = JsonStreamChunkSlide.builder()
+                        StreamDataType type = bufferedSlides.getFirst().getStreamDataType();
+                        if (StreamDataType.TOOL_CALL.equals(type)) {
+                            List<ObjectNode> nodes = bufferedSlides.stream()
+                                    .map(JsonStreamChunkSlide::getDataContent)
+                                    .toList();
+                            return List.of(JsonStreamChunkSlide.builder()
                                     .streamDataType(StreamDataType.TOOL_CALL)
-                                    .dataContent(rawToolCallMerger.apply(new ArrayList<>(toolCallData)))
-                                    .build();
-                            toolCallData.clear();
-                            return Flux.just(merged);
+                                    .dataContent(rawToolCallMerger.apply(nodes))
+                                    .build());
                         }
-                        return Flux.empty();
-                    }))
+                        return bufferedSlides;
+                    })
                     .map(slide -> RawStreamResponse.builder()
                             .executionContext(executionContext)
                             .dataType(slide.getStreamDataType())

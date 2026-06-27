@@ -112,29 +112,16 @@ public final class JsonSchemaUtil {
      *
      * @param node the JSON node to traverse and modify
      */
-    public static void convertTypeValuesToUpperCase(ObjectNode node) {
+    public static void convertTypeValuesToUpperCase(JsonNode node) {
         if (node.isObject()) {
-            node.properties().forEach(entry -> {
-                JsonNode value = entry.getValue();
-                if (value.isObject()) {
-                    convertTypeValuesToUpperCase((ObjectNode) value);
-                } else if (value.isArray()) {
-                    value.forEach(element -> {
-                        if (element.isObject() || element.isArray()) {
-                            convertTypeValuesToUpperCase((ObjectNode) element);
-                        }
-                    });
-                } else if (value.isTextual() && entry.getKey().equals("type")) {
-                    String oldValue = node.get("type").asText();
-                    node.put("type", oldValue.toUpperCase());
-                }
-            });
+            ObjectNode objNode = (ObjectNode) node;
+            JsonNode typeNode = objNode.get("type");
+            if (typeNode != null && typeNode.isTextual()) {
+                objNode.put("type", typeNode.asText().toUpperCase());
+            }
+            objNode.forEach(JsonSchemaUtil::convertTypeValuesToUpperCase);
         } else if (node.isArray()) {
-            node.forEach(element -> {
-                if (element.isObject() || element.isArray()) {
-                    convertTypeValuesToUpperCase((ObjectNode) element);
-                }
-            });
+            node.forEach(JsonSchemaUtil::convertTypeValuesToUpperCase);
         }
     }
 

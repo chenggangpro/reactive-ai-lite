@@ -34,8 +34,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static pro.chenggang.project.reactive.ai.lite.core.option.BuildInPrompt.SYSTEM_PROMPT;
-
 /**
  * An extension of {@link ChatSpec} that provides a fluent API for configuring
  * the parameters of a chat request. This interface allows for setting various
@@ -181,10 +179,10 @@ public interface ConfigurableChatSpec extends ChatSpec {
      * @return this {@link ConfigurableChatSpec} instance for method chaining
      */
     default ConfigurableChatSpec systemMessage(String systemMessage) {
-        if (StringUtils.hasText(systemMessage)) {
+        if (Objects.nonNull(systemMessage)) {
             return systemMessage(contextView -> systemMessage);
         }
-        return systemMessage(contextView -> SYSTEM_PROMPT);
+        return this;
     }
 
     /**

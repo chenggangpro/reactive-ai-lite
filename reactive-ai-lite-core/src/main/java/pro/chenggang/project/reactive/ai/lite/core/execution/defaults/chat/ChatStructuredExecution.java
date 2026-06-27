@@ -26,6 +26,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawRespons
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StructuredResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
+import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import reactor.core.publisher.Mono;
@@ -99,7 +100,16 @@ public class ChatStructuredExecution implements StructuredExecution {
                             .build();
                     return llmChatProvider.executeGeneral(modifiedInfo)
                             .handle((generalResponse, sink) -> {
-                                String content = generalResponse.getAssistantTextMessage().getContent();
+                                AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
+                                if (assistantTextMessage == null) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), null, new IllegalArgumentException("AssistantTextMessage is null")));
+                                    return;
+                                }
+                                String content = assistantTextMessage.getContent();
+                                if (content == null || content.isBlank()) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
+                                    return;
+                                }
                                 R structuredContent;
                                 try {
                                     structuredContent = OBJECT_MAPPER.readValue(content, resultType);
@@ -119,7 +129,7 @@ public class ChatStructuredExecution implements StructuredExecution {
                 })
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 
@@ -136,7 +146,16 @@ public class ChatStructuredExecution implements StructuredExecution {
                             .build();
                     return llmChatProvider.executeGeneral(modifiedInfo)
                             .handle((generalResponse, sink) -> {
-                                String content = generalResponse.getAssistantTextMessage().getContent();
+                                AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
+                                if (assistantTextMessage == null) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), null, new IllegalArgumentException("AssistantTextMessage is null")));
+                                    return;
+                                }
+                                String content = assistantTextMessage.getContent();
+                                if (content == null || content.isBlank()) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
+                                    return;
+                                }
                                 R structuredContent;
                                 try {
                                     structuredContent = OBJECT_MAPPER.readValue(content, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
@@ -156,7 +175,7 @@ public class ChatStructuredExecution implements StructuredExecution {
                 })
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 
@@ -173,7 +192,7 @@ public class ChatStructuredExecution implements StructuredExecution {
                 })
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 
@@ -192,7 +211,7 @@ public class ChatStructuredExecution implements StructuredExecution {
                 })
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 
@@ -211,7 +230,7 @@ public class ChatStructuredExecution implements StructuredExecution {
                 })
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 

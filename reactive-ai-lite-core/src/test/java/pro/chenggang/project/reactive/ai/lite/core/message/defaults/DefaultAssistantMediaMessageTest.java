@@ -43,7 +43,7 @@ class DefaultAssistantMediaMessageTest {
         assertThat(message.getName()).isEqualTo(name);
         assertThat(message.getReasoningContent()).isEqualTo(reasoningContent);
         assertThat(message.getAttachments()).containsExactly(attachment);
-        assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toUpperCase());
+        assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toLowerCase());
         assertThat(message.getActualType()).isEqualTo(DefaultAssistantMediaMessage.class);
     }
 }

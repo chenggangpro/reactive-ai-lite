@@ -90,7 +90,7 @@ public class ChatStreamExecution implements StreamExecution {
         return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStream)
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 
@@ -104,7 +104,7 @@ public class ChatStreamExecution implements StreamExecution {
         return llmProviderExecutor.executeChatFlux(LlmChatProvider::executeStreamRaw)
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 

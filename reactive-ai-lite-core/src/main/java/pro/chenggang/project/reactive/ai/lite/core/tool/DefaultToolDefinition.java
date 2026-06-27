@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.tool;
 
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 
@@ -40,11 +41,13 @@ public class DefaultToolDefinition implements ToolDefinition {
     /**
      * The unique name of the tool.
      */
+    @NonNull
     private final String name;
 
     /**
      * A description of what the tool does and when it should be used.
      */
+    @NonNull
     private final String description;
 
     /**

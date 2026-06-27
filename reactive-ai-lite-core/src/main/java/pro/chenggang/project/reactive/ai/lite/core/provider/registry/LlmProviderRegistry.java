@@ -47,7 +47,7 @@ public interface LlmProviderRegistry {
      * @param capability the {@link Capability} (e.g., CHAT, EMBEDDING) for which to find the provider
      * @return a {@link Mono} emitting the default {@link LlmProvider} supporting the requested capability
      */
-    Mono<LlmProvider> getDefaultProvider(@NonNull Capability capability);
+    Mono<? extends LlmProvider> getDefaultProvider(@NonNull Capability capability);
 
     /**
      * Finds and returns an {@link LlmChatProvider} that matches the given dynamic filter.

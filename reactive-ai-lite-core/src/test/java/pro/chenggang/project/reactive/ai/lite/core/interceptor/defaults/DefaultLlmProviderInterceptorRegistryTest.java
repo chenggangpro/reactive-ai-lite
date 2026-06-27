@@ -20,9 +20,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry.InterceptedDataInfo;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry.InterceptedDataInfo;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Flux;
@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class DefaultLLmProviderInterceptorRegistryTest {
+class DefaultLlmProviderInterceptorRegistryTest {
 
     @Test
     void testRegistryInitialization() {
@@ -48,7 +48,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         when(after.supportedClient()).thenReturn(Collections.singleton(LlmClientType.CHAT));
         when(after.getOrder()).thenReturn(0);
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.singletonList(before),
                 Collections.singletonList(after)
         );
@@ -68,7 +68,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         when(after.getOrder()).thenReturn(0);
         when(after.interceptAfter(any(), any())).thenReturn(Mono.empty());
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.singletonList(before),
                 Collections.singletonList(after)
         );
@@ -105,7 +105,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain) inv.getArgument(1)).next((pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderStreamResponseExchange) inv.getArgument(
                 0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.singletonList(before),
                 Collections.singletonList(after)
         );
@@ -131,7 +131,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         when(before.supportedClient()).thenReturn(Collections.singleton(LlmClientType.AUDIO));
         when(before.getOrder()).thenReturn(0);
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.singletonList(before),
                 Collections.emptyList()
         );
@@ -157,7 +157,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         when(after.supportedClient()).thenReturn(Collections.singleton(LlmClientType.AUDIO));
         when(after.getOrder()).thenReturn(0);
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.emptyList(),
                 Collections.singletonList(after)
         );
@@ -186,7 +186,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
                 any()
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderRequestInterceptorChain) inv.getArgument(1)).next(inv.getArgument(0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.singletonList(before),
                 Collections.emptyList()
         );
@@ -216,7 +216,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain) inv.getArgument(1)).next((pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderGeneralResponseExchange) inv.getArgument(
                 0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.emptyList(),
                 Collections.singletonList(after)
         );
@@ -252,7 +252,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
                 any()
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderRequestInterceptorChain) inv.getArgument(1)).next(inv.getArgument(0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 java.util.Arrays.asList(before1, before2),
                 Collections.emptyList()
         );
@@ -282,7 +282,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain) inv.getArgument(1)).next((pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderGeneralResponseExchange) inv.getArgument(
                 0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.emptyList(),
                 Collections.singletonList(after)
         );
@@ -311,7 +311,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain) inv.getArgument(1)).next((pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderStreamResponseExchange) inv.getArgument(
                 0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.emptyList(),
                 Collections.singletonList(after)
         );
@@ -340,7 +340,7 @@ class DefaultLLmProviderInterceptorRegistryTest {
         )).thenAnswer(inv -> ((pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain) inv.getArgument(1)).next((pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProviderGeneralResponseExchange) inv.getArgument(
                 0)));
 
-        DefaultLLmProviderInterceptorRegistry registry = new DefaultLLmProviderInterceptorRegistry(
+        DefaultLlmProviderInterceptorRegistry registry = new DefaultLlmProviderInterceptorRegistry(
                 Collections.emptyList(),
                 Collections.singletonList(after)
         );

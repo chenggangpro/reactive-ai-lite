@@ -34,7 +34,7 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawRespons
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LLmProviderInterceptorRegistry;
+import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.StreamResponseParser;
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
 class AbstractLlmChatProviderTest {
 
     @Mock
-    private LLmProviderInterceptorRegistry interceptorRegistry;
+    private LlmProviderInterceptorRegistry interceptorRegistry;
 
     @Mock
     private TokenCertification tokenCertification;
@@ -71,7 +71,7 @@ class AbstractLlmChatProviderTest {
 
         public TestLlmChatProvider(List<TokenCertification> certifications,
                                    Function<Map<String, TokenCertification>, LlmProviderInfo> llmProviderInfoInitializer,
-                                   LLmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+                                   LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
             super(certifications, llmProviderInfoInitializer, lLmProviderInterceptorRegistry);
         }
 

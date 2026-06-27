@@ -58,7 +58,7 @@ public class DefaultLlmProviderStreamResponseExchange extends AbstractLlmProvide
      */
     @Override
     public Flux<RawStreamResponse> rawStreamResponse() {
-        return this.rawStreamResponse;
+        return this.rawStreamResponse != null ? this.rawStreamResponse : Flux.empty();
     }
 
     /**

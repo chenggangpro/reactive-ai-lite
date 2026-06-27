@@ -39,7 +39,7 @@ class DefaultToolCallMessageMessageTest {
         assertThat(message.getContent()).isEqualTo(content);
         assertThat(message.getReasoningContent()).isEqualTo(reasoningContent);
         assertThat(message.getToolCalls()).containsExactly(toolCall);
-        assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toUpperCase());
+        assertThat(message.getRole()).isEqualTo(Role.ASSISTANT.name().toLowerCase());
         assertThat(message.getActualType()).isEqualTo(DefaultToolCallMessage.class);
     }
 }

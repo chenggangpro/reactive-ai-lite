@@ -29,6 +29,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonChunkMerger;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -60,6 +61,12 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
      * This is used later to calculate the total execution duration.
      */
     public static final String EXECUTION_INSTANT_ATTR_KEY = LlmProviderExecutionLoggingInterceptor.class.getName() + ".execution-instant";
+
+    /**
+     * The key used to store whether logging has already occurred for this exchange.
+     * This avoids duplicate logging on multiple error callbacks.
+     */
+    public static final String ALREADY_LOGGED_ATTR_KEY = LlmProviderExecutionLoggingInterceptor.class.getName() + ".already-logged";
 
     /**
      * The set of client types supported by this interceptor.
@@ -138,6 +145,10 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         if (!isEnableLogging.get()) {
             return chain.next(exchange);
         }
+        if (Boolean.TRUE.equals(exchange.getAttributes().get(ALREADY_LOGGED_ATTR_KEY))) {
+            return chain.next(exchange);
+        }
+        exchange.getAttributes().put(ALREADY_LOGGED_ATTR_KEY, true);
         if (log.isDebugEnabled()) {
             log.debug(" <== [Llm Execution] Raw response body: {}", exchange.rawResponseBody());
         }
@@ -145,7 +156,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         optionalThrowable.ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         Duration costDuration = Duration.between(executionInstant, Instant.now());
-        log.info(" <== [Llm Execution] Execution cost : {} ms", costDuration.toMillis());
+        log.info(" <== [Llm Execution] Execution cost : {}", costDuration);
         return chain.next(exchange);
     }
 
@@ -161,27 +172,49 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         if (!isEnableLogging.get()) {
             return chain.next(exchange);
         }
+        if (Boolean.TRUE.equals(exchange.getAttributes().get(ALREADY_LOGGED_ATTR_KEY))) {
+            return chain.next(exchange);
+        }
+        Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         if (exchange.error().isPresent()) {
+            exchange.getAttributes().put(ALREADY_LOGGED_ATTR_KEY, true);
             exchange.error().ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
-            Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
             Duration costDuration = Duration.between(executionInstant, Instant.now());
             log.info(" <== [Llm Execution] Execution cost : {} ms", costDuration.toMillis());
             return chain.next(exchange);
         }
-        return exchange.rawStreamResponse()
+        Instant[] firstTrunkTime = new Instant[1];
+        Mono<Void> loggingTask = exchange.rawStreamResponse()
+                .publishOn(Schedulers.boundedElastic())
                 .map(RawStreamResponse::getDataContent)
                 .filter(Objects::nonNull)
                 .reduce(OBJECT_MAPPER.createObjectNode(), JsonChunkMerger::merge)
+                .doFirst(() -> {
+                    firstTrunkTime[0] = Instant.now();
+                    if (log.isDebugEnabled()) {
+                        Duration costDuration = Duration.between(executionInstant, firstTrunkTime[0]);
+                        log.debug(" <== [Llm Execution] Receive first trunk of stream response content cost: {}", costDuration);
+                    }
+                })
                 .doOnNext(mergedNode -> {
                     if (log.isDebugEnabled()) {
                         log.debug(" <== [Llm Execution] Merged stream response content: {}", mergedNode);
                     }
                 })
-                .then(Mono.defer(() -> {
-                    Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
-                    Duration costDuration = Duration.between(executionInstant, Instant.now());
-                    log.info(" <== [Llm Execution] Execution cost : {} ms", costDuration.toMillis());
-                    return chain.next(exchange);
-                }));
+                .doOnError(err -> log.error(" <== [Llm Execution] Stream logging error", err))
+                .doOnCancel(() -> log.warn(" <== [Llm Execution] Stream execution CANCELLED by client."))
+                .doFinally(signalType -> {
+                    exchange.getAttributes().put(ALREADY_LOGGED_ATTR_KEY, true);
+                    Instant endTime = Instant.now();
+                    if (Objects.nonNull(firstTrunkTime[0])) {
+                        Duration receivingCostDuration = Duration.between(firstTrunkTime[0], endTime);
+                        log.info(" <== [Llm Execution] Receiving trunks cost : {}", receivingCostDuration);
+                    }
+                    Duration totalCostDuration = Duration.between(executionInstant, endTime);
+                    log.info(" <== [Llm Execution] Execution total cost : {}", totalCostDuration);
+                })
+                .then()
+                .onErrorResume(err -> Mono.empty());
+        return Mono.whenDelayError(loggingTask, chain.next(exchange));
     }
 }

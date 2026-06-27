@@ -88,7 +88,7 @@ public class ChatGeneralExecution implements GeneralExecution {
         return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneral)
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 
@@ -102,7 +102,7 @@ public class ChatGeneralExecution implements GeneralExecution {
         return llmProviderExecutor.executeChat(LlmChatProvider::executeGeneralRaw)
                 .contextWrite(context -> {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
-                    return ExecutionContext.initializeContextIfNecessary(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
+                    return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
     }
 

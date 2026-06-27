@@ -69,7 +69,7 @@ public abstract class LlmProviderUtil {
                     HttpHeaders httpHeaders = clientResponse.headers()
                             .asHttpHeaders();
                     String reasonPhrase = httpStatus == null ? "UNKNOWN" : httpStatus.getReasonPhrase();
-                    int httpStatusValue = httpStatus == null ? -1 : httpStatus.value();
+                    int httpStatusValue = httpStatusCode.value();
                     Charset charset = getCharset(httpHeaders);
                     String errorMessage = getErrorMessage(httpStatusValue, reasonPhrase, bodyBytes, charset);
                     if (Objects.nonNull(httpStatus)) {
