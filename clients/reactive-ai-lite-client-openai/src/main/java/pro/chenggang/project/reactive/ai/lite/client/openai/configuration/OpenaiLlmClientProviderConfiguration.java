@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import pro.chenggang.project.reactive.ai.lite.client.openai.certification.OrganizationTokenCertification;
-import pro.chenggang.project.reactive.ai.lite.client.openai.chat.OpenaiChatProvider;
+import pro.chenggang.project.reactive.ai.lite.client.openai.chat.OpenaiChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.client.openai.chat.OpenaiLlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties;
 import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties.ChatProvider;
@@ -32,6 +32,7 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmChatProvider;
 
 import java.util.List;
 
@@ -53,7 +54,7 @@ public class OpenaiLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OpenaiClientProperties openaiClientProperties, LlmProviderInterceptorRegistry llmProviderInterceptorRegistry) {
+    public LlmChatProvider openaiLlmChatProvider(WebClient.Builder webClientBuilder, OpenaiClientProperties openaiClientProperties, LlmProviderInterceptorRegistry llmProviderInterceptorRegistry) {
         ChatProvider chatProvider = openaiClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -74,7 +75,7 @@ public class OpenaiLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        OpenaiChatProvider openaiChatProvider = OpenaiChatProvider.builder()
+        OpenaiChatProviderDelegate delegate = OpenaiChatProviderDelegate.builder()
                 .name(OpenaiLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
@@ -82,9 +83,13 @@ public class OpenaiLlmClientProviderConfiguration {
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
                 .supportedModels(chatProvider.getLimitedModels())
-                .lLmProviderInterceptorRegistry(llmProviderInterceptorRegistry)
                 .build();
+        DefaultLlmChatProvider defaultLlmChatProvider = new DefaultLlmChatProvider(
+                delegate,
+                certifications,
+                llmProviderInterceptorRegistry
+        );
         log.info("OpenAI LLM client provider initialized successfully");
-        return openaiChatProvider;
+        return defaultLlmChatProvider;
     }
 }

@@ -110,9 +110,14 @@ public class ChatStructuredExecution implements StructuredExecution {
                                     sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
                                     return;
                                 }
+                                String jsonContent = extractJsonContent(content);
+                                if (jsonContent.isBlank()) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null after markdown extraction")));
+                                    return;
+                                }
                                 R structuredContent;
                                 try {
-                                    structuredContent = OBJECT_MAPPER.readValue(content, resultType);
+                                    structuredContent = OBJECT_MAPPER.readValue(jsonContent, resultType);
                                 } catch (Exception e) {
                                     sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
                                     return;
@@ -156,9 +161,14 @@ public class ChatStructuredExecution implements StructuredExecution {
                                     sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
                                     return;
                                 }
+                                String jsonContent = extractJsonContent(content);
+                                if (jsonContent.isBlank()) {
+                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null after markdown extraction")));
+                                    return;
+                                }
                                 R structuredContent;
                                 try {
-                                    structuredContent = OBJECT_MAPPER.readValue(content, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
+                                    structuredContent = OBJECT_MAPPER.readValue(jsonContent, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
                                 } catch (Exception e) {
                                     sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
                                     return;
@@ -232,6 +242,22 @@ public class ChatStructuredExecution implements StructuredExecution {
                     ExecutionSpec executionSpec = llmProviderExecutor.getExecutionSpec();
                     return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
                 });
+    }
+
+    private String extractJsonContent(String content) {
+        if (content == null) {
+            return null;
+        }
+        String trimmed = content.trim();
+        if (trimmed.startsWith("```json")) {
+            trimmed = trimmed.substring("```json".length());
+        } else if (trimmed.startsWith("```")) {
+            trimmed = trimmed.substring("```".length());
+        }
+        if (trimmed.endsWith("```")) {
+            trimmed = trimmed.substring(0, trimmed.length() - "```".length());
+        }
+        return trimmed.trim();
     }
 
 }

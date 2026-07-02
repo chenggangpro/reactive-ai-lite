@@ -51,7 +51,6 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
@@ -71,7 +70,8 @@ import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultAssis
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultToolCallMessage;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
-import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.AbstractLlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
+import pro.chenggang.project.reactive.ai.lite.core.provider.delegate.LlmChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonChunkMerger;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
@@ -98,7 +98,9 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
  * @version 0.1.0
  */
 @Slf4j
-public class AnthropicChatProvider extends AbstractLlmChatProvider {
+public class AnthropicChatProviderDelegate implements LlmChatProviderDelegate {
+
+    private final LlmProviderInfo llmProviderInfo;
 
     private final String baseUrL;
     private final String chatCompletionEndpoint;
@@ -106,30 +108,31 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
     private final String apiVersion;
 
     @Builder
-    private AnthropicChatProvider(@NonNull WebClient.Builder webClientBuilder,
+    protected AnthropicChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
                                   @NonNull String baseUrL,
                                   @NonNull String chatCompletionEndpoint,
                                   boolean isDefault,
                                   @NonNull String name,
                                   Set<String> supportedModels,
                                   @NonNull List<TokenCertification> certifications,
-                                  @NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry,
                                   @NonNull String apiVersion) {
-        super(certifications,
-                (certificationMap) -> AnthropicLlmProviderInfo.builder()
-                        .isDefault(isDefault)
-                        .name(name)
-                        .supportedModels(supportedModels)
-                        .profiles(certificationMap.keySet())
-                        .baseUrl(baseUrL)
-                        .endpoint(chatCompletionEndpoint)
-                        .build(),
-                lLmProviderInterceptorRegistry
-        );
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
         this.apiVersion = apiVersion;
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
+        this.llmProviderInfo = AnthropicLlmProviderInfo.builder()
+                        .isDefault(isDefault)
+                        .name(name)
+                        .supportedModels(supportedModels)
+                        .profiles(certifications.stream().map(TokenCertification::profile).collect(java.util.stream.Collectors.toSet()))
+                        .baseUrl(baseUrL)
+                        .endpoint(chatCompletionEndpoint)
+                        .build();
+    }
+
+    @Override
+    public LlmProviderInfo providerInfo() {
+        return this.llmProviderInfo;
     }
 
     protected Integer extractPromptTokenUsage(ObjectNode rawUsage) {
@@ -153,28 +156,30 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
-        return this.webClient.post()
+    public RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
+        RequestBodySpec requestBodySpec = this.webClient.post()
                 .uri(uriBuilder -> {
                     uriBuilder.path(this.chatCompletionEndpoint);
                     llmChatRequestData.getTokenCertification()
                             .ifPresent(tokenCertification -> {
                                 if (tokenCertification instanceof UriTokenCertification uriTokenCertification) {
-                                    super.applyCertificationWithUriBuilder(uriBuilder, uriTokenCertification);
+                                    uriTokenCertification.applyTo(uriBuilder);
                                 }
                             });
                     return uriBuilder.build();
                 })
                 .header("anthropic-version", apiVersion);
+        llmChatRequestData.getTokenCertification().ifPresent(cert -> applyStandardTokenCertification(requestBodySpec, cert));
+        return requestBodySpec;
     }
 
     @Override
-    protected ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
+    public ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
         return OBJECT_MAPPER.valueToTree(this.buildRequest(llmChatRequestData));
     }
 
     @Override
-    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull JsonChunkParsingData jsonChunkParsingData) {
+    public JsonStreamChunkSlide[] extractStreamChunks(@NonNull JsonChunkParsingData jsonChunkParsingData) {
         ObjectNode parsingDataContent = jsonChunkParsingData.getData();
         JsonNode typeNode = parsingDataContent.at("/type");
         if (typeNode.isMissingNode() || !typeNode.isTextual() || typeNode.isNull()) {
@@ -347,7 +352,7 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls) {
+    public ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls) {
         List<ObjectNode> toolCalls = new ArrayList<>();
         for (ObjectNode rawToolCallMessage : rawToolCallMessages) {
             JsonNode messageTypeNode = rawToolCallMessage.at("/type");
@@ -405,7 +410,7 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Mono<GeneralResponse> extraGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse) {
+    public Mono<GeneralResponse> extractGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse) {
         return Mono.fromCallable(rawResponse::getResponseBody)
                 .handle((rawResponseBody, syncSink) -> {
                     var generalResponseBuilder = GeneralResponse.builder()
@@ -503,7 +508,7 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
+    public Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
         StreamDataType streamDataType = rawStreamResponse.getDataType();
         ObjectNode dataContent = rawStreamResponse.getDataContent();
         if (StreamDataType.UNKNOWN.equals(streamDataType)) {
@@ -646,11 +651,10 @@ public class AnthropicChatProvider extends AbstractLlmChatProvider {
 
     @Override
     public String toString() {
-        return "AnthropicChatProvider{" +
+        return "AnthropicChatProviderDelegate{" +
                 "llmProviderInfo=" + llmProviderInfo +
                 ", baseUrL='" + baseUrL + '\'' +
                 ", chatCompletionEndpoint='" + chatCompletionEndpoint + '\'' +
-                ", certification=" + certificationMap.size() +
                 '}';
     }
 

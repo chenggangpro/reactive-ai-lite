@@ -125,10 +125,9 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
                         }
                 );
         LlmProviderInfo llmProviderInfo = exchange.llmProviderInfo();
-        log.info("  ==> [Llm Execution] Client type : {}", exchange.clientType());
-        log.info("  ==> [Llm Execution] Request endpoint : {}", llmProviderInfo.baseUrl() + llmProviderInfo.endpoint());
+        log.info(" ==> [Llm Execution] ({}) Request endpoint : {}", exchange.clientType(), llmProviderInfo.baseUrl() + llmProviderInfo.endpoint());
         if (log.isDebugEnabled()) {
-            log.debug("  ==> [Llm Execution] Raw request body: {}", exchange.rawRequestBody());
+            log.debug(" ==> [Llm Execution] Raw request body: {}", exchange.rawRequestBody());
         }
         return chain.next(exchange);
     }
@@ -156,7 +155,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
         optionalThrowable.ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         Duration costDuration = Duration.between(executionInstant, Instant.now());
-        log.info(" <== [Llm Execution] Execution cost : {}", costDuration);
+        log.info(" <== [Llm Execution] Execution costs : {}", costDuration);
         return chain.next(exchange);
     }
 
@@ -180,7 +179,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
             exchange.getAttributes().put(ALREADY_LOGGED_ATTR_KEY, true);
             exchange.error().ifPresent(throwable -> log.error(" <== [Llm Execution] Execution error", throwable));
             Duration costDuration = Duration.between(executionInstant, Instant.now());
-            log.info(" <== [Llm Execution] Execution cost : {} ms", costDuration.toMillis());
+            log.info(" <== [Llm Execution] Execution costs : {} ms", costDuration.toMillis());
             return chain.next(exchange);
         }
         Instant[] firstTrunkTime = new Instant[1];
@@ -193,10 +192,15 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
                     firstTrunkTime[0] = Instant.now();
                     if (log.isDebugEnabled()) {
                         Duration costDuration = Duration.between(executionInstant, firstTrunkTime[0]);
-                        log.debug(" <== [Llm Execution] Receive first trunk of stream response content cost: {}", costDuration);
+                        log.debug(" <== [Llm Execution] Receive first trunk of stream response content costs : {}", costDuration);
                     }
                 })
                 .doOnNext(mergedNode -> {
+                    Instant endTime = Instant.now();
+                    if (Objects.nonNull(firstTrunkTime[0])) {
+                        Duration receivingCostDuration = Duration.between(firstTrunkTime[0], endTime);
+                        log.info(" <== [Llm Execution] Receiving trunks costs : {}", receivingCostDuration);
+                    }
                     if (log.isDebugEnabled()) {
                         log.debug(" <== [Llm Execution] Merged stream response content: {}", mergedNode);
                     }
@@ -206,12 +210,8 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
                 .doFinally(signalType -> {
                     exchange.getAttributes().put(ALREADY_LOGGED_ATTR_KEY, true);
                     Instant endTime = Instant.now();
-                    if (Objects.nonNull(firstTrunkTime[0])) {
-                        Duration receivingCostDuration = Duration.between(firstTrunkTime[0], endTime);
-                        log.info(" <== [Llm Execution] Receiving trunks cost : {}", receivingCostDuration);
-                    }
                     Duration totalCostDuration = Duration.between(executionInstant, endTime);
-                    log.info(" <== [Llm Execution] Execution total cost : {}", totalCostDuration);
+                    log.info(" <== [Llm Execution] Execution total costs : {}", totalCostDuration);
                 })
                 .then()
                 .onErrorResume(err -> Mono.empty());

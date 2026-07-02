@@ -39,7 +39,6 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.Message;
@@ -58,7 +57,8 @@ import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultAssis
 import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultToolCallMessage;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
-import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.AbstractLlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
+import pro.chenggang.project.reactive.ai.lite.core.provider.delegate.LlmChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
@@ -86,7 +86,9 @@ import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.O
  * @version 0.1.0
  */
 @Slf4j
-public class OllamaChatProvider extends AbstractLlmChatProvider {
+public class OllamaChatProviderDelegate implements LlmChatProviderDelegate {
+
+    private final LlmProviderInfo llmProviderInfo;
 
     private final List<String> usageJsonField = List.of(
             "total_duration",
@@ -102,28 +104,29 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     private final WebClient webClient;
 
     @Builder
-    protected OllamaChatProvider(@NonNull WebClient.Builder webClientBuilder,
+    protected OllamaChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
                                  @NonNull String baseUrL,
                                  @NonNull String chatCompletionEndpoint,
                                  boolean isDefault,
                                  @NonNull String name,
                                  Set<String> supportedModels,
-                                 @NonNull List<TokenCertification> certifications,
-                                 @NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
-        super(certifications,
-                (certificationMap) -> OllamaLlmProviderInfo.builder()
-                        .isDefault(isDefault)
-                        .name(name)
-                        .supportedModels(supportedModels)
-                        .profiles(certificationMap.keySet())
-                        .baseUrl(baseUrL)
-                        .endpoint(chatCompletionEndpoint)
-                        .build(),
-                lLmProviderInterceptorRegistry
-        );
+                                 @NonNull List<TokenCertification> certifications) {
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
+        this.llmProviderInfo = OllamaLlmProviderInfo.builder()
+                        .isDefault(isDefault)
+                        .name(name)
+                        .supportedModels(supportedModels)
+                        .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
+                        .baseUrl(baseUrL)
+                        .endpoint(chatCompletionEndpoint)
+                        .build();
+    }
+
+    @Override
+    public LlmProviderInfo providerInfo() {
+        return this.llmProviderInfo;
     }
 
     protected Integer extractPromptTokenUsage(ObjectNode rawUsage) {
@@ -147,27 +150,29 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
-        return this.webClient.post()
+    public RequestBodySpec loadRequestBodySpec(@NonNull LlmChatRequestData llmChatRequestData) {
+        RequestBodySpec requestBodySpec = this.webClient.post()
                 .uri(uriBuilder -> {
                     uriBuilder.path(this.chatCompletionEndpoint);
                     llmChatRequestData.getTokenCertification()
                             .ifPresent(tokenCertification -> {
                                 if (tokenCertification instanceof UriTokenCertification uriTokenCertification) {
-                                    super.applyCertificationWithUriBuilder(uriBuilder, uriTokenCertification);
+                                    uriTokenCertification.applyTo(uriBuilder);
                                 }
                             });
                     return uriBuilder.build();
                 });
+        llmChatRequestData.getTokenCertification().ifPresent(cert -> applyStandardTokenCertification(requestBodySpec, cert));
+        return requestBodySpec;
     }
 
     @Override
-    protected ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
+    public ObjectNode initializeRequestBody(@NonNull LlmChatRequestData llmChatRequestData) {
         return OBJECT_MAPPER.valueToTree(this.buildRequest(llmChatRequestData));
     }
 
     @Override
-    protected JsonStreamChunkSlide[] extractStreamChunks(@NonNull StreamResponseParser.JsonChunkParsingData jsonChunkParsingData) {
+    public JsonStreamChunkSlide[] extractStreamChunks(@NonNull StreamResponseParser.JsonChunkParsingData jsonChunkParsingData) {
         ObjectNode rawResponseData = jsonChunkParsingData.getData();
         JsonNode messageNode = rawResponseData.at("/message");
         if (messageNode.isMissingNode() || !messageNode.isObject()) {
@@ -260,7 +265,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls) {
+    public ObjectNode mergeRawToolCallMessages(@NonNull List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls) {
         if (rawToolCallMessages.size() == 1) {
             return rawToolCallMessages.getFirst();
         }
@@ -303,7 +308,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Mono<GeneralResponse> extraGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse) {
+    public Mono<GeneralResponse> extractGeneralResponse(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawResponse rawResponse) {
         return Mono.fromCallable(rawResponse::getResponseBody)
                 .handle((rawResponseBody, syncSink) -> {
                     var generalResponseBuilder = GeneralResponse.builder()
@@ -409,7 +414,7 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
+    public Publisher<StreamResponse> extractStreamResponseContent(@NonNull List<ToolDefinition> toolDefinitions, @NonNull RawStreamResponse rawStreamResponse) {
         StreamDataType streamDataType = rawStreamResponse.getDataType();
         ObjectNode dataContent = rawStreamResponse.getDataContent();
         if (StreamDataType.UNKNOWN.equals(streamDataType)) {
@@ -521,17 +526,16 @@ public class OllamaChatProvider extends AbstractLlmChatProvider {
     }
 
     @Override
-    protected void checkTokenCertification(@NonNull LlmChatRequestData llmChatRequestData) {
+    public void checkTokenCertification(@NonNull LlmChatRequestData llmChatRequestData) {
         log.debug("Ollama chat provider can work without api certification");
     }
 
     @Override
     public String toString() {
-        return "OllamaChatProvider{" +
+        return "OllamaChatProviderDelegate{" +
                 "llmProviderInfo=" + llmProviderInfo +
                 ", baseUrL='" + baseUrL + '\'' +
                 ", chatCompletionEndpoint='" + chatCompletionEndpoint + '\'' +
-                ", certification=" + certificationMap.size() +
                 '}';
     }
 

@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.web.reactive.function.client.WebCl
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.WebClient;
-import pro.chenggang.project.reactive.ai.lite.client.ollama.chat.OllamaChatProvider;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.chat.OllamaChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.chat.OllamaLlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties.ChatProvider;
@@ -30,6 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmChatProvider;
 
 import java.util.List;
 
@@ -51,7 +52,7 @@ public class OllamaLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, OllamaClientProperties ollamaClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+    public LlmChatProvider ollamaLlmChatProvider(WebClient.Builder webClientBuilder, OllamaClientProperties ollamaClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         ChatProvider chatProvider = ollamaClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -63,7 +64,7 @@ public class OllamaLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        OllamaChatProvider ollamaChatProvider = OllamaChatProvider.builder()
+        OllamaChatProviderDelegate delegate = OllamaChatProviderDelegate.builder()
                 .name(OllamaLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
@@ -71,9 +72,13 @@ public class OllamaLlmClientProviderConfiguration {
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
                 .supportedModels(chatProvider.getLimitedModels())
-                .lLmProviderInterceptorRegistry(lLmProviderInterceptorRegistry)
                 .build();
+        DefaultLlmChatProvider defaultLlmChatProvider = new DefaultLlmChatProvider(
+                delegate,
+                certifications,
+                lLmProviderInterceptorRegistry
+        );
         log.info("Ollama LLM client provider initialized successfully");
-        return ollamaChatProvider;
+        return defaultLlmChatProvider;
     }
 }

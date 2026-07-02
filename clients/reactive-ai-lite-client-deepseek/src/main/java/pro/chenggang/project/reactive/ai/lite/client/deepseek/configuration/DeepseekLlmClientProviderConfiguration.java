@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.web.reactive.function.client.WebCl
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.WebClient;
-import pro.chenggang.project.reactive.ai.lite.client.deepseek.chat.DeepseekChatProvider;
+import pro.chenggang.project.reactive.ai.lite.client.deepseek.chat.DeepseekChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.chat.DeepseekLlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.properties.DeepseekClientProperties;
 import pro.chenggang.project.reactive.ai.lite.client.deepseek.properties.DeepseekClientProperties.ChatProvider;
@@ -30,6 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmChatProvider;
 
 import java.util.List;
 
@@ -51,7 +52,7 @@ public class DeepseekLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, DeepseekClientProperties deepseekClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+    public LlmChatProvider deepseekLlmChatProvider(WebClient.Builder webClientBuilder, DeepseekClientProperties deepseekClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         ChatProvider chatProvider = deepseekClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -63,7 +64,7 @@ public class DeepseekLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        DeepseekChatProvider deepseekChatProvider = DeepseekChatProvider.builder()
+        DeepseekChatProviderDelegate delegate = DeepseekChatProviderDelegate.builder()
                 .name(DeepseekLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
@@ -71,9 +72,13 @@ public class DeepseekLlmClientProviderConfiguration {
                 .isDefault(chatProvider.isDefault())
                 .certifications(certifications)
                 .supportedModels(chatProvider.getLimitedModels())
-                .lLmProviderInterceptorRegistry(lLmProviderInterceptorRegistry)
                 .build();
+        DefaultLlmChatProvider defaultLlmChatProvider = new DefaultLlmChatProvider(
+                delegate,
+                certifications,
+                lLmProviderInterceptorRegistry
+        );
         log.info("Deepseek LLM client provider initialized successfully");
-        return deepseekChatProvider;
+        return defaultLlmChatProvider;
     }
 }

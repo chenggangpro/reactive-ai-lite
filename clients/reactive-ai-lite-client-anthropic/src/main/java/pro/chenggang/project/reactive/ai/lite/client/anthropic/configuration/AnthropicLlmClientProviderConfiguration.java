@@ -22,7 +22,7 @@ import org.springframework.boot.autoconfigure.web.reactive.function.client.WebCl
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.WebClient;
-import pro.chenggang.project.reactive.ai.lite.client.anthropic.chat.AnthropicChatProvider;
+import pro.chenggang.project.reactive.ai.lite.client.anthropic.chat.AnthropicChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.client.anthropic.chat.AnthropicLlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.client.anthropic.properties.AnthropicClientProperties;
 import pro.chenggang.project.reactive.ai.lite.client.anthropic.properties.AnthropicClientProperties.ChatProvider;
@@ -30,6 +30,7 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertificat
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmChatProvider;
 
 import java.util.List;
 
@@ -51,7 +52,7 @@ public class AnthropicLlmClientProviderConfiguration {
     }
 
     @Bean
-    public LlmChatProvider llmChatProvider(WebClient.Builder webClientBuilder, AnthropicClientProperties AnthropicClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+    public LlmChatProvider anthropicLlmChatProvider(WebClient.Builder webClientBuilder, AnthropicClientProperties AnthropicClientProperties, LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
         ChatProvider chatProvider = AnthropicClientProperties.getChatProvider();
         List<TokenCertification> certifications = chatProvider.getCertifications()
                 .stream()
@@ -63,7 +64,7 @@ public class AnthropicLlmClientProviderConfiguration {
                             .build();
                 })
                 .toList();
-        AnthropicChatProvider anthropicChatProvider = AnthropicChatProvider.builder()
+        AnthropicChatProviderDelegate delegate = AnthropicChatProviderDelegate.builder()
                 .name(AnthropicLlmProviderInfo.DEFAULT_NAME)
                 .baseUrL(chatProvider.getBaseUrl())
                 .chatCompletionEndpoint(chatProvider.getChatCompletionEndpoint())
@@ -72,9 +73,13 @@ public class AnthropicLlmClientProviderConfiguration {
                 .certifications(certifications)
                 .apiVersion(chatProvider.getAnthropicVersion())
                 .supportedModels(chatProvider.getLimitedModels())
-                .lLmProviderInterceptorRegistry(lLmProviderInterceptorRegistry)
                 .build();
+        DefaultLlmChatProvider defaultLlmChatProvider = new DefaultLlmChatProvider(
+                delegate,
+                certifications,
+                lLmProviderInterceptorRegistry
+        );
         log.info("Anthropic LLM client provider initialized successfully");
-        return anthropicChatProvider;
+        return defaultLlmChatProvider;
     }
 }
