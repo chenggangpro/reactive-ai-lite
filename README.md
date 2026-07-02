@@ -24,6 +24,7 @@ By abstracting provider-specific implementations behind a unified **Service Prov
 - **🔌 Unified Provider SPI**: A single, elegant API to interact with diverse model providers including **OpenAI**, **Anthropic**, **DeepSeek**, and **Ollama**.
 - **📜 Fluent Builder DSL**: Construct complex chat completion requests, including system prompts, multi-modal inputs, and tool calls, with an intuitive and type-safe API.
 - **🌊 Native Streaming Support**: First-class support for Server-Sent Events (SSE) streaming via `Flux`, enabling real-time generation and chunk processing.
+- **🧩 Structured Outputs**: Built-in support for generating and parsing complex JSON structures directly from LLM responses with robust markdown fence stripping.
 - **🍃 Spring Boot 3.5+ Integration**: Zero-friction auto-configuration with `reactive-ai-lite-starter`, seamlessly integrating with the Spring ecosystem.
 - **🔍 Interceptor Chain**: An aspect-oriented execution pipeline for observability, request logging, caching, and security enforcement without polluting core business logic.
 
@@ -129,46 +130,32 @@ Reactive AI Lite is designed with modularity, immutability, and extensibility at
 4. **Provider SPI Execution**: The `LlmProviderExecutor` delegates the contextual request to the mapped `LlmProvider` (e.g., OpenAI, Ollama).
 5. **Reactive Response**: The provider executes the network call non-blockingly and returns a `Mono` or `Flux` encompassing the LLM response.
 
-```mermaid
-graph TD
-    Client[ReactiveLlmClient API] -->|Builds| Spec[Fluent DSL Specification]
-    Spec -->|Generates| Context[Immutable Execution Context]
-    Context --> InterceptorChain[Interceptor Chain]
-    
-    subgraph Execution Pipeline
-        InterceptorChain -->|Before Exchange| Executor[Provider Executor]
-        Executor -->|Delegates via SPI| ProviderRegistry[Provider Registry]
-        ProviderRegistry -->|Resolves| Provider{Target LlmProvider}
-    end
-    
-    Provider -->|HTTP/SSE| LLM[LLM Endpoint]
-    LLM -->|Stream / Mono| Executor
-    Executor -->|After Exchange| InterceptorChain
-    InterceptorChain -->|Returns| Application[Application Code]
-```
+![architecture-diagram](architecture-diagram.png)
 
 
 ### Extensibility: Implementing a Custom Provider
 
-The SPI design allows seamless integration of custom or proprietary LLMs without altering the core framework. Simply implement the `LlmProvider` interface and expose it as a Spring Bean:
+The framework utilizes a composition pattern for maximum flexibility. To integrate a custom or proprietary LLM, simply implement the `LlmChatProviderDelegate` to handle provider-specific logic (like request payloads and SSE parsing) and configure it as a Spring Bean using `DefaultLlmChatProvider`:
 
 ```java
-@Component
-public class CustomLlmProvider implements LlmProvider {
+@Configuration
+public class CustomLlmProviderConfiguration {
 
-    @Override
-    public String providerName() {
-        return "custom-provider";
-    }
-
-    @Override
-    public Mono<ChatCompletionResponse> chatCompletion(ExecutionContext context) {
-        // Implement reactive HTTP call to the proprietary LLM
-    }
-    
-    @Override
-    public Flux<ChatCompletionChunk> streamChatCompletion(ExecutionContext context) {
-        // Implement reactive SSE stream parsing
+    @Bean
+    public LlmChatProvider customLlmChatProvider(WebClient.Builder webClientBuilder, LlmProviderInterceptorRegistry registry) {
+        // 1. Implement your provider-specific logic
+        LlmChatProviderDelegate delegate = new CustomChatProviderDelegate(webClientBuilder);
+        
+        // 2. Define standard certifications
+        List<TokenCertification> certifications = List.of(
+            BearerTokenCertification.builder()
+                .token("your-custom-token")
+                .isDefault(true)
+                .build()
+        );
+        
+        // 3. Compose and return the DefaultLlmChatProvider
+        return new DefaultLlmChatProvider(delegate, certifications, registry);
     }
 }
 ```
@@ -196,8 +183,6 @@ reactive-ai-lite/
 ├── pom.xml                              # Maven root aggregation
 └── LICENSE                              # Apache 2.0 License
 ```
-
-> **Note:** The `openspec` and `ai-workspace` directories are excluded from this overview.
 
 ---
 
