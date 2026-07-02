@@ -192,7 +192,7 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
                     firstTrunkTime[0] = Instant.now();
                     if (log.isDebugEnabled()) {
                         Duration costDuration = Duration.between(executionInstant, firstTrunkTime[0]);
-                        log.debug(" <== [Llm Execution] Receive first trunk of stream response content costs : {}", costDuration);
+                        log.debug(" <== [Llm Execution] Receiving first trunk of stream response content costs : {}", costDuration);
                     }
                 })
                 .doOnNext(mergedNode -> {
