@@ -61,6 +61,8 @@ public class DeepseekChatRequest {
     private final Integer maxTokens;
     @JsonProperty("thinking")
     private final Thinking thinking;
+    @JsonProperty("reasoning_effort")
+    private final String reasoningEffort;
 
     @JsonInclude(Include.NON_NULL)
     public record StreamOptions(

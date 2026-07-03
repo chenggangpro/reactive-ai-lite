@@ -99,23 +99,23 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
 
     @Builder
     private DeepseekChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
-                                 @NonNull String baseUrL,
-                                 @NonNull String chatCompletionEndpoint,
-                                 boolean isDefault,
-                                 @NonNull String name,
-                                 Set<String> supportedModels,
-                                 @NonNull List<TokenCertification> certifications) {
+                                         @NonNull String baseUrL,
+                                         @NonNull String chatCompletionEndpoint,
+                                         boolean isDefault,
+                                         @NonNull String name,
+                                         Set<String> supportedModels,
+                                         @NonNull List<TokenCertification> certifications) {
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
         this.llmProviderInfo = DeepseekLlmProviderInfo.builder()
-                        .isDefault(isDefault)
-                        .name(name)
-                        .supportedModels(supportedModels)
-                        .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
-                        .baseUrl(baseUrL)
-                        .endpoint(chatCompletionEndpoint)
-                        .build();
+                .isDefault(isDefault)
+                .name(name)
+                .supportedModels(supportedModels)
+                .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
+                .baseUrl(baseUrL)
+                .endpoint(chatCompletionEndpoint)
+                .build();
     }
 
     @Override
@@ -149,7 +149,6 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
         }
         return totalTokenUsage - promptTokenUsage - completionTokenUsage;
     }
-
 
 
     @Override
@@ -580,12 +579,19 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
             deepseekChatRequestBuilder.streamOptions(INCLUDE_USAGE);
         }
         llmChatRequestData.getReasoning().ifPresent(reasoning -> {
-            if ("true".equalsIgnoreCase(reasoning) || "enabled".equalsIgnoreCase(reasoning) || "1".equalsIgnoreCase(reasoning)) {
+            String[] deepseekReasoning = reasoning.split(":");
+            String enabledOrDisabled = deepseekReasoning[0];
+            if ("true".equalsIgnoreCase(enabledOrDisabled) || "enabled".equalsIgnoreCase(enabledOrDisabled) || "1".equalsIgnoreCase(enabledOrDisabled)) {
                 deepseekChatRequestBuilder.thinking(Thinking.ENABLED);
-            } else if ("false".equalsIgnoreCase(reasoning) || "disabled".equalsIgnoreCase(reasoning) || "0".equalsIgnoreCase(reasoning)) {
+                if (deepseekReasoning.length > 1) {
+                    deepseekChatRequestBuilder.reasoningEffort(deepseekReasoning[1]);
+                } else {
+                    log.debug("No reasoning effort configured in thinking.");
+                }
+            } else if ("false".equalsIgnoreCase(enabledOrDisabled) || "disabled".equalsIgnoreCase(enabledOrDisabled) || "0".equalsIgnoreCase(enabledOrDisabled)) {
                 deepseekChatRequestBuilder.thinking(Thinking.DISABLED);
             } else {
-                log.warn("Invalid reasoning value: {}", reasoning);
+                log.warn("Invalid reasoning and reasoning effort value: {}", reasoning);
             }
         });
         llmChatRequestData.getMaxCompletionTokens().ifPresent(deepseekChatRequestBuilder::maxTokens);

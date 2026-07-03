@@ -149,9 +149,29 @@ public interface ConfigurableChatSpec extends ChatSpec {
     /**
      * Sets a static reasoning or system-level instruction for the model.
      * <ul>
-     * <li>low/medium/high value in openai</li>
-     * <li>enabled/disabled in deepseek's thinking param</li>
-     * <li>true/false in ollama's think param</li>
+     * <li>openai:
+     * <ul>
+     * <li>low</li>
+     * <li>medium</li>
+     * <li>high</li>
+     * </ul>
+     * <li>deepseek</li>
+     * <ul>
+     *     <li>enabled</li>
+     *     <li>disabled</li>
+     *     <li>enabled:high</li>
+     *     <li>enabled:max</li>
+     * </ul>
+     * <li>ollama</li>
+     * <ul>
+     *     <li>true</li>
+     *     <li>false</li>
+     * </ul>
+     * <li>anthropic</li>
+     * <ul>
+     *     <li>enabled:budgetTokens(enabled:1024)</li>
+     *     <li>false</li>
+     * </ul>
      * </ul>
      *
      * @param reasoning the reasoning string to use
