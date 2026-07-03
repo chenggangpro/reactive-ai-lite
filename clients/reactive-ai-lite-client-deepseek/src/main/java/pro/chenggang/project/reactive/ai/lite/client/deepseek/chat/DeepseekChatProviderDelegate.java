@@ -595,8 +595,36 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
             }
         });
         llmChatRequestData.getMaxCompletionTokens().ifPresent(deepseekChatRequestBuilder::maxTokens);
-        llmChatRequestData.getToolChoice().ifPresent(deepseekChatRequestBuilder::toolChoice);
         var functionTools = buildFunctionTools(llmChatRequestData.getToolDefinitions());
+        boolean isEmptyTools = Objects.isNull(functionTools) || functionTools.isEmpty();
+        llmChatRequestData.getToolChoice().ifPresent(toolChoice -> {
+            if (isEmptyTools) {
+                deepseekChatRequestBuilder.toolChoice("none");
+                return;
+            }
+            if (toolChoice.equalsIgnoreCase("none") || toolChoice.equalsIgnoreCase("auto") || toolChoice.equalsIgnoreCase("required")) {
+                deepseekChatRequestBuilder.toolChoice(toolChoice);
+                return;
+            }
+            functionTools.stream()
+                    .filter(functionTool -> toolChoice.equalsIgnoreCase(functionTool.getFunction().getName()))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            functionTool -> {
+                                FunctionTool nameOnlyFunctionTool = FunctionTool.builder()
+                                        .type(functionTool.getType())
+                                        .function(Function.builder()
+                                                .name(functionTool.getFunction().getName())
+                                                .build()
+                                        )
+                                        .build();
+                                deepseekChatRequestBuilder.toolChoice(nameOnlyFunctionTool);
+                            }
+                            , () -> {
+                                log.warn("No tool found for name: {}", toolChoice);
+                            }
+                    );
+        });
         var systemMessage = buildSystemMessage(llmChatRequestData.getSystemMessage());
         var userMessage = this.buildTextMessage(Role.USER, llmChatRequestData.getUserTextMessage());
         llmChatRequestData.getUserMediaMessage()
@@ -615,7 +643,7 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
         return deepseekChatRequestBuilder
                 .stream(llmChatRequestData.isStream())
                 .messages(allMessages)
-                .tools(functionTools)
+                .tools(isEmptyTools ? null : functionTools)
                 .build();
     }
 

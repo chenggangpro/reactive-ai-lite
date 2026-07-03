@@ -88,7 +88,9 @@ public class JsonChunkMerger {
 
             if (targetValue == null || targetValue.isNull()) {
                 // 1. New field: safely copy it over
-                targetObj.set(key, sourceValue.deepCopy());
+                if (sourceValue != null && !sourceValue.isNull()) {
+                    targetObj.set(key, sourceValue.deepCopy());
+                }
             } else if (targetValue.isTextual() && sourceValue.isTextual()) {
                 // 2. THE HEURISTIC: Differentiate metadata vs. streaming tokens
                 String targetStr = targetValue.asText();
@@ -109,7 +111,9 @@ public class JsonChunkMerger {
                 mergeArrays((ArrayNode) targetValue, (ArrayNode) sourceValue);
             } else {
                 // 5. Fallback: overwrite numerical, boolean, or mismatched types
-                targetObj.set(key, sourceValue.deepCopy());
+                if (sourceValue != null && !sourceValue.isNull()) {
+                    targetObj.set(key, sourceValue.deepCopy());
+                }
             }
         }
     }

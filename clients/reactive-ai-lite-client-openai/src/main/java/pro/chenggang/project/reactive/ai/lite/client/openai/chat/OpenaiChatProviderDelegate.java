@@ -116,23 +116,23 @@ public class OpenaiChatProviderDelegate implements LlmChatProviderDelegate {
 
     @Builder
     private OpenaiChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
-                               @NonNull String baseUrL,
-                               @NonNull String chatCompletionEndpoint,
-                               boolean isDefault,
-                               @NonNull String name,
-                               Set<String> supportedModels,
-                               @NonNull List<TokenCertification> certifications) {
+                                       @NonNull String baseUrL,
+                                       @NonNull String chatCompletionEndpoint,
+                                       boolean isDefault,
+                                       @NonNull String name,
+                                       Set<String> supportedModels,
+                                       @NonNull List<TokenCertification> certifications) {
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
         this.llmProviderInfo = OpenaiLlmProviderInfo.builder()
-                        .isDefault(isDefault)
-                        .name(name)
-                        .supportedModels(supportedModels)
-                        .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
-                        .baseUrl(baseUrL)
-                        .endpoint(chatCompletionEndpoint)
-                        .build();
+                .isDefault(isDefault)
+                .name(name)
+                .supportedModels(supportedModels)
+                .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
+                .baseUrl(baseUrL)
+                .endpoint(chatCompletionEndpoint)
+                .build();
     }
 
     @Override
@@ -166,7 +166,6 @@ public class OpenaiChatProviderDelegate implements LlmChatProviderDelegate {
         }
         return totalTokenUsage - promptTokenUsage - completionTokenUsage;
     }
-
 
 
     @Override
@@ -583,7 +582,6 @@ public class OpenaiChatProviderDelegate implements LlmChatProviderDelegate {
     }
 
 
-
     @Override
     public String toString() {
         return "OpenaiChatProviderDelegate{" +
@@ -635,6 +633,35 @@ public class OpenaiChatProviderDelegate implements LlmChatProviderDelegate {
         llmChatRequestData.getMaxCompletionTokens().ifPresent(openaiChatRequestBuilder::maxCompletionTokens);
         llmChatRequestData.getToolChoice().ifPresent(openaiChatRequestBuilder::toolChoice);
         var functionTools = buildFunctionTools(llmChatRequestData.getToolDefinitions());
+        boolean isEmptyTools = Objects.isNull(functionTools) || functionTools.isEmpty();
+        llmChatRequestData.getToolChoice().ifPresent(toolChoice -> {
+            if (isEmptyTools) {
+                openaiChatRequestBuilder.toolChoice("none");
+                return;
+            }
+            if (toolChoice.equalsIgnoreCase("none") || toolChoice.equalsIgnoreCase("auto") || toolChoice.equalsIgnoreCase("required")) {
+                openaiChatRequestBuilder.toolChoice(toolChoice);
+                return;
+            }
+            functionTools.stream()
+                    .filter(functionTool -> toolChoice.equalsIgnoreCase(functionTool.getFunction().getName()))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            functionTool -> {
+                                FunctionTool nameOnlyFunctionTool = FunctionTool.builder()
+                                        .type(functionTool.getType())
+                                        .function(Function.builder()
+                                                .name(functionTool.getFunction().getName())
+                                                .build()
+                                        )
+                                        .build();
+                                openaiChatRequestBuilder.toolChoice(nameOnlyFunctionTool);
+                            }
+                            , () -> {
+                                log.warn("No tool found for name: {}", toolChoice);
+                            }
+                    );
+        });
         var systemMessage = buildSystemMessage(llmChatRequestData.getSystemMessage());
         var userMessage = llmChatRequestData.getUserMediaMessage()
                 .map(mediaMessage -> buildMediaMessage(Role.USER, mediaMessage))
@@ -651,7 +678,7 @@ public class OpenaiChatProviderDelegate implements LlmChatProviderDelegate {
         return openaiChatRequestBuilder
                 .stream(llmChatRequestData.isStream())
                 .messages(allMessages)
-                .tools(functionTools)
+                .tools(isEmptyTools ? null : functionTools)
                 .parallelToolCalls(true)
                 .build();
     }

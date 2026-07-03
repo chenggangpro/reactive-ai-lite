@@ -109,25 +109,25 @@ public class AnthropicChatProviderDelegate implements LlmChatProviderDelegate {
 
     @Builder
     protected AnthropicChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
-                                  @NonNull String baseUrL,
-                                  @NonNull String chatCompletionEndpoint,
-                                  boolean isDefault,
-                                  @NonNull String name,
-                                  Set<String> supportedModels,
-                                  @NonNull List<TokenCertification> certifications,
-                                  @NonNull String apiVersion) {
+                                            @NonNull String baseUrL,
+                                            @NonNull String chatCompletionEndpoint,
+                                            boolean isDefault,
+                                            @NonNull String name,
+                                            Set<String> supportedModels,
+                                            @NonNull List<TokenCertification> certifications,
+                                            @NonNull String apiVersion) {
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
         this.apiVersion = apiVersion;
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
         this.llmProviderInfo = AnthropicLlmProviderInfo.builder()
-                        .isDefault(isDefault)
-                        .name(name)
-                        .supportedModels(supportedModels)
-                        .profiles(certifications.stream().map(TokenCertification::profile).collect(java.util.stream.Collectors.toSet()))
-                        .baseUrl(baseUrL)
-                        .endpoint(chatCompletionEndpoint)
-                        .build();
+                .isDefault(isDefault)
+                .name(name)
+                .supportedModels(supportedModels)
+                .profiles(certifications.stream().map(TokenCertification::profile).collect(java.util.stream.Collectors.toSet()))
+                .baseUrl(baseUrL)
+                .endpoint(chatCompletionEndpoint)
+                .build();
     }
 
     @Override
@@ -715,17 +715,15 @@ public class AnthropicChatProviderDelegate implements LlmChatProviderDelegate {
                     if ("none".equalsIgnoreCase(toolChoice)) {
                         return ToolChoice.NONE;
                     }
-                    if (toolChoice.startsWith("tool")) {
-                        String[] toolChoiceConfig = toolChoice.split(":");
-                        if (toolChoiceConfig.length > 1) {
-                            return ToolChoice.tool(toolChoiceConfig[1]);
-                        }
+                    if (!toolChoice.isBlank()) {
+                        return ToolChoice.tool(toolChoice);
                     }
                     log.warn("Unrecognized tool choice: {}", toolChoice);
                     return null;
                 })
                 .ifPresent(anthropicChatRequestBuilder::toolChoice);
         var functionTools = buildFunctionTools(llmChatRequestData.getToolDefinitions());
+        boolean isEmptyTools = Objects.isNull(functionTools) || functionTools.isEmpty();
         var userMessage = llmChatRequestData.getUserMediaMessage()
                 .map(mediaMessage -> buildMediaMessage(Role.USER, mediaMessage))
                 .orElseGet(() -> this.buildTextMessage(Role.USER, llmChatRequestData.getUserTextMessage()));
@@ -741,7 +739,7 @@ public class AnthropicChatProviderDelegate implements LlmChatProviderDelegate {
                 .system(llmChatRequestData.getSystemMessage().getContent())
                 .stream(llmChatRequestData.isStream())
                 .messages(allMessages)
-                .tools(functionTools)
+                .tools(isEmptyTools ? null : functionTools)
                 .build();
     }
 
