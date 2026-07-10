@@ -19,12 +19,28 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamR
 import reactor.core.publisher.Flux;
 
 /**
- * Represents the data exchange specifically for streaming responses from the LLM provider.
+ * An exchange context that encapsulates the streaming response from an LLM provider.
  * <p>
- * This interface extends {@link LlmProviderResponseExchange} to handle Server-Sent Events (SSE).
- * It exposes the inbound stream as a {@link Flux} of {@link RawStreamResponse} chunks.
- * Interceptors operating after the request execution can use this to inspect, filter,
- * or aggregate the streamed data as it arrives.
+ * This interface is a specialized subtype of {@link LlmProviderResponseExchange} tailored
+ * for Server-Sent Events (SSE) and similar streaming protocols. It is created after a
+ * streaming request has been dispatched to the provider and becomes accessible to
+ * response-phase interceptors. These interceptors can inspect, transform, or aggregate
+ * the inbound event stream without blocking the entire pipeline.
+ * </p>
+ * <p>
+ * The core data source is a {@link Flux} of {@link RawStreamResponse} items, each
+ * representing a single parsed JSON chunk emitted by the provider. Because the flux
+ * is potentially infinite (until a completion event or error), this exchange is designed
+ * to be used in a reactive, non-blocking manner.
+ * </p>
+ * <p>
+ * Typical use cases include:
+ * <ul>
+ *   <li><strong>Logging:</strong> recording each chunk as it arrives without delaying the downstream consumer.</li>
+ *   <li><strong>Metrics:</strong> calculating token usage or latency by buffering and analysing chunks.</li>
+ *   <li><strong>Content filtering:</strong> modifying or discarding chunks on-the-fly before they reach the client.</li>
+ *   <li><strong>Aggregation:</strong> assembling a complete response from multiple chunks for caching or auditing.</li>
+ * </ul>
  * </p>
  *
  * @author Gang Cheng
@@ -33,13 +49,25 @@ import reactor.core.publisher.Flux;
 public interface LlmProviderStreamResponseExchange extends LlmProviderResponseExchange {
 
     /**
-     * Retrieves the continuous stream of raw responses from the provider.
+     * Provides the raw event stream as a cold {@link Flux} of {@link RawStreamResponse} chunks.
      * <p>
-     * Each emitted {@link RawStreamResponse} represents a single parsed JSON chunk
-     * from the underlying event stream.
+     * The returned flux is the original source from the provider's HTTP connection. It is
+     * <em>cold</em> by design, meaning that each subscription triggers a new replay of the
+     * streamed data from the underlying buffer or network. Interceptors should subscribe
+     * cautiously and avoid multiple subscriptions without proper sharing (e.g., via
+     * {@code flux.cache()} or {@code flux.share()}) to prevent data duplication or loss.
+     * </p>
+     * <p>
+     * Each {@link RawStreamResponse} object corresponds to one parsed JSON event from the
+     * SSE stream. Typical events include:
+     * <ul>
+     *   <li><strong>Data events:</strong> contain partial or full response content.</li>
+     *   <li><strong>Finish events:</strong> indicate the end of the stream with optional metadata (e.g., token usage).</li>
+     *   <li><strong>Error events:</strong> propagate provider-side errors.</li>
+     * </ul>
      * </p>
      *
-     * @return a {@link Flux} emitting raw stream chunks
+     * @return a non-null {@link Flux} emitting raw stream chunks as they become available
      */
     Flux<RawStreamResponse> rawStreamResponse();
 

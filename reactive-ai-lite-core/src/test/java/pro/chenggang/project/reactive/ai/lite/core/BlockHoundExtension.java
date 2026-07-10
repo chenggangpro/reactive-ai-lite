@@ -20,13 +20,14 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import reactor.blockhound.BlockHound;
 
 public class BlockHoundExtension implements BeforeAllCallback {
-    private static boolean installed = false;
+
+    private static boolean blockHoundInstalled = false;
 
     @Override
-    public void beforeAll(ExtensionContext context) {
-        if (!installed) {
+    public void beforeAll(ExtensionContext context) throws Exception {
+        if (!blockHoundInstalled) {
             BlockHound.install();
-            installed = true;
+            blockHoundInstalled = true;
         }
     }
 }

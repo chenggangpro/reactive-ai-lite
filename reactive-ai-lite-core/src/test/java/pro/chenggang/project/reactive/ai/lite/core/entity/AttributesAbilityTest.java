@@ -18,11 +18,10 @@ package pro.chenggang.project.reactive.ai.lite.core.entity;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AttributesAbilityTest {
 
@@ -36,48 +35,29 @@ class AttributesAbilityTest {
     }
 
     @Test
-    void testGetAttribute() {
-        TestAttributesAbility ability = new TestAttributesAbility();
-        ability.getAttributes().put("key", "value");
-
-        String value = ability.getAttribute("key");
-        assertThat(value).isEqualTo("value");
-
-        Object missing = ability.getAttribute("missing");
-        assertThat(missing).isNull();
-    }
-
-    @Test
-    void testGetAttributeOrDefault() {
-        TestAttributesAbility ability = new TestAttributesAbility();
-        ability.getAttributes().put("key", "value");
-
-        String value = ability.getAttributeOrDefault("key", "default");
-        assertThat(value).isEqualTo("value");
-
-        String missingValue = ability.getAttributeOrDefault("missing", "default");
-        assertThat(missingValue).isEqualTo("default");
-    }
-
-    @Test
-    void testAttributesStream() {
+    void testAttributesAbility() {
         TestAttributesAbility ability = new TestAttributesAbility();
         ability.getAttributes().put("key1", "value1");
-        ability.getAttributes().put("key2", "value2");
 
-        List<Map.Entry<String, Object>> attributeList = ability.attributesStream().toList();
-        assertThat(attributeList.size()).isEqualTo(2);
-    }
+        assertThat((String) ability.getAttribute("key1")).isEqualTo("value1");
+        assertThat((String) ability.getAttribute("key2")).isNull();
 
-    @Test
-    void testForEachAttribute() {
-        TestAttributesAbility ability = new TestAttributesAbility();
-        ability.getAttributes().put("key1", "value1");
-        ability.getAttributes().put("key2", "value2");
+        assertThat(ability.getAttributeOrDefault("key1", "default")).isEqualTo("value1");
+        assertThat(ability.getAttributeOrDefault("key2", "default")).isEqualTo("default");
 
-        AtomicInteger count = new AtomicInteger();
-        ability.forEachAttribute((k, v) -> count.incrementAndGet());
+        assertThat(ability.attributesStream()).hasSize(1);
+        
+        Map<String, Object> collected = new HashMap<>();
+        ability.forEachAttribute(collected::put);
+        assertThat(collected).containsEntry("key1", "value1");
 
-        assertThat(count.get()).isEqualTo(2);
+        assertThatThrownBy(() -> ability.getAttribute(null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ability.getAttributeOrDefault(null, "default"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ability.getAttributeOrDefault("key", null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ability.forEachAttribute(null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

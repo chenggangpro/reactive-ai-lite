@@ -26,125 +26,168 @@ import pro.chenggang.project.reactive.ai.lite.core.exception.ExecutionContextLos
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
-import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
-import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
 
 /**
- * Orchestrates the execution of LLM tasks by resolving the appropriate provider
- * and preparing the runtime execution context.
+ * Central coordinator responsible for bridging the reactive execution pipeline with dynamic
+ * {@link LlmProvider} selection and execution‑specific context preparation.
  * <p>
- * This class uses an {@link ExecutionSpec} to determine how to dynamically look up
- * a provider from the {@link LlmProviderRegistry}. Once the provider and context
- * are resolved, it executes the given functional logic (e.g., executing a chat request).
+ * The executor is constructed via a <em>builder</em> pattern (Lombok {@code @Builder}) and
+ * configured with a {@link ExecutionSpec} and an {@link LlmProviderRegistry}. It simplifies
+ * the process of locating the right LLM provider, constructing a concrete {@link ExecutionInfo}
+ * instance, and applying the caller’s execution logic—all while automatically resolving the
+ * {@link ExecutionContext} from the reactive context.
  * </p>
+ * <p>
+ * The generic type parameter {@code I} represents the concrete subtype of {@code ExecutionInfo}
+ * that the executing logic will receive. This design allows the executor to be reused across
+ * different capabilities (e.g., chat, embedding, image generation) by supplying an
+ * appropriate {@code ExecutionSpec}.
+ * </p>
+ * <h3>Execution flow overview</h3>
+ * <ol>
+ *   <li>The caller invokes {@link #execute(Class, BiFunction)} or {@link #executeFlux(Class, BiFunction)}
+ *       with the expected provider type and the application-specific operation.</li>
+ *   <li>The current {@link ExecutionContext} is extracted from the reactive context (via
+ *       {@code Mono.deferContextual} / {@code Flux.deferContextual}). If missing, an
+ *       {@link ExecutionContextLossException} is emitted immediately.</li>
+ *   <li>An appropriate {@link LlmProvider} instance is resolved by calling
+ *       {@link #loadLlmProvider(ExecutionContext, Class)}—this step may use the registry’s
+ *       default provider or apply a custom filter predicate from the spec.</li>
+ *   <li>A new {@link ExecutionInfo} is materialized from the spec using the resolved context.</li>
+ *   <li>Finally, the provided {@link BiFunction} (the actual LLM call) is executed,
+ *       producing a {@link Mono} or {@link Flux} result.</li>
+ * </ol>
  *
+ * @param <I> the type of {@link ExecutionInfo} created by this executor and passed to the execution function
  * @author Gang Cheng
  * @version 0.1.0
  */
 @Slf4j
 @Builder
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class LlmProviderExecutor {
+public class LlmProviderExecutor<I extends ExecutionInfo> {
 
     /**
-     * The registry used to look up and manage available LLM providers.
+     * Central registry that provides access to all registered {@link LlmProvider}s.
+     * It is used to look up the best matching provider based on capability and additional
+     * filtering criteria defined in the {@link ExecutionSpec}.
      */
     @NonNull
     private final LlmProviderRegistry llmProviderRegistry;
 
     /**
-     * The specification containing all configurations and dynamic functions for this execution.
+     * Immutable specification that defines how this executor should behave:
+     * <ul>
+     *   <li>Which {@link Capability} the provider must support.</li>
+     *   <li>Whether a default provider should be used directly.</li>
+     *   <li>An optional predicate to customize provider selection using the current
+     *       {@link ExecutionContext} and provider metadata.</li>
+     *   <li>How to construct a concrete {@link ExecutionInfo} from a context.</li>
+     * </ul>
      */
     @Getter
     @NonNull
-    private final ExecutionSpec executionSpec;
+    private final ExecutionSpec<I> executionSpec;
 
     /**
-     * Executes a chat-based operation that returns a {@link Mono}.
+     * Executes a non‑streaming LLM operation and returns the result as a {@link Mono}.
      * <p>
-     * This method resolves the runtime {@link ExecutionContext}, loads the appropriate
-     * {@link LlmChatProvider} based on the {@link ExecutionSpec}'s filtering rules,
-     * creates the finalized {@link ExecutionInfo}, and then applies the provided execution logic.
-     * </p>
+     * Internally this method performs the full orchestration:
+     * <ol>
+     *   <li>Retrieves the mandatory {@link ExecutionContext} from the reactive context.</li>
+     *   <li>Delegates to {@link #loadLlmProvider(ExecutionContext, Class)} to obtain a
+     *       provider matching the spec’s requirements.</li>
+     *   <li>Uses {@link ExecutionSpec#newExecutionInfo(ExecutionContext)} to build the
+     *       execution information instance.</li>
+     *   <li>Applies the caller‑supplied {@code specifiedExecution} function, which
+     *       typically performs the actual LLM request and maps the response.</li>
+     * </ol>
      *
-     * @param specifiedExecution a {@link BiFunction} defining the specific chat operation to perform.
-     *                           It receives the resolved provider and execution info.
-     * @param <R>                the type of the result emitted by the Mono
-     * @return a {@link Mono} emitting the result of the specified execution
+     * @param providerType       the expected type of the resolved provider
+     * @param specifiedExecution the function that, given the provider and execution info,
+     *                           returns a {@link Mono} with the desired result
+     * @param <P>                concrete type of the resolved {@link LlmProvider}
+     * @param <R>                type of the result emitted by the operation
+     * @return a {@link Mono} that completes with the LLM operation’s result
      */
-    public <R> Mono<R> executeChat(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, Mono<R>> specifiedExecution) {
+    public <P extends LlmProvider, R> Mono<R> execute(@NonNull Class<P> providerType, @NonNull BiFunction<P, I, Mono<R>> specifiedExecution) {
         return Mono.deferContextual(contextView -> Mono.justOrEmpty(contextView.getOrEmpty(ExecutionContext.class))
                         .ofType(ExecutionContext.class)
                         .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
                 )
-                .flatMap(executionContext -> {
-                    return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
-                            .cast(LlmChatProvider.class)
-                            .flatMap(llmProvider -> {
-                                ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-                                return specifiedExecution.apply(llmProvider, executionInfo);
-                            });
-                });
+                .flatMap(executionContext -> this.loadLlmProvider(executionContext, providerType)
+                        .flatMap(llmProvider -> {
+                            I executionInfo = executionSpec.newExecutionInfo(executionContext);
+                            return specifiedExecution.apply(llmProvider, executionInfo);
+                        })
+                );
     }
 
     /**
-     * Executes a chat-based operation that returns a {@link Flux}.
+     * Executes a streaming LLM operation and returns the results as a {@link Flux}.
      * <p>
-     * This method resolves the runtime {@link ExecutionContext}, loads the appropriate
-     * {@link LlmChatProvider} based on the {@link ExecutionSpec}'s filtering rules,
-     * creates the finalized {@link ExecutionInfo}, and then applies the provided execution logic.
-     * </p>
+     * The orchestration logic is identical to that of {@link #execute(Class, BiFunction)},
+     * but the provided {@code specifiedExecution} function must return a {@link Flux}
+     * to support streaming responses (e.g., chat completions delivered token by token).
      *
-     * @param specifiedExecution a {@link BiFunction} defining the specific chat operation to perform.
-     *                           It receives the resolved provider and execution info.
-     * @param <R>                the type of the results emitted by the Flux
-     * @return a {@link Flux} emitting the results of the specified execution
+     * @param providerType       the expected type of the resolved provider
+     * @param specifiedExecution the function that, given the provider and execution info,
+     *                           returns a {@link Flux} of results
+     * @param <P>                concrete type of the resolved {@link LlmProvider}
+     * @param <R>                type of each element emitted by the stream
+     * @return a {@link Flux} that emits the LLM operation’s results over time
      */
-    public <R> Flux<R> executeChatFlux(@NonNull BiFunction<LlmChatProvider, ExecutionInfo, Flux<R>> specifiedExecution) {
+    public <P extends LlmProvider, R> Flux<R> executeFlux(@NonNull Class<P> providerType, @NonNull BiFunction<P, I, Flux<R>> specifiedExecution) {
         return Flux.deferContextual(contextView -> Mono.justOrEmpty(contextView.getOrEmpty(ExecutionContext.class))
                 .ofType(ExecutionContext.class)
                 .switchIfEmpty(Mono.error(new ExecutionContextLossException()))
-                .flatMapMany(executionContext -> {
-                    return this.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider)
-                            .cast(LlmChatProvider.class)
-                            .flatMapMany(llmProvider -> {
-                                ExecutionInfo executionInfo = executionSpec.newExecutionInfo(executionContext);
-                                return specifiedExecution.apply(llmProvider, executionInfo);
-                            });
-                }));
+                .flatMapMany(executionContext -> this.loadLlmProvider(executionContext, providerType)
+                        .flatMapMany(llmProvider -> {
+                            I executionInfo = executionSpec.newExecutionInfo(executionContext);
+                            return specifiedExecution.apply(llmProvider, executionInfo);
+                        })
+                ));
     }
 
     /**
-     * Dynamically loads an LLM provider from the registry based on the current execution specification.
+     * Resolves the most suitable {@link LlmProvider} for the current execution.
      * <p>
-     * It evaluates whether to use the default provider for the required capability, or whether
-     * to apply a custom filter predicate against the available providers' metadata and the current context.
-     * </p>
+     * The selection logic is governed by the {@link ExecutionSpec}:
+     * <ul>
+     *   <li>If {@link ExecutionSpec#isDefaultProvider()} is {@code true}, the registry’s
+     *       default provider for the spec’s capability is used directly.</li>
+     *   <li>Otherwise, an additional filtering step is performed using the spec’s
+     *       {@link ExecutionSpec#getProviderFilter()} predicate. This predicate receives
+     *       the current {@link ExecutionContext} and the provider’s metadata,
+     *       allowing dynamic selection based on runtime conditions (e.g., model preferences,
+     *       region constraints). If no predicate is configured, the first available provider
+     *       for the capability is returned.</li>
+     * </ul>
      *
-     * @param executionContext the current runtime execution context
-     * @param providerLoader   a function that interacts with the registry to find a provider matching a predicate
-     * @param <P>              the type of the {@link LlmProvider} to load
-     * @return a {@link Mono} emitting the loaded LLM provider
+     * @param executionContext the current runtime context propagated through the reactive chain
+     * @param providerClass    the expected subtype of {@link LlmProvider}
+     * @param <P>              concrete provider type
+     * @return a {@link Mono} emitting the resolved provider, or an error if no matching
+     *         provider can be found
      */
-    public Mono<? extends LlmProvider> loadLlmProvider(@NonNull ExecutionContext executionContext,
-                                                       @NonNull BiFunction<LlmProviderRegistry, Predicate<LlmProviderInfo>, Mono<? extends LlmProvider>> providerLoader) {
+    public <P extends LlmProvider> Mono<P> loadLlmProvider(@NonNull ExecutionContext executionContext, @NonNull Class<P> providerClass) {
         Capability capability = executionSpec.getLlmClientType().getCapability();
         if (executionSpec.isDefaultProvider()) {
-            return llmProviderRegistry.getDefaultProvider(capability);
+            return llmProviderRegistry.getDefaultProvider(capability)
+                    .cast(providerClass);
         }
-        return providerLoader.apply(llmProviderRegistry, llmProviderInfo -> {
+        return llmProviderRegistry.getProvider(capability, providerClass, llmProviderInfo -> {
                     if (Objects.isNull(executionSpec.getProviderFilter())) {
                         return true;
                     }
-                    return executionSpec.getProviderFilter().test(llmProviderInfo, executionContext);
+                    return executionSpec.getProviderFilter().test(executionContext, llmProviderInfo);
                 }
         );
     }

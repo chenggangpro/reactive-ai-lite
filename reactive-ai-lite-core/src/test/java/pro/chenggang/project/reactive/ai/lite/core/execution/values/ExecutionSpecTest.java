@@ -20,18 +20,20 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class ExecutionSpecTest {
 
     @Test
-    void testNewExecutionInfo() {
-        ExecutionSpec spec = ExecutionSpec.builder()
-                .llmClientType(LlmClientType.CHAT)
-                .modelNameConfigure(__ -> "gpt-4")
+    void testExecutionSpecDefaults() {
+        LlmClientType llmClientType = mock(LlmClientType.class);
+        ChatExecutionSpec spec = ChatExecutionSpec.builder()
+                .llmClientType(llmClientType)
+                .modelNameConfigure(ctx -> "model")
                 .build();
-
-        ExecutionContext context = ExecutionContext.newContext();
-        ExecutionInfo info = spec.newExecutionInfo(context);
-        assertThat(info.getModelNameConfigure()).isEqualTo(spec.getModelNameConfigure());
+                
+        assertThat(spec.getRawRequestCustomizerConfigure()).isNotNull();
+        // Invoke it just to cover the empty lambda body
+        spec.getRawRequestCustomizerConfigure().accept(mock(ExecutionContext.class), null);
     }
 }

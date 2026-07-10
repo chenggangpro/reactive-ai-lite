@@ -15,42 +15,84 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.util;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class JsonSchemaUtilTest {
 
-    static class TestBean {
-        public String name;
-        public int age;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Test
+    void testGenerateForTypeNullType() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> JsonSchemaUtil.generateForType(null))
+                .withMessage("type cannot be null");
     }
 
     @Test
-    void testGenerateForType() {
-        String schema = JsonSchemaUtil.generateForType(TestBean.class);
-        assertThat(schema).contains("\"type\" : \"object\"")
-                .contains("\"name\"")
-                .contains("\"age\"");
+    void testGenerateForTypeVoid() throws Exception {
+        String schemaStr = JsonSchemaUtil.generateForType(Void.class);
+        JsonNode schemaNode = mapper.readTree(schemaStr);
+
+        assertThat(schemaNode.has("properties")).isTrue();
+        assertThat(schemaNode.get("properties").isEmpty()).isTrue();
+        assertThat(schemaNode.get("additionalProperties").asBoolean()).isFalse();
     }
 
     @Test
-    void testUpperCaseTypeValues() {
-        String schema = JsonSchemaUtil.generateForType(TestBean.class, JsonSchemaUtil.SchemaOption.UPPER_CASE_TYPE_VALUES);
-        assertThat(schema).contains("\"type\" : \"OBJECT\"")
-                .contains("\"type\" : \"STRING\"")
-                .contains("\"type\" : \"INTEGER\"");
+    void testGenerateForTypeDefaultOptions() throws Exception {
+        String schemaStr = JsonSchemaUtil.generateForType(TestClass.class);
+        JsonNode schemaNode = mapper.readTree(schemaStr);
+
+        assertThat(schemaNode.get("type").asText()).isEqualTo("object");
+        assertThat(schemaNode.get("properties").has("name")).isTrue();
+        assertThat(schemaNode.get("properties").get("name").get("type").asText()).isEqualTo("string");
+        assertThat(schemaNode.get("additionalProperties").asBoolean()).isFalse();
     }
 
     @Test
-    void testGenerateForVoid() {
-        String schema = JsonSchemaUtil.generateForType(Void.class);
-        assertThat(schema).contains("properties");
+    void testGenerateForTypeAllowAdditionalProperties() throws Exception {
+        String schemaStr = JsonSchemaUtil.generateForType(TestClass.class, JsonSchemaUtil.SchemaOption.ALLOW_ADDITIONAL_PROPERTIES_BY_DEFAULT);
+        JsonNode schemaNode = mapper.readTree(schemaStr);
+
+        assertThat(schemaNode.has("additionalProperties")).isFalse(); // when allowed, it's typically omitted or not false
     }
 
     @Test
-    void testGenerateWithAllowAdditionalProperties() {
-        String schema = JsonSchemaUtil.generateForType(TestBean.class, JsonSchemaUtil.SchemaOption.ALLOW_ADDITIONAL_PROPERTIES_BY_DEFAULT);
-        assertThat(schema).doesNotContain("\"additionalProperties\" : false");
+    void testGenerateForTypeUpperCaseTypeValues() throws Exception {
+        String schemaStr = JsonSchemaUtil.generateForType(TestClass.class, JsonSchemaUtil.SchemaOption.UPPER_CASE_TYPE_VALUES);
+        JsonNode schemaNode = mapper.readTree(schemaStr);
+
+        assertThat(schemaNode.get("type").asText()).isEqualTo("OBJECT");
+        assertThat(schemaNode.get("properties").get("name").get("type").asText()).isEqualTo("STRING");
+        assertThat(schemaNode.get("properties").get("items").get("type").asText()).isEqualTo("ARRAY");
+        assertThat(schemaNode.get("properties").get("items").get("items").get("type").asText()).isEqualTo("STRING");
+    }
+
+    @Test
+    void testConvertTypeValuesToUpperCaseArray() throws Exception {
+        String json = "[{\"type\":\"string\"}, {\"type\":\"integer\"}]";
+        JsonNode node = mapper.readTree(json);
+        
+        JsonSchemaUtil.convertTypeValuesToUpperCase(node);
+        
+        assertThat(node.get(0).get("type").asText()).isEqualTo("STRING");
+        assertThat(node.get(1).get("type").asText()).isEqualTo("INTEGER");
+    }
+
+    static class TestClass {
+        @JsonProperty(required = true)
+        private String name;
+        private java.util.List<String> items;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public java.util.List<String> getItems() { return items; }
+        public void setItems(java.util.List<String> items) { this.items = items; }
     }
 }

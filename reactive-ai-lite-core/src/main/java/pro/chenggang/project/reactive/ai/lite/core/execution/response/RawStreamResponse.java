@@ -38,12 +38,38 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 public class RawStreamResponse extends LlmResponse {
 
     /**
-     * The categorized type of the streaming data.
+     * The categorized type of the streaming data chunk.
+     * <p>
+     * The {@link StreamDataType} is determined by a classifier that examines the raw SSE
+     * event structure (e.g., based on event name, type field, or specific JSON keys).
+     * This type serves as a routing key: downstream converters use it to decide how to
+     * deserialize {@link #dataContent} into the appropriate concrete {@link StreamResponse}
+     * subclass (such as {@code ToolCallStreamResponse} or {@code AnswerStreamResponse}).
+     * <p>
+     * Because the classification occurs before full parsing, it enables the framework to
+     * apply type-specific preprocessing (e.g., filtering out empty chunks, accumulating
+     * tool call arguments) while still allowing low-level JSON manipulation if needed.
+     * </p>
      */
     private final StreamDataType dataType;
 
     /**
-     * The raw JSON content associated with this data slide.
+     * The raw JSON content associated with this streaming data slide.
+     * <p>
+     * This {@link ObjectNode} holds the complete JSON payload as delivered by the SSE
+     * event, before any domain-specific deserialization. Keeping the content in its raw
+     * form gives interceptors the opportunity to:
+     * <ul>
+     *   <li>log or monitor sensitive fields before they are mapped to Java objects,</li>
+     *   <li>apply transformations (like adding/removing fields) without depending on
+     *       class-specific serialization logic,</li>
+     *   <li>decide dynamically which converter to use based on the JSON structure rather
+     *       than the already-computed {@link #dataType}.</li>
+     * </ul>
+     * Once all interceptors have run, a matching {@code StreamResponseConverter} will
+     * interpret this node into a typed {@link StreamResponse} and publish it further
+     * downstream.
+     * </p>
      */
     private final ObjectNode dataContent;
 }

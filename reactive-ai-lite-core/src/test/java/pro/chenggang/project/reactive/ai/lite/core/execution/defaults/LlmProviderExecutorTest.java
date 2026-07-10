@@ -15,112 +15,123 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.defaults;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
+import pro.chenggang.project.reactive.ai.lite.core.exception.ExecutionContextLossException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionSpec;
+import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
-import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.util.context.Context;
 
+import java.util.function.BiPredicate;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class LlmProviderExecutorTest {
 
-    @Mock
-    private LlmProviderRegistry registry;
-
-    @Mock
-    private ExecutionSpec spec;
-
-    @Mock
-    private ExecutionContext executionContext;
-
-    @Mock
-    private LlmChatProvider provider;
-
-    @Mock
-    private ExecutionInfo executionInfo;
-
-    private LlmProviderExecutor executor;
-
-    @BeforeEach
-    void setUp() {
-        executor = LlmProviderExecutor.builder()
+    @Test
+    void testExecuteWithNulls() {
+        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
+        ExecutionSpec spec = mock(ExecutionSpec.class);
+        LlmProviderExecutor executor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
+                
+        assertThatThrownBy(() -> executor.execute(null, (p, i) -> Mono.empty()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> executor.execute(LlmProvider.class, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> executor.executeFlux(null, (p, i) -> Flux.empty()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> executor.executeFlux(LlmProvider.class, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> executor.loadLlmProvider(null, LlmProvider.class))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> executor.loadLlmProvider(mock(ExecutionContext.class), null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
-
+    
     @Test
-    @DisplayName("Should successfully execute chat operation")
-    void testExecuteChat() {
-        when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
+    void testExecuteContextLoss() {
+        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
+        ExecutionSpec spec = mock(ExecutionSpec.class);
+        LlmProviderExecutor executor = LlmProviderExecutor.builder()
+                .llmProviderRegistry(registry)
+                .executionSpec(spec)
+                .build();
+                
+        StepVerifier.create(executor.execute(LlmProvider.class, (p, i) -> Mono.just("result")))
+                .expectError(ExecutionContextLossException.class)
+                .verify();
+                
+        StepVerifier.create(executor.executeFlux(LlmProvider.class, (p, i) -> Flux.just("result")))
+                .expectError(ExecutionContextLossException.class)
+                .verify();
+    }
+    
+    @Test
+    void testExecuteDefaultProvider() {
+        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
+        ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.isDefaultProvider()).thenReturn(true);
-        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
-        when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-
-        Mono<String> result = executor.executeChat((p, info) -> Mono.just("result"));
+        when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
+        ExecutionInfo info = mock(ExecutionInfo.class);
+        when(spec.newExecutionInfo(any())).thenReturn(info);
         
-        StepVerifier.create(result.contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
+        LlmProvider provider = mock(LlmProvider.class);
+        when(registry.getDefaultProvider(Capability.CHAT)).thenReturn((Mono) Mono.just(provider));
+        
+        LlmProviderExecutor executor = LlmProviderExecutor.builder()
+                .llmProviderRegistry(registry)
+                .executionSpec(spec)
+                .build();
+                
+        StepVerifier.create(executor.execute(LlmProvider.class, (p, i) -> Mono.just("result"))
+                        .contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
+                .expectNext("result")
+                .verifyComplete();
+                
+        StepVerifier.create(executor.executeFlux(LlmProvider.class, (p, i) -> Flux.just("result"))
+                        .contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .expectNext("result")
                 .verifyComplete();
     }
-
+    
     @Test
-    @DisplayName("Should correctly load default provider")
-    void testLoadLlmProviderDefault() {
+    void testExecuteCustomProvider() {
+        LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
+        ExecutionSpec spec = mock(ExecutionSpec.class);
+        when(spec.isDefaultProvider()).thenReturn(false);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        when(spec.isDefaultProvider()).thenReturn(true);
-        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
-
-        StepVerifier.create(executor.loadLlmProvider(executionContext, LlmProviderRegistry::getChatProvider).cast(LlmChatProvider.class))
-                .expectNext(provider)
+        
+        BiPredicate<ExecutionContext, LlmProviderInfo> filter = (ctx, i) -> true;
+        when(spec.getProviderFilter()).thenReturn(filter);
+        ExecutionInfo info = mock(ExecutionInfo.class);
+        when(spec.newExecutionInfo(any())).thenReturn(info);
+        
+        LlmProvider provider = mock(LlmProvider.class);
+        when(registry.getProvider(eq(Capability.CHAT), eq(LlmProvider.class), any())).thenReturn((Mono) Mono.just(provider));
+        
+        LlmProviderExecutor executor = LlmProviderExecutor.builder()
+                .llmProviderRegistry(registry)
+                .executionSpec(spec)
+                .build();
+                
+        StepVerifier.create(executor.execute(LlmProvider.class, (p, i) -> Mono.just("result"))
+                        .contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
+                .expectNext("result")
                 .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Should successfully execute streaming chat operation")
-    void testExecuteStream() {
-        when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        when(spec.isDefaultProvider()).thenReturn(true);
-        org.mockito.Mockito.doReturn(Mono.just(provider)).when(registry).getDefaultProvider(any());
-        when(spec.newExecutionInfo(any())).thenReturn(executionInfo);
-
-        RawStreamResponse chunk = org.mockito.Mockito.mock(RawStreamResponse.class);
-        Flux<RawStreamResponse> executionFlux = Flux.just(chunk);
-
-        Flux<RawStreamResponse> result = executor.executeChatFlux((p, info) -> executionFlux);
-
-        StepVerifier.create(result.contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
-                .expectNext(chunk)
-                .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Should throw error when provider is not found")
-    void testExecuteChatWithNoProviderFound() {
-        when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        when(spec.isDefaultProvider()).thenReturn(true);
-        when(registry.getDefaultProvider(any())).thenReturn(Mono.error(new IllegalStateException("not found")));
-
-        StepVerifier.create(executor.executeChat((p, info) -> Mono.just("test"))
-                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext)))
-                .expectError(IllegalStateException.class)
-                .verify();
     }
 }

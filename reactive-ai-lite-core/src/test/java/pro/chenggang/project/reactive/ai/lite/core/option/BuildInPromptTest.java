@@ -22,7 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BuildInPromptTest {
 
     @Test
-    void testSystemPrompt() {
+    void testBuildInPrompt() {
+        BuildInPrompt prompt = new BuildInPrompt() {};
+        assertThat(prompt).isNotNull();
         assertThat(BuildInPrompt.SYSTEM_PROMPT).isNotBlank();
     }
 }

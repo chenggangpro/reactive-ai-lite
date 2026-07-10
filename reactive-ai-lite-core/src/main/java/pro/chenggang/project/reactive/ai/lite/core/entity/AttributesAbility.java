@@ -23,10 +23,20 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 /**
- * Interface providing the ability to manage and access parsingAttributes.
+ * Defines the contract for managing and accessing a mutable, contextual attribute map.
  * <p>
- * This interface defines methods for storing and retrieving parsingAttributes in a key-value format,
- * allowing implementations to maintain contextual information throughout their lifecycle.
+ * Implementations of this interface provide a {@link Map} that can be used to store arbitrary
+ * key-value pairs throughout the lifecycle of an AI exchange. This allows components to share
+ * state, metadata, or temporary results without relying on static or global variables.
+ * The map is intentionally mutable; elements can be added, replaced, or removed at any point
+ * during processing, enabling dynamic enrichment of the context.
+ * </p>
+ * <p>
+ * The type-safe convenience methods {@link #getAttribute(String)} and
+ * {@link #getAttributeOrDefault(String, Object)} perform unchecked casts internally,
+ * relying on the caller to know the expected type. Incorrect type assumptions will lead to
+ * {@link ClassCastException} at runtime. Common use cases include storing user-defined
+ * parameters, intermediate computation results, or framework-specific flags.
  * </p>
  *
  * @author Gang Cheng
@@ -35,18 +45,30 @@ import java.util.stream.Stream;
 public interface AttributesAbility {
 
     /**
-     * Return a mutable map of parsingAttributes for the current exchange.
+     * Returns a mutable map that serves as the backing attribute store.
+     * <p>
+     * The returned map is the same instance across multiple invocations. Any modifications
+     * made to this map are immediately visible to other components sharing the same exchange
+     * context. Implementors may choose a thread-safe map if concurrent access is expected,
+     * though the interface itself does not enforce thread-safety.
+     * </p>
      *
-     * @return the parsingAttributes map
+     * @return a mutable map containing the current attributes, never {@code null}
      */
     Map<String, Object> getAttributes();
 
     /**
-     * Return the attribute value if present or {@code null} if not present.
+     * Retrieves the value of an attribute, casting it to the expected type.
+     * <p>
+     * The cast is performed without explicit type checking; the caller must ensure
+     * that the attribute was stored with a compatible type. If the attribute does not
+     * exist, {@code null} is returned.
+     * </p>
      *
-     * @param <T>  the attribute type
-     * @param name the attribute name
-     * @return the attribute value, or {@code null} if it does not exist
+     * @param <T>  the expected type of the attribute value
+     * @param name the case-sensitive attribute key; must not be {@code null}
+     * @return the attribute value cast to type {@code T}, or {@code null} if the
+     *         attribute is absent
      */
     @SuppressWarnings("unchecked")
     default <T> T getAttribute(@NonNull String name) {
@@ -54,12 +76,20 @@ public interface AttributesAbility {
     }
 
     /**
-     * Return the attribute value or a default value if the attribute is not present.
+     * Retrieves the value of an attribute, returning a default value if the attribute is
+     * missing or is {@code null}.
+     * <p>
+     * This method simplifies null-safe access by guaranteeing a non-null fallback.
+     * The default value is returned even if the attribute exists but its value is
+     * {@code null}. The unchecked cast is applied to the result of
+     * {@link Map#getOrDefault(Object, Object)}.
+     * </p>
      *
-     * @param <T>          the attribute type
-     * @param name         the attribute name
-     * @param defaultValue a default value to return instead if the attribute is missing
-     * @return the attribute value, or the default value
+     * @param <T>          the expected type of the attribute value and default
+     * @param name         the case-sensitive attribute key; must not be {@code null}
+     * @param defaultValue the value to return if the attribute is absent; must not be {@code null}
+     * @return the existing attribute value cast to type {@code T}, or {@code defaultValue}
+     *         if the attribute is missing
      */
     @SuppressWarnings("unchecked")
     default <T> T getAttributeOrDefault(@NonNull String name, @NonNull T defaultValue) {
@@ -67,19 +97,31 @@ public interface AttributesAbility {
     }
 
     /**
-     * Returns a sequential {@link Stream} with the parsingAttributes as its source.
+     * Returns a sequential {@link Stream} over the attribute entries.
+     * <p>
+     * The stream is backed by the mutable attribute map; structural modifications to the map
+     * during stream traversal may result in undefined behavior (e.g., a
+     * {@link java.util.ConcurrentModificationException}). This method is useful for
+     * functional-style processing, such as filtering, logging, or bulk operations.
+     * </p>
      *
-     * @return a stream of attribute entries
+     * @return a sequential stream of key-value entry pairs representing the current attributes
      */
     default Stream<Entry<String, Object>> attributesStream() {
         return getAttributes().entrySet().stream();
     }
 
     /**
-     * Performs the given action for each attribute entry in the map until all entries
-     * have been processed or the action throws an exception.
+     * Iterates over all attribute entries and performs the given action for each.
+     * <p>
+     * This is a convenience wrapper around {@link #attributesStream()} that avoids
+     * explicit stream handling. The action receives the key and value of each entry;
+     * both are non-{@code null} for existing entries. As with direct map iteration,
+     * concurrent modification of the backing map from within the action may lead to
+     * unpredictable results.
+     * </p>
      *
-     * @param action the action to be performed for each attribute entry
+     * @param action a consumer that accepts attribute keys and values; must not be {@code null}
      */
     default void forEachAttribute(@NonNull BiConsumer<String, Object> action) {
         attributesStream().forEach(entry -> action.accept(entry.getKey(), entry.getValue()));

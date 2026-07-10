@@ -21,12 +21,18 @@ import org.springframework.web.client.RestClientResponseException;
 import java.io.Serial;
 
 /**
- * Exception indicating an HTTP error response from an LLM service provider.
+ * Signals that an HTTP call to an LLM provider returned an error status code.
  * <p>
- * This exception is thrown when the underlying reactive WebClient receives an
- * HTTP error status code (e.g., 4xx Client Error or 5xx Server Error) from the
- * provider's API. It wraps the original Spring {@link RestClientResponseException}
- * to provide access to the raw HTTP status, headers, and body if needed.
+ * This exception is thrown when the underlying HTTP client (e.g., Spring's {@code RestClient})
+ * receives a non‑2xx response, such as a 4xx client error (invalid API key, rate limit) or
+ * a 5xx server error (temporary outage). By extending {@link LlmClientException}, it
+ * enriches the project’s exception model with HTTP‑specific details, allowing callers to
+ * implement fine‑grained error handling logic (retries, fallback, etc.).
+ * </p>
+ * <p>
+ * The original HTTP error is always available via {@link #getCause()} as a
+ * {@link RestClientResponseException}, giving full access to the status code,
+ * response headers, and body.
  * </p>
  *
  * @author Gang Cheng
@@ -35,15 +41,26 @@ import java.io.Serial;
 public class ClientResponseErrorException extends LlmClientException {
 
     /**
-     * Unique serial version identifier.
+     * Serial version identifier used to ensure binary compatibility when serializing
+     * instances of this exception across different JVM versions or after class structure
+     * changes. This value should be explicitly incremented when incompatible modifications
+     * (e.g., addition/removal of fields) are introduced.
      */
     @Serial
     private static final long serialVersionUID = 3003050810499026975L;
 
     /**
-     * Constructs a new ClientResponseErrorException wrapping the original HTTP error.
+     * Constructs a new {@code ClientResponseErrorException} wrapping the underlying HTTP
+     * error response.
+     * <p>
+     * The message is prefixed with {@code "Llm client response error:"} for immediate
+     * recognition in logs. The provided {@link RestClientResponseException} is stored as
+     * the root cause, preserving all HTTP metadata (status, headers, body) and enabling
+     * more precise error analysis.
+     * </p>
      *
-     * @param cause the {@link RestClientResponseException} representing the HTTP error response
+     * @param cause the original Spring HTTP exception representing the error response;
+     *              must not be {@code null}
      */
     public ClientResponseErrorException(@NonNull RestClientResponseException cause) {
         super("Llm client response error: " + cause.getMessage(), cause);

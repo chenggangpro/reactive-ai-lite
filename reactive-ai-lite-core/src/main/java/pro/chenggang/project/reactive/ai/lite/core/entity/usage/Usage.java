@@ -31,6 +31,11 @@ import java.util.function.Function;
  * by the prompt (input), the completion (output), and any other provider-specific
  * tokens. It also provides access to the raw usage data returned by the API.
  * </p>
+ * <p>
+ * The total token count is typically the sum of prompt, completion, and other tokens.
+ * Implementations may derive these values from the raw usage data of different
+ * model providers, which is why a configurable builder exists.
+ * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
@@ -97,6 +102,10 @@ public interface Usage {
 
     /**
      * Creates a new builder instance for constructing a {@link Usage} object from raw data.
+     * <p>
+     * The builder allows custom extraction logic for token counts from provider‑specific
+     * raw usage structures.
+     * </p>
      *
      * @param rawUsage the raw usage data as an {@link ObjectNode}
      * @return a new {@link UsageBuilder} instance
@@ -113,16 +122,48 @@ public interface Usage {
      * and applies the specified extractors to derive prompt tokens, completion tokens, and
      * other tokens. The total tokens are automatically calculated as the sum of these values.
      * </p>
+     * <p>
+     * If no extractor is provided for a token type, the corresponding count defaults to 0.
+     * When the raw usage data itself is {@code null}, a default empty {@link Usage} is returned.
+     * </p>
      *
      * @author Gang Cheng
      */
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     class UsageBuilder {
 
+        /**
+         * The raw usage data node from which token counts are extracted.
+         * <p>
+         * May be {@code null} if no usage data is available, in which case {@link #build()}
+         * will return a default empty {@link Usage} instance.
+         * </p>
+         */
         @Nullable
         private final ObjectNode rawUsage;
+
+        /**
+         * Function to extract the prompt tokens count from the raw usage data.
+         * <p>
+         * If not explicitly set, the token count for prompts will be treated as 0.
+         * </p>
+         */
         private Function<ObjectNode, Integer> promptTokensExtractor;
+
+        /**
+         * Function to extract the completion tokens count from the raw usage data.
+         * <p>
+         * If not explicitly set, the token count for completions will be treated as 0.
+         * </p>
+         */
         private Function<ObjectNode, Integer> completionTokensExtractor;
+
+        /**
+         * Function to extract the other tokens count from the raw usage data.
+         * <p>
+         * If not explicitly set, the token count for other categories will be treated as 0.
+         * </p>
+         */
         private Function<ObjectNode, Integer> otherTokensExtractor;
 
         /**
@@ -161,9 +202,10 @@ public interface Usage {
         /**
          * Builds and returns a {@link Usage} instance based on the configured extractors.
          * <p>
-         * If the raw usage data is null, it returns a default empty Usage instance.
-         * Otherwise, it applies the extractors. If an extractor is not set, it defaults to -1.
-         * If an extractor returns null, it defaults to 0.
+         * If the raw usage data is null, it returns a default empty {@link Usage} instance.
+         * Otherwise, it applies the extractor functions. For any token type whose extractor
+         * has not been set, the count is treated as 0. If an extractor returns {@code null},
+         * that is also treated as 0.
          * </p>
          *
          * @return a new {@link Usage} instance
@@ -186,15 +228,19 @@ public interface Usage {
         }
 
         /**
-         * Extracts token count from raw usage data using the provided extractor function.
+         * Extracts a token count from the raw usage data using the provided extractor function.
+         * <p>
+         * If the extractor is {@code null} or the extractor returns {@code null}, the result
+         * is treated as 0 – indicating that the token type is not present or not configured.
+         * </p>
          *
-         * @param rawUsage  the raw usage data to extract tokens from
-         * @param extractor the function to apply for token extraction
-         * @return the extracted token count, or -1 if the extractor is null, or 0 if the extractor returns null
+         * @param rawUsage  the raw usage data node (never {@code null})
+         * @param extractor the function to apply for token extraction, may be {@code null}
+         * @return the extracted token count, or 0 if the extractor is null or returns null
          */
         private Integer extractTokens(@NonNull ObjectNode rawUsage, @Nullable Function<ObjectNode, Integer> extractor) {
             if (Objects.isNull(extractor)) {
-                return -1;
+                return 0;
             }
             Integer tokens = extractor.apply(rawUsage);
             return Objects.isNull(tokens) ? 0 : tokens;

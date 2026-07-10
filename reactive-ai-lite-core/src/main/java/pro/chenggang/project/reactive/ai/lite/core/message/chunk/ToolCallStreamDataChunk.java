@@ -26,16 +26,29 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
 import java.util.List;
 
 /**
- * Represents a stream data chunk containing one or more tool calls.
+ * A stream data chunk that carries a list of tool call requests emitted by the AI model.
  * <p>
- * This chunk is emitted when the AI model decides to invoke tools or functions.
- * Because tool calls can be streamed progressively, this chunk typically contains
- * the fully aggregated and parsed details of the tool invocations once the model
- * has finished outputting the tool call arguments for the current stream slide.
+ * During a streaming interaction the model may decide to invoke external tools or functions.
+ * Because tool call descriptions (name, parameters) can be transmitted progressively,
+ * this chunk is produced only after the model has fully serialized all argument details for
+ * the current set of tool invocations. It guarantees that every {@link AssistantToolCall}
+ * contained in the chunk is complete and immediately usable.
+ * </p>
+ * <p>
+ * The consumer of this chunk can react to it by:
+ * <ul>
+ *   <li>executing the requested tools locally or remotely,</li>
+ *   <li>returning the results back to the model conversation,</li>
+ *   <li>or processing the tool calls asynchronously.</li>
+ * </ul>
+ * The stream data type is fixed to {@link StreamDataType#TOOL_CALL}, enabling unambiguous
+ * routing in generic stream handlers.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see StreamDataChunk
+ * @see AssistantToolCall
  */
 @Getter
 @Jacksonized
@@ -44,18 +57,31 @@ import java.util.List;
 public class ToolCallStreamDataChunk implements StreamDataChunk {
 
     /**
-     * A list of fully formed tool call objects extracted from the stream.
+     * The fully aggregated tool call objects extracted from the current streaming window.
+     * <p>
+     * Each item represents one distinct tool invocation that the model decided to initiate.
+     * The list may contain multiple entries when the model requests several tools
+     * simultaneously. Because the chunk is emitted only after the model has finished
+     * writing the arguments, every {@link AssistantToolCall} in this list is guaranteed
+     * to have a complete set of parameters and is ready for execution.
+     * </p>
+     * <p>
+     * The field is immutable and populated through the {@link Builder} interface.
+     * </p>
      */
     private final List<AssistantToolCall> toolCalls;
 
     /**
-     * Retrieves the data type of this stream chunk.
+     * Always returns {@link StreamDataType#TOOL_CALL} to identify this chunk as a
+     * tool invocation request.
      * <p>
-     * Always returns {@link StreamDataType#TOOL_CALL} to explicitly mark this chunk
-     * as carrying tool invocation requests.
+     * This constant return value makes it possible for stream consumers to handle
+     * tool call chunks in a type-safe manner without relying on {@code instanceof}
+     * checks or class mapping. It acts as a discriminator in the reactive pipeline
+     * and allows centralized dispatching logic.
      * </p>
      *
-     * @return the {@link StreamDataType#TOOL_CALL} constant
+     * @return the predefined data type constant for tool call chunks
      */
     @Override
     public StreamDataType getDataType() {

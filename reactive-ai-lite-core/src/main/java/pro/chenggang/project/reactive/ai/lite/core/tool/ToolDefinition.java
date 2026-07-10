@@ -28,60 +28,78 @@ import java.util.Objects;
 /**
  * Defines the contract for a tool or function that can be called by an AI model.
  * <p>
- * A tool definition provides the model with the necessary metadata—such as its name,
- * a description of its purpose, and the schema for its input parameters—to understand
- * when and how to use the tool.
+ * A tool definition provides the model with the metadata necessary to understand both
+ * <em>when</em> to use the tool (via its name and description) and <em>how</em> to use it
+ * (via the input schema). Implementing this interface allows the AI runtime to discover
+ * available operations, decide which one fits the user's intent, and generate properly
+ * structured arguments.
+ * </p>
+ * <p>
+ * The contract is intentionally minimal: a unique name, a clear description, and a JSON Schema
+ * that describes the expected parameters. An optional {@link #strict() strict} flag hints at
+ * how rigidly the generated arguments should adhere to the schema.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see DefaultToolDefinition
+ * @see ToolDefinitionBuilder
  */
 public interface ToolDefinition {
 
     /**
-     * Gets the name of the tool.
+     * Gets the unique name that the AI model uses to reference this tool.
      * <p>
-     * The name should be unique among the set of tools provided to the model. It typically
-     * consists of alphanumeric characters and underscores.
+     * The name must be unique among all tools provided to a single model invocation.
+     * Typically it consists of alphanumeric characters and underscores. The AI runtime
+     * uses this name when it decides to call the tool; duplicate names cause ambiguity
+     * and may lead to runtime errors or unpredictable behaviour.
      * </p>
      *
-     * @return the unique name of the tool
+     * @return the unique tool name
      */
     String name();
 
     /**
-     * Gets a human-readable description of what the tool does.
+     * Gets a human-readable description explaining what the tool does and when it should be used.
      * <p>
-     * This description helps the AI model decide whether to call this tool based on the
-     * user's request. It should clearly explain the tool's functionality and use cases.
+     * This description is crucial because the model relies on it to match the tool's capabilities
+     * with the user's intent. A well‑crafted description should state the tool's purpose, the actions
+     * it performs, and any relevant constraints. The more precise the description, the better the AI
+     * can decide whether to invoke this tool.
      * </p>
      *
-     * @return the description of the tool
+     * @return a natural‑language description of the tool
      */
     String description();
 
     /**
-     * Gets the JSON schema that defines the input parameters for the tool.
+     * Gets the JSON Schema that defines the structure of the arguments the tool expects.
      * <p>
-     * The model uses this schema to generate the correct arguments when it decides to
-     * call the tool. The schema should be a valid JSON Schema object definition.
+     * The schema must be a valid JSON Schema object definition. When the AI decides to call the tool,
+     * it generates a JSON object that will be validated against this schema (depending on the strictness
+     * setting). The schema describes the parameter names, their types, required fields, and any additional
+     * constraints (e.g., minimum values, enums).
      * </p>
      *
-     * @return a string representation of the JSON schema for the tool's input
+     * @return a JSON Schema string representing the tool's parameter contract
      */
     String inputSchema();
 
     /**
-     * Specifies whether the AI model should strictly adhere to the provided input schema
-     * when generating arguments for the tool call.
+     * Indicates whether the AI model should enforce strict adherence to the input schema when generating
+     * arguments for this tool.
      * <p>
-     * When set to {@code true}, the model will make a best effort to generate a valid JSON
-     * object that conforms to the schema. The default behavior (when returning {@code null})
-     * is determined by the specific AI provider.
+     * When {@code true}, the provider makes a best effort to guarantee that the generated arguments
+     * are valid according to the schema — this reduces the risk of malformed function calls but may
+     * slightly constrain the model's expressiveness. When {@code false} or {@code null}, the model
+     * may still produce valid JSON, but without a strict guarantee; it could potentially include extra
+     * fields or omit optional ones. Returning {@code null} explicitly defers the decision to the
+     * provider's default behaviour, which often leans towards permitting flexibility.
      * </p>
      *
-     * @return {@code true} to enforce strict schema adherence, or {@code null} to use the
-     * provider's default behavior
+     * @return {@code true} to enforce strict schema matching, {@code false} to allow leniency,
+     *         or {@code null} to use the provider's default
      */
     default Boolean strict() {
         return null;
@@ -90,11 +108,12 @@ public interface ToolDefinition {
     /**
      * Creates a new builder instance for constructing a {@link ToolDefinition}.
      * <p>
-     * This factory method provides a convenient entry point for creating tool definitions
-     * using a fluent builder API.
+     * This factory method provides a fluent entry point for building tool definitions. The returned
+     * builder validates all required fields and supports both explicit JSON Schema strings and
+     * schema generation from Java types.
      * </p>
      *
-     * @return a new {@link ToolDefinitionBuilder} instance ready to be configured
+     * @return a freshly created {@link ToolDefinitionBuilder} ready for configuration
      * @see ToolDefinitionBuilder
      */
     static ToolDefinitionBuilder newToolDefinition() {
@@ -104,10 +123,21 @@ public interface ToolDefinition {
     /**
      * A builder class for constructing {@link ToolDefinition} instances.
      * <p>
-     * This builder provides a fluent API for configuring tool definitions with various properties
-     * such as name, description, input schema, and strictness settings. It supports two approaches
-     * for defining the input schema: directly providing a JSON schema string or specifying a Java
-     * type from which the schema will be automatically generated.
+     * This builder offers a fluent API for configuring every aspect of a tool definition. It ensures
+     * that all required information (name, description, and a schema source) is provided before
+     * the definition is built. Two schema definition strategies are supported:
+     * </p>
+     * <ul>
+     *   <li>Directly supply a raw JSON Schema string via {@link #inputSchema(String)} — ideal when
+     *       you need full control over the schema or already have one generated externally.</li>
+     *   <li>Specify a Java {@link Type} via {@link #inputSchemaType(Type, SchemaOption...)} — the
+     *       builder automatically derives the JSON Schema from the type's structure, including its
+     *       fields, types, and annotations, optionally customised by {@link SchemaOption}s.</li>
+     * </ul>
+     * <p>
+     * Additionally, the builder supports configuring whether the AI should strictly adhere to the
+     * schema ({@link #strict(Boolean)}) and automatically validates all inputs to prevent
+     * misconfigured tool definitions.
      * </p>
      *
      * @author Gang Cheng
@@ -117,18 +147,54 @@ public interface ToolDefinition {
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     class ToolDefinitionBuilder {
 
+        /**
+         * The tool's unique name; set via {@link #name(String)}.
+         * Must be non‑null and non‑empty.
+         */
         private String name;
+
+        /**
+         * A human‑readable description of the tool; set via {@link #description(String)}.
+         * Must be non‑null and non‑empty.
+         */
         private String description;
+
+        /**
+         * The raw JSON schema string, set directly via {@link #inputSchema(String)}.
+         * If this field is not {@code null} at build time, it takes absolute priority over type‑based
+         * schema generation.
+         */
         private String inputSchema;
+
+        /**
+         * The Java type from which the JSON schema will be generated; set via
+         * {@link #inputSchemaType(Type, SchemaOption...)}.
+         * Only used when {@link #inputSchema} is {@code null}.
+         */
         private Type inputSchemaType;
+
+        /**
+         * Options that control how the JSON schema is generated from {@link #inputSchemaType}.
+         * Defaults to an empty array. Applied only when the schema is derived from a type.
+         */
         private SchemaOption[] schemaOptions = new SchemaOption[0];
+
+        /**
+         * Flag that controls strict schema adherence; set via {@link #strict(Boolean)}.
+         * {@code null} means the provider's default behaviour should be used.
+         */
         private Boolean strict;
 
         /**
-         * Sets the name of the tool.
+         * Configures the unique name of the tool.
+         * <p>
+         * The name is exposed to the AI model and must be unique across all tools provided
+         * in the same request. A good name is concise and self‑documenting, e.g., {@code "get_weather"}
+         * or {@code "create_order"}. It should consist of alphanumeric characters and underscores.
+         * </p>
          *
-         * @param name the name of the tool
-         * @return this builder instance for chaining
+         * @param name the tool name; must not be null
+         * @return this builder instance for method chaining
          */
         public ToolDefinitionBuilder name(@NonNull String name) {
             this.name = name;
@@ -136,10 +202,16 @@ public interface ToolDefinition {
         }
 
         /**
-         * Sets the description of the tool.
+         * Provides a natural‑language description of the tool's purpose and usage.
+         * <p>
+         * The description is a primary signal for the AI model to decide whether to invoke this tool.
+         * Include information about what the tool does, when it is appropriate to use, and any
+         * important side effects or constraints. The more precise the description, the higher the
+         * chance the model selects the correct tool for the user's intent.
+         * </p>
          *
-         * @param description a human-readable description of the tool's purpose
-         * @return this builder instance for chaining
+         * @param description a clear explanation of the tool; must not be null
+         * @return this builder instance for method chaining
          */
         public ToolDefinitionBuilder description(@NonNull String description) {
             this.description = description;
@@ -148,9 +220,14 @@ public interface ToolDefinition {
 
         /**
          * Sets the input schema directly from a JSON string.
+         * <p>
+         * The string must represent a valid JSON Schema object definition. This method is
+         * appropriate when you already have a hand‑crafted or externally generated schema.
+         * If both a raw schema and a type are supplied, this raw schema takes precedence.
+         * </p>
          *
-         * @param inputSchema a string containing the JSON schema for the tool's parameters
-         * @return this builder instance for chaining
+         * @param inputSchema a JSON Schema string describing the tool's parameters; must not be null
+         * @return this builder instance for method chaining
          */
         public ToolDefinitionBuilder inputSchema(@NonNull String inputSchema) {
             this.inputSchema = inputSchema;
@@ -158,14 +235,21 @@ public interface ToolDefinition {
         }
 
         /**
-         * Sets the input schema by specifying a Java {@link Type}.
+         * Defines the input schema by providing a Java {@link Type}, from which a JSON Schema
+         * will be automatically generated.
          * <p>
-         * The JSON schema will be generated automatically from this type using the configured schema options.
+         * The generation uses the provided type's structure, including field names, types, and
+         * annotations (e.g., {@code @JsonPropertyDescription}). Optional {@link SchemaOption}s
+         * allow fine‑tuning, such as generating descriptions from annotation metadata or controlling
+         * the inclusion of nullable fields. This approach is convenient when the tool's parameters
+         * are modelled as a simple POJO or Record.
          * </p>
          *
-         * @param inputSchemaType the Java type to generate the schema from
-         * @param schemaOptions   optional settings to customize schema generation
-         * @return this builder instance for chaining
+         * @param inputSchemaType the Java type to derive the schema from; must not be null
+         * @param schemaOptions   optional generation settings (e.g., {@link SchemaOption#GENERATE_DESCRIPTIONS});
+         *                        if {@code null}, an empty array is used
+         * @return this builder instance for method chaining
+         * @see JsonSchemaUtil#generateForType(Type, SchemaOption...)
          */
         public ToolDefinitionBuilder inputSchemaType(@NonNull Type inputSchemaType, SchemaOption... schemaOptions) {
             this.inputSchemaType = inputSchemaType;
@@ -176,10 +260,19 @@ public interface ToolDefinition {
         }
 
         /**
-         * Sets whether the model should strictly follow the function's schema.
+         * Specifies whether the AI model should strictly adhere to the input schema when generating
+         * arguments.
+         * <p>
+         * A value of {@code true} instructs the provider to make a best effort to produce arguments
+         * that are valid according to the schema, reducing the likelihood of malformed function calls.
+         * A value of {@code false} or {@code null} allows the model more flexibility, which may be
+         * desirable for experimental or loosely‑defined schemas. The exact behaviour when {@code null}
+         * is provider‑dependent.
+         * </p>
          *
-         * @param strict if {@code true}, the model is constrained to generate arguments matching the schema
-         * @return this builder instance for chaining
+         * @param strict {@code true} for strict adherence, {@code false} to allow leniency,
+         *               or {@code null} to use the provider's default
+         * @return this builder instance for method chaining
          */
         public ToolDefinitionBuilder strict(@NonNull Boolean strict) {
             this.strict = strict;
@@ -187,15 +280,29 @@ public interface ToolDefinition {
         }
 
         /**
-         * Builds and returns a new {@link ToolDefinition} instance.
+         * Builds and returns a fully configured {@link ToolDefinition} after validating all required
+         * fields.
          * <p>
-         * It requires that the name, description, and either {@code inputSchema} or
-         * {@code inputSchemaType} are set. If {@code inputSchemaType} is provided,
-         * it generates the schema automatically.
+         * The build process follows these rules:
+         * </p>
+         * <ol>
+         *   <li>The tool {@code name} and {@code description} must be non‑null and non‑empty.</li>
+         *   <li>If {@link #inputSchema} is not {@code null}, it is used as‑is; the type‑based
+         *       generation is ignored.</li>
+         *   <li>Otherwise, if {@link #inputSchemaType} is set, a JSON Schema is derived from it
+         *       using the configured {@link #schemaOptions}.</li>
+         *   <li>If neither a raw schema nor a type is provided, an {@link IllegalArgumentException}
+         *       is thrown.</li>
+         * </ol>
+         * <p>
+         * This validation ensures that the resulting {@code ToolDefinition} can be safely passed to
+         * the AI runtime without causing runtime errors due to missing metadata.
          * </p>
          *
-         * @return a new, configured {@link ToolDefinition} (typically a {@link DefaultToolDefinition})
-         * @throws IllegalArgumentException if required fields are missing or if neither schema nor schema type is provided
+         * @return a new, immutable {@link ToolDefinition} instance (typically {@link DefaultToolDefinition})
+         * @throws IllegalArgumentException if {@code name} or {@code description} is blank,
+         *                                  or if neither schema source is provided
+         * @see DefaultToolDefinition
          */
         public ToolDefinition build() {
             if (!StringUtils.hasText(this.name)) {

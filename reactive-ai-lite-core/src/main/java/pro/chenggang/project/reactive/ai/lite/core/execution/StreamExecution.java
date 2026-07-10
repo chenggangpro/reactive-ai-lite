@@ -21,52 +21,109 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResp
 import reactor.core.publisher.Flux;
 
 /**
- * Defines the contract for a streaming execution of an LLM request.
+ * Contract for executing a Large Language Model (LLM) request in a reactive,
+ * streaming fashion. Implementations typically wrap a reactive HTTP client that
+ * connects to a provider's streaming endpoint (e.g., OpenAI chat completions with
+ * {@code stream=true}) and process Server-Sent Events (SSE) or similar chunked
+ * transfer encodings.
  * <p>
- * This execution type is designed for scenarios where the response is delivered
- * as a continuous stream of events (e.g., Server-Sent Events), wrapped in a Project Reactor
- * {@link Flux}. It is ideal for handling real-time or chunked text generation, allowing
- * applications to display responses to users before the entire completion is finished.
+ * The key advantage of a streaming execution is that partial results become
+ * available to the application as soon as they are produced by the model, without
+ * waiting for the entire completion. This enables lower time-to-first-byte
+ * (TTFB) and a more responsive user experience, especially for longer responses.
+ * </p>
+ * <p>
+ * The interface offers two levels of abstraction:
+ * <ul>
+ *   <li>{@link #execute()}: parses the raw JSON events into a unified
+ *       {@link StreamResponse} model (text, tool calls, usage metrics), hiding
+ *       provider-specific schemas.</li>
+ *   <li>{@link #executeRaw()}: delivers the raw JSON chunks as they arrive,
+ *       providing full access to the provider's response format, useful for
+ *       debugging, logging, or custom processing.</li>
+ * </ul>
+ * Additionally, a convenience {@link #execute(RawStreamResponseConverter)} method
+ * allows direct transformation of each raw chunk to any domain type.
+ * <p>
+ * The resulting {@link Flux} may emit multiple items until the stream is
+ * complete, after which an onComplete signal is sent. In case of errors (network
+ * issues, authentication failures, rate limits), an onError signal is emitted.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
  */
-public interface StreamExecution extends LlmClientExecution {
+public interface StreamExecution {
 
     /**
-     * Executes the streaming LLM request and returns a standardized flux of parsed response chunks.
+     * Initiates the streaming LLM call and returns a {@link Flux} of
+     * structured, provider-agnostic {@link StreamResponse} objects.
      * <p>
-     * Each item in the stream represents a categorized part of the overall response
-     * (e.g., a text token, a tool call snippet, or final usage metrics) abstracted
-     * away from the provider's specific JSON schema.
+     * Under the hood, this method typically delegates to {@link #executeRaw()}
+     * and translates each raw chunk into a {@link StreamResponse} using
+     * internal converters. The mapping handles the variability of different
+     * LLM providers (e.g., OpenAI's chunk format vs. Anthropic's streaming
+     * messages) behind a consistent API.
+     * </p>
+     * <p>
+     * The emitted items can include:
+     * <ul>
+     *   <li>Content – tokens of the generated text (delta).</li>
+     *   <li>Tool calls – incremental snippets of function-calling requests.</li>
+     *   <li>Metadata – finish reasons, usage statistics, or any provider
+     *       meta-information.</li>
+     * </ul>
+     * The final element may carry the aggregated usage data (total token
+     * counts) once the stream has ended.
      * </p>
      *
-     * @return a {@link Flux} emitting structured {@link StreamResponse} objects
+     * @return a {@link Flux} emitting structured streaming responses;
+     *         never {@code null}, may be empty if no chunks are received
+     *         (unlikely in a streaming scenario)
      */
     Flux<StreamResponse> execute();
 
     /**
-     * Executes the streaming LLM request and returns the raw, unprocessed stream of JSON events.
+     * Initiates the streaming LLM call and returns the raw, unprocessed
+     * JSON chunks as a {@link Flux} of {@link RawStreamResponse}.
      * <p>
-     * This is useful for accessing provider-specific, non-standard fields or for
-     * performing custom parsing logic outside the framework's standard abstractions.
+     * This method is designed for advanced use cases where the standard
+     * abstraction is insufficient:
+     * <ul>
+     *   <li>Accessing provider-specific fields not covered by the common model.</li>
+     *   <li>Implementing custom error handling or logging that requires the
+     *       exact wire format.</li>
+     *   <li>Chaining custom reactive operators before any transformation.</li>
+     * </ul>
+     * Each emitted {@link RawStreamResponse} typically contains the raw bytes
+     * or string representation of a single SSE data line (after the "data:"
+     * prefix) or an equivalent chunk from the streaming connection.
+     * </p>
+     * <p>
+     * Note that the stream will include control messages (e.g., "[DONE]" in
+     * OpenAI) which can be identified and handled downstream.
      * </p>
      *
-     * @return a {@link Flux} emitting raw JSON chunks as {@link RawStreamResponse} objects
+     * @return a {@link Flux} of raw streaming responses; never {@code null}
      */
     Flux<RawStreamResponse> executeRaw();
 
     /**
-     * Executes the streaming LLM request and applies a custom converter to each raw chunk.
+     * Convenience method that executes the raw streaming request and applies
+     * a custom {@link RawStreamResponseConverter} to each emitted raw chunk,
+     * yielding a {@link Flux} of the converter's target type.
      * <p>
-     * This is a convenience method that automatically maps the output of {@link #executeRaw()}
-     * using the provided {@link RawStreamResponseConverter}.
+     * This is equivalent to calling {@code executeRaw().map(converter::convert)}.
+     * It is particularly useful when you need to transform the raw chunks into
+     * a domain-specific object or into a different intermediate representation
+     * without explicitly subscribing to the raw flux.
      * </p>
      *
-     * @param converter the converter to transform each {@link RawStreamResponse}
-     * @param <R>       the target type of the conversion
-     * @return a {@link Flux} emitting the converted chunks
+     * @param <R>       the output type after conversion, usually a
+     *                  domain POJO or an aggregated result
+     * @param converter a stateless transformation from
+     *                  {@link RawStreamResponse} to type {@code R}
+     * @return a {@link Flux} emitting the converted objects; never {@code null}
      */
     default <R> Flux<R> execute(RawStreamResponseConverter<R> converter) {
         return executeRaw().map(converter::convert);

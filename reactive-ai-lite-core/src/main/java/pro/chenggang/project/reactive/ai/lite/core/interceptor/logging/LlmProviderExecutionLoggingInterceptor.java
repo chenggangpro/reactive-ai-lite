@@ -41,48 +41,78 @@ import java.util.function.Supplier;
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
 /**
- * An interceptor that logs the details of LLM provider executions.
+ * Logs details of each LLM provider call in both synchronous and streaming scenarios.
  * <p>
- * This interceptor implements both "before" and "after" interfaces to log
- * outbound requests (endpoint, payload) and inbound responses (JSON body,
- * execution cost in milliseconds, errors). It supports conditional logging
- * controlled by a {@code Supplier<Boolean>}.
+ * This interceptor implements both {@link LlmProviderExecutionBeforeInterceptor} and
+ * {@link LlmProviderExecutionAfterInterceptor} to capture request metadata and response
+ * outcomes. It records:
+ * <ul>
+ *   <li>The target endpoint and raw request body (on request).</li>
+ *   <li>The raw response body for general (non-streaming) responses.</li>
+ *   <li>The merged JSON chunks for streaming responses.</li>
+ *   <li>Timing information: first-stream-chunk latency, total execution cost, and
+ *   inter-chunk receiving duration.</li>
+ *   <li>Any errors that occur during processing.</li>
+ * </ul>
+ * Logging is conditional, governed by a {@link Supplier}{@code <Boolean>} that can be
+ * dynamically toggled at runtime (e.g., via configuration). The interceptor uses the
+ * {@link #ALREADY_LOGGED_ATTR_KEY} attribute to prevent duplicate logging when an error
+ * occurs in both the general and streaming interceptors.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see LlmProviderExecutionBeforeInterceptor
+ * @see LlmProviderExecutionAfterInterceptor
  */
 @Slf4j
 @RequiredArgsConstructor
 public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecutionBeforeInterceptor, LlmProviderExecutionAfterInterceptor {
 
     /**
-     * The key used to store the execution start instant in the exchange parsingAttributes.
-     * This is used later to calculate the total execution duration.
+     * Attribute key for storing the instant when execution began.
+     * <p>
+     * The value is an {@link Instant} placed into the {@link LlmProviderRequestExchange}
+     * attributes during the {@code before} phase. It is later retrieved to calculate
+     * the total execution duration and first-chunk latency.
+     * </p>
      */
     public static final String EXECUTION_INSTANT_ATTR_KEY = LlmProviderExecutionLoggingInterceptor.class.getName() + ".execution-instant";
 
     /**
-     * The key used to store whether logging has already occurred for this exchange.
-     * This avoids duplicate logging on multiple error callbacks.
+     * Attribute key used to mark that logging has already been performed for an exchange.
+     * <p>
+     * This prevents duplicate logging when the {@code error} signal is present in both
+     * the general and streaming response interceptors. The value is a {@link Boolean}
+     * stored as {@code true} once logging (including error logging) completes.
+     * </p>
      */
     public static final String ALREADY_LOGGED_ATTR_KEY = LlmProviderExecutionLoggingInterceptor.class.getName() + ".already-logged";
 
     /**
-     * The set of client types supported by this interceptor.
-     * By default, it supports all available client types.
+     * The set of {@link LlmClientType}s for which this interceptor applies.
+     * <p>
+     * By default, it includes all client types. It can be customised via the constructor
+     * if selective logging is desired. This field determines whether the interceptor is
+     * invoked for a given provider call.
+     * </p>
      */
     private final Set<LlmClientType> supportedClient = Set.of(LlmClientType.values());
 
     /**
-     * A supplier that determines whether logging is currently enabled.
+     * A supplier providing the current logging enabled flag.
+     * <p>
+     * Evaluated at each interception point to decide whether to perform logging.
+     * This allows dynamic toggling (e.g., based on a configuration property) without
+     * static checks.
+     * </p>
      */
     private final Supplier<Boolean> isEnableLogging;
 
     /**
-     * Returns the client types supported by this logging interceptor.
+     * Returns the client types that this interceptor supports.
      *
-     * @return a set of all {@link LlmClientType}s
+     * @return an unmodifiable set of {@link LlmClientType}; never {@code null}
      */
     @Override
     public Set<LlmClientType> supportedClient() {
@@ -90,13 +120,15 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
     }
 
     /**
-     * Returns the order of this interceptor.
+     * Returns the order of this interceptor in the chain.
      * <p>
-     * Set to {@link Integer#MIN_VALUE} to ensure logging happens as early
-     * as possible in the request chain and as late as possible in the response chain.
+     * A value of {@link Integer#MIN_VALUE} ensures that the logging interceptor is
+     * always the first to see the request and the last to see the response, giving
+     * accurate end-to-end timing. Any other interceptor can rely on the logged
+     * information being present.
      * </p>
      *
-     * @return the order value
+     * @return the order value, {@code Integer.MIN_VALUE}
      */
     @Override
     public int getOrder() {
@@ -104,11 +136,17 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
     }
 
     /**
-     * Intercepts the request before it is sent to log the endpoint and raw body.
+     * Records the start time and logs the request endpoint and body before passing
+     * control down the chain.
+     * <p>
+     * The execution start {@link Instant} is stored in the exchange attributes under
+     * {@link #EXECUTION_INSTANT_ATTR_KEY}. The endpoint is logged at INFO level;
+     * the raw request body is logged at DEBUG level if enabled.
+     * </p>
      *
-     * @param exchange the request exchange
+     * @param exchange the incoming request exchange containing provider and body info
      * @param chain    the request interceptor chain
-     * @return a {@link Mono} representing the asynchronous completion
+     * @return a {@link Mono} that completes when the next interceptor finishes
      */
     @Override
     public Mono<Void> interceptBefore(LlmProviderRequestExchange exchange, LlmProviderRequestInterceptorChain chain) {
@@ -133,11 +171,18 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
     }
 
     /**
-     * Intercepts a general response to log the raw JSON body, execution cost, and any errors.
+     * Logs the raw JSON response, any error, and total execution cost after a general
+     * (non-streaming) provider call.
+     * <p>
+     * The raw response body is logged at DEBUG level. If an error is present in the
+     * exchange, it is logged at ERROR level. The total duration from the stored
+     * execution instant to now is logged at INFO level. To prevent duplicate logging
+     * when an error is present, the {@link #ALREADY_LOGGED_ATTR_KEY} is set.
+     * </p>
      *
-     * @param exchange the general response exchange
+     * @param exchange the response exchange containing the raw body and possible error
      * @param chain    the response interceptor chain
-     * @return a {@link Mono} representing the asynchronous completion
+     * @return a {@link Mono} that completes when the next interceptor finishes
      */
     @Override
     public Mono<Void> interceptAfter(LlmProviderGeneralResponseExchange exchange, LlmProviderResponseInterceptorChain chain) {
@@ -160,11 +205,21 @@ public class LlmProviderExecutionLoggingInterceptor implements LlmProviderExecut
     }
 
     /**
-     * Intercepts a stream response to log merged stream chunks, execution cost, and any errors.
+     * Intercepts each streaming response chunk to log merged content, timings, and errors.
+     * <p>
+     * This method handles the asynchronous nature of streaming responses. It subscribes
+     * to the raw stream, merges all JSON chunks into a single object (for debug logging),
+     * measures the time to receive the first chunk, the inter-chunk duration, and the
+     * total execution cost. If an error is present in the exchange before processing the
+     * stream, it logs the error immediately and marks the exchange as already logged.
+     * The logging task runs on a bounded elastic scheduler to avoid blocking the main
+     * response pipeline. The method uses {@link Mono#whenDelayError(Mono, Mono...)} to
+     * ensure the chain is still invoked and errors are not swallowed.
+     * </p>
      *
-     * @param exchange the stream response exchange
+     * @param exchange the streaming response exchange containing the raw stream and metadata
      * @param chain    the response interceptor chain
-     * @return a {@link Mono} representing the asynchronous completion
+     * @return a {@link Mono} that completes when both logging and the next interceptor finish
      */
     @Override
     public Mono<Void> interceptAfterEach(LlmProviderStreamResponseExchange exchange, LlmProviderResponseInterceptorChain chain) {

@@ -18,31 +18,55 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * Represents the data exchange specifically for outbound LLM requests.
+ * Interceptor exchange phase that represents the outbound LLM request and provides
+ * mutable access to its JSON payload.
  * <p>
- * This interface extends {@link LlmProviderExchange} to provide access to the raw
- * JSON request body that is about to be dispatched to the AI provider. Interceptors
- * operating before the request execution can use this interface to inspect or modify
- * the payload.
+ * Implementations of this interface are made available to interceptors that execute
+ * <em>before</em> the request is dispatched to the AI provider. By exposing a
+ * mutable {@link ObjectNode}, it allows the interceptor chain to inspect, transform,
+ * or augment the request body (e.g., injecting system prompts, adjusting temperature,
+ * attaching tracing metadata) in a standardized fashion.
+ * </p>
+ * <p>
+ * In addition, this interface declares a well‑known attribute key under which the
+ * raw provider response can be stored once available, enabling post‑request
+ * interceptors to access the original response payload through the exchange.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see LlmProviderExchange
  */
 public interface LlmProviderRequestExchange extends LlmProviderExchange {
 
     /**
-     * The key used to store the raw response body within the parsingAttributes map.
+     * Attribute key used to store the raw JSON response body received from the LLM
+     * provider.
+     * <p>
+     * After the request is executed, the unprocessed response payload (as a
+     * {@link com.fasterxml.jackson.databind.JsonNode}) should be placed into the
+     * exchange's {@link #parsingAttributes()} map using this key. This enables
+     * downstream interceptors (e.g., logging, auditing, or response‑transformation
+     * interceptors) to retrieve the original provider response without having to
+     * re‑parse or buffer it again.
+     * </p>
      */
     String RAW_RESPONSE_BODY_ATTRIBUTE_KEY = LlmProviderRequestExchange.class.getName() + ".raw-response-body";
 
     /**
-     * Retrieves the raw JSON request body that will be sent to the provider.
+     * Returns the mutable JSON object node that constitutes the payload of the
+     * outbound LLM request.
      * <p>
-     * Interceptors can modify this {@link ObjectNode} to alter the request payload before it is sent.
+     * Because the returned {@link ObjectNode} is the actual reference used during
+     * serialization, any modifications made by an interceptor (e.g., adding,
+     * removing, or changing fields) are directly reflected in the request that
+     * reaches the provider. This allows interceptors to implement dynamic prompt
+     * engineering, parameter overrides, and custom metadata injection without
+     * altering the client code.
      * </p>
      *
-     * @return the raw request payload as a JSON {@link ObjectNode}
+     * @return the raw request payload as a mutable {@link ObjectNode}, never
+     * {@code null}
      */
     ObjectNode rawRequestBody();
 }

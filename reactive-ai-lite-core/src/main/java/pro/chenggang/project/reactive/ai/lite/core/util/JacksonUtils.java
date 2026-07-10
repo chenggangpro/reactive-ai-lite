@@ -23,31 +23,52 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Utility class for Jackson-related operations.
+ * Utility class providing dynamic Jackson module discovery and instantiation.
  * <p>
- * Provides helper methods for configuring Jackson ObjectMapper instances, such as
- * dynamically discovering and instantiating available Jackson modules in the classpath.
+ * In reactive AI lite, {@link com.fasterxml.jackson.databind.ObjectMapper} instances are
+ * configured with a set of Jackson modules that enhance serialization/deserialization
+ * capabilities. Instead of declaring hard dependencies on every possible module (which
+ * would force users to include them), this utility discovers and instantiates modules
+ * that are actually present on the classpath at runtime. This keeps optional features
+ * (like Java 8 date/time or Kotlin support) truly optional.
+ * </p>
+ * <p>
+ * The class is abstract and contains only static methods; it is not meant to be instantiated.
+ * All module loading is done reflectively, with missing modules silently ignored so that
+ * the application can run without them.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @since 0.1.0
  */
 public abstract class JacksonUtils {
 
     /**
-     * Discovers and instantiates common Jackson modules available in the classpath.
+     * Discovers and instantiates commonly used Jackson modules that are available on the classpath.
      * <p>
-     * It attempts to load and instantiate the following modules:
+     * This method attempts to load the following modules, which are often needed to handle
+     * Java 8+ language and API features:
      * <ul>
-     *     <li>Jdk8Module (for Java 8 Optionals, etc.)</li>
-     *     <li>JavaTimeModule (for JSR-310 Java 8 Date/Time API)</li>
-     *     <li>ParameterNamesModule (for preserving parameter names)</li>
-     *     <li>KotlinModule (if Kotlin is detected on the classpath)</li>
+     *   <li>{@code Jdk8Module} – for correct handling of {@code Optional}, {@code Stream}, etc.</li>
+     *   <li>{@code JavaTimeModule} – for JSR-310 Java Time API types (e.g., {@code LocalDate},
+     *       {@code Instant}).</li>
+     *   <li>{@code ParameterNamesModule} – to preserve method/constructor parameter names
+     *       when reading JSON (requires {@code -parameters} compiler flag).</li>
+     *   <li>{@code KotlinModule} – if the Kotlin runtime is detected on the classpath, it
+     *       is loaded to support Kotlin data classes and null-safety annotations.</li>
      * </ul>
-     * If a module's class is not found, it is silently ignored.
+     * If a module’s class is not found (because the corresponding library is not a dependency),
+     * the exception is caught and the module is simply omitted from the returned list. This
+     * makes the {@code ObjectMapper} configuration resilient to changes in the dependency set.
+     * </p>
+     * <p>
+     * The instantiation is done via {@link BeanUtils#instantiateClass(Class)}, which uses
+     * the default (public no-arg) constructor. All discovered modules are returned as a
+     * flat {@link List} that can be registered in one go.
      * </p>
      *
-     * @return a list of instantiated Jackson {@link Module}s
+     * @return a list of instantiated Jackson {@link Module} objects; never {@code null}
      */
     @SuppressWarnings("unchecked")
     public static List<Module> instantiateAvailableModules() {

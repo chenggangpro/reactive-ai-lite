@@ -32,6 +32,7 @@ import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
 import pro.chenggang.project.reactive.ai.lite.core.message.AssistantTextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.TextMessage;
 import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
+import pro.chenggang.project.reactive.ai.lite.core.message.defaults.DefaultToolResultMessage;
 import pro.chenggang.project.reactive.ai.lite.core.option.Role;
 import pro.chenggang.project.reactive.ai.lite.core.tool.DefaultToolDefinition;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
@@ -60,11 +61,6 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatGeneralExecute() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
                 .historicalMessage(List.of(
@@ -92,11 +88,6 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStreamExecuteRaw() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
                 .historicalMessage(List.of(
@@ -125,11 +116,6 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStructuredExecuteRaw() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。\n"
                         + "你的结果数据必须满足 JSON SCHEMA：" + JsonSchemaUtil.generateForType(ResultClass.class) + "  \n\n"
@@ -152,18 +138,16 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
 
     @Test
     void testChatGeneralExecuteWithToolCalls() {
-        reactiveLlmClient.chat()
-                .newChat()
-                .contextConfigure((executionContext, parentAttributes) -> {
+        reactiveLlmClient.newRequest()
+                .context((executionContext, parentAttributes) -> {
                     if (Objects.nonNull(parentAttributes) && !parentAttributes.isEmpty()) {
                         executionContext.getAttributes().putAll(parentAttributes);
                     }
                     executionContext.getAttributes().put("sequence", 0);
                 })
-                .providerSpec()
                 .defaultProvider()
                 .defaultProfile()
-                .chatSpec()
+                .chat()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
@@ -183,7 +167,7 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                     List<ToolResultMessage> toolResultMessages = generalResponse.getToolCalls()
                             .map(assistantToolCalls -> {
                                 return assistantToolCalls.stream()
-                                        .<ToolResultMessage>map(assistantToolCall -> ToolResultMessage.newToolResultMessage(assistantToolCall.getId())
+                                        .<ToolResultMessage>map(assistantToolCall -> DefaultToolResultMessage.builder().toolCallId(assistantToolCall.getId())
                                                 .content(
                                                         """
                                                                 name,month,amount
@@ -213,10 +197,9 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                                         .toList();
                             })
                             .orElse(List.of());
-                    return reactiveLlmClient.chat()
-                            .newChat()
+                    return reactiveLlmClient.newRequest()
                             .parentAttributes(generalResponse.getExecutionContext().getAttributes())
-                            .contextConfigure((executionContext, parentAttributes) -> {
+                            .context((executionContext, parentAttributes) -> {
                                 Map<String, Object> attributes = executionContext.getAttributes();
                                 if (Objects.nonNull(parentAttributes) && !parentAttributes.isEmpty()) {
                                     attributes.putAll(parentAttributes);
@@ -224,10 +207,9 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
                                 int sequence = executionContext.getAttribute("sequence");
                                 attributes.put("sequence", ++sequence);
                             })
-                            .providerSpec()
                             .defaultProvider()
                             .defaultProfile()
-                            .chatSpec()
+                            .chat()
                             .model(contextView -> model)
                             .systemMessage((contextView -> "You are a helpful assistant"))
                             .historicalMessage(
@@ -257,11 +239,6 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatGeneralExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
@@ -290,11 +267,6 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStreamExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
@@ -324,11 +296,6 @@ public class AnthropicChatClientTests extends AnthropicLlmClientTestApplicationT
     @Test
     void testChatStreamExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))

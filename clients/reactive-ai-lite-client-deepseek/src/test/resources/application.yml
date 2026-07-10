@@ -26,7 +26,8 @@ reactive:
     lite:
       client:
         deepseek:
-          chat-provider:
-            certifications:
-              - token: Your_DEEPSEE_API_TOKEN
-                default: true
+          certifications:
+            - token: Your_DEEPSEE_API_TOKEN
+              default: true
+          chat:
+            enabled: true

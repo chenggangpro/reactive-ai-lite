@@ -21,3 +21,10 @@ server:
 logging:
   level:
     pro.chenggang: DEBUG
+reactive:
+  ai:
+    lite:
+      client:
+        ollama:
+          embedding:
+            enabled: true

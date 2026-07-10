@@ -26,13 +26,23 @@ import java.util.ListIterator;
 import java.util.Objects;
 
 /**
- * A concrete implementation of {@link LlmProviderRequestInterceptorChain}.
+ * A concrete implementation of {@link LlmProviderRequestInterceptorChain} that chains multiple
+ * {@link LlmProviderExecutionBeforeInterceptor} instances into a sequential execution pipeline.
  * <p>
- * This class builds an immutable, linked-list-style execution chain of
- * {@link LlmProviderExecutionBeforeInterceptor} instances. When the {@code next()}
- * method is called, it triggers the current interceptor and passes a reference
- * to the remainder of the chain. This allows interceptors to execute sequentially
- * before the LLM request is dispatched.
+ * The chain is constructed as an immutable, linked-list data structure. Each node in the chain
+ * holds a reference to a single interceptor and the remainder of the chain. When {@link #next(LlmProviderRequestExchange)}
+ * is invoked, the current interceptor's {@code interceptBefore} method is called and passed the
+ * continuation chain (i.e., the remainder), enabling the interceptor to decide whether to proceed
+ * with the next interceptor or short‑circuit the execution. This design follows the chain‑of‑responsibility
+ * pattern tailored for reactive, non‑blocking LLM request processing.
+ * </p>
+ * <p>
+ * The chain is built from a supplied list of interceptors. To maintain the correct forward‑execution
+ * order, the list is traversed in reverse. The algorithm starts with a sentinel node (both fields
+ * {@code null}) and prepends nodes for each list element, resulting in the first list element becoming
+ * the head of the chain. An empty or {@code null} list yields a chain whose sentinel node is the head;
+ * calls to {@link #next(LlmProviderRequestExchange)} on such a chain immediately return
+ * {@link Mono#empty()}, effectively doing nothing.
  * </p>
  *
  * @author Gang Cheng
@@ -42,24 +52,37 @@ import java.util.Objects;
 public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRequestInterceptorChain {
 
     /**
-     * The interceptor to execute at this point in the chain.
+     * The interceptor responsible for processing the current node of the chain.
+     * <p>
+     * This field may be {@code null} only in the special sentinel node that marks the terminus of
+     * the chain. In all other nodes it holds a non‑{@code null} instance of a
+     * {@link LlmProviderExecutionBeforeInterceptor}.
+     * </p>
      */
     private final LlmProviderExecutionBeforeInterceptor currentInterceptor;
 
     /**
-     * The remainder of the interceptor chain.
+     * A reference to the remainder of the interceptor chain.
+     * <p>
+     * For a regular node, this field points to the next node in the linked list (which may itself
+     * be a regular node or the sentinel). For the sentinel node, it is {@code null}. The requirement
+     * that {@code next} be non‑{@code null} for a node to be considered "executable" (see
+     * {@link #shouldIntercept()}) ensures that the continuation is always valid when an interceptor
+     * decides to invoke {@link LlmProviderRequestInterceptorChain#next(LlmProviderRequestExchange)}.
+     * </p>
      */
     private final LlmProviderExecutionBeforeInterceptorChain next;
 
     /**
-     * Constructs a new chain from a list of interceptors.
+     * Constructs a new interceptor chain from the provided list.
      * <p>
-     * The list should be ordered according to the desired execution sequence.
-     * The constructor builds the linked structure iteratively from the end
-     * of the list backwards to maintain the correct forward-execution order.
+     * The list order dictates the execution sequence: the first element is executed first.
+     * Internally, the chain is built in reverse order to guarantee this behavior. If the
+     * list is {@code null} or empty, the resulting chain will be a sentinel that performs
+     * no operation.
      * </p>
      *
-     * @param interceptors the list of 'before' interceptors to form the chain
+     * @param interceptors ordered list of "before" interceptors to form the chain; may be {@code null} or empty
      */
     public LlmProviderExecutionBeforeInterceptorChain(List<LlmProviderExecutionBeforeInterceptor> interceptors) {
         LlmProviderExecutionBeforeInterceptorChain interceptor = init(interceptors);
@@ -68,10 +91,18 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
     }
 
     /**
-     * Initializes the linked chain structure by iterating backwards over the provided list.
+     * Initializes the linked chain structure from a list of interceptors.
+     * <p>
+     * The construction proceeds backwards to preserve the logical order of the list.
+     * A sentinel node with both fields set to {@code null} is first created; then the list
+     * is iterated from the last element to the first. For each element a new chain node is
+     * prepended, with the element as its {@code currentInterceptor} and the previously
+     * created node as its {@code next}. The result is the head node of the chain. If the
+     * list is {@code null} or empty, the sentinel itself is returned.
+     * </p>
      *
-     * @param interceptors the list of interceptors
-     * @return the head of the initialized chain
+     * @param interceptors the list of interceptors, possibly {@code null} or empty
+     * @return the head of the interceptor chain
      */
     private LlmProviderExecutionBeforeInterceptorChain init(List<LlmProviderExecutionBeforeInterceptor> interceptors) {
         LlmProviderExecutionBeforeInterceptorChain interceptor = new LlmProviderExecutionBeforeInterceptorChain(null, null);
@@ -87,10 +118,14 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
     }
 
     /**
-     * Private constructor for linking nodes in the chain.
+     * Private constructor used exclusively for assembling the linked chain nodes.
+     * <p>
+     * Each instance holds one interceptor and a reference to the next node. The
+     * chain is immutable once constructed.
+     * </p>
      *
-     * @param currentInterceptor the current node's interceptor
-     * @param next               the next node in the chain
+     * @param currentInterceptor the interceptor for this node, or {@code null} for the sentinel
+     * @param next               the next node in the chain, or {@code null} for the sentinel
      */
     private LlmProviderExecutionBeforeInterceptorChain(LlmProviderExecutionBeforeInterceptor currentInterceptor,
                                                        LlmProviderExecutionBeforeInterceptorChain next) {
@@ -99,10 +134,19 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
     }
 
     /**
-     * Executes the next interceptor in the chain for an outbound request.
+     * Executes the next step in the interceptor chain for an outbound request.
+     * <p>
+     * Delegates to {@link LlmProviderExecutionBeforeInterceptor#interceptBefore(LlmProviderRequestExchange, LlmProviderRequestInterceptorChain)}
+     * if this node is executable (i.e., both {@code currentInterceptor} and {@code next} are non‑{@code null}).
+     * The implementation uses {@link Mono#defer} to guarantee that the decision to invoke the interceptor
+     * is made lazily, avoiding eager subscription management. If this node is not executable (e.g., the
+     * chain's sentinel), the method returns {@link Mono#empty()} immediately, signaling that the
+     * chain has been fully processed.
+     * </p>
      *
-     * @param exchange the request exchange
-     * @return a Mono representing completion of the chain execution
+     * @param exchange the request exchange carrying context and the outgoing request details
+     * @return a {@code Mono} that completes when this portion of the chain has been handled; may be
+     *         empty if the chain is exhausted
      */
     @Override
     public Mono<Void> next(LlmProviderRequestExchange exchange) {
@@ -115,14 +159,28 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
     }
 
     /**
-     * Determines if there is a valid interceptor to execute at this node.
+     * Determines whether this node is a valid, executable part of the chain.
+     * <p>
+     * A node is considered executable only if it possesses a non‑{@code null} interceptor
+     * <strong>and</strong> a non‑{@code null} reference to the next node. This dual check
+     * ensures that when the interceptor decides to call
+     * {@link LlmProviderRequestInterceptorChain#next(LlmProviderRequestExchange)} on the
+     * continuation, that continuation is also a valid chain instance. The sentinel node
+     * (with both fields {@code null}) fails this check and therefore terminates the chain.
+     * </p>
      *
-     * @return true if an interceptor and a next node exist, false otherwise (end of chain)
+     * @return {@code true} if this node can be invoked; {@code false} otherwise
      */
     private boolean shouldIntercept() {
         return this.currentInterceptor != null && this.next != null;
     }
 
+    /**
+     * Returns a string representation of this chain node, showing the class simple name
+     * and the contained interceptor.
+     *
+     * @return a string describing this node
+     */
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[currentInterceptor=" + this.currentInterceptor + "]";

@@ -35,8 +35,18 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * Delegate interface representing the specific capabilities and API integration logic of an LLM Chat Provider.
- * This interface encapsulates the provider-specific logic that was formerly tightly coupled through inheritance.
+ * Delegate interface that encapsulates all provider-specific logic needed to integrate an LLM chat model
+ * into the reactive AI lite framework. Each implementation tailors the generic request/response flow
+ * to the concrete HTTP API of a particular LLM provider (e.g., OpenAI, Ollama, Groq).
+ * <p>
+ * By isolating these concerns behind a single interface, the core execution pipeline remains agnostic
+ * of provider differences. A delegate is responsible for:
+ * <ul>
+ *     <li>Providing metadata about the provider (identity, default settings, etc.)</li>
+ *     <li>Constructing the provider‑specific HTTP request (base URL, headers, body)</li>
+ *     <li>Parsing and normalising both blocking and streaming responses into unified domain models</li>
+ *     <li>Handling any peculiarities of the provider’s SSE stream structure, such as tool‑call deltas</li>
+ * </ul>
  *
  * @author Gang Cheng
  * @version 0.1.0
@@ -44,68 +54,117 @@ import java.util.List;
 public interface LlmChatProviderDelegate {
 
     /**
-     * Returns the metadata and configuration information for this provider.
+     * Supplies metadata that uniquely identifies the provider and declares its default configuration
+     * values. This information is used by the framework to adjust its behaviour (e.g., default model
+     * selection, feature flags, cost‑tracking hints) without requiring runtime type introspection of
+     * the delegate itself.
      *
-     * @return the {@link LlmProviderInfo}
+     * @return a non‑null {@link LlmProviderInfo} carrying the provider’s identity and defaults
      */
     LlmProviderInfo providerInfo();
 
     /**
-     * Initializes the WebClient request specification for this specific provider.
+     * Prepares the {@link RequestBodySpec} that will be used to issue the HTTP call to the LLM provider.
+     * The implementation typically sets the base URL (e.g., {@code https://api.openai.com/v1/chat/completions}),
+     * any required authentication headers (via {@link #applyStandardTokenCertification(RequestBodySpec, TokenCertification)}
+     * or custom logic), content‑type negotiation, and any provider‑specific static headers.
+     * <p>
+     * This method is invoked once per request; the returned spec is later augmented with the actual
+     * request body by the client layer.
      *
-     * @param llmChatRequestData the structured request data
-     * @return a configured {@link RequestBodySpec}
+     * @param llmChatRequestData the fully‑prepared, framework‑agnostic request context (model, messages, tools, etc.)
+     * @return a mutable {@link RequestBodySpec} representing the start of the HTTP request
      */
     RequestBodySpec loadRequestBodySpec(LlmChatRequestData llmChatRequestData);
 
     /**
-     * Transforms the generic chat request data into the provider-specific JSON payload.
+     * Translates the framework’s generic request representation into the provider‑specific JSON payload
+     * that must be sent as the HTTP request body. This is where field mapping, formatting differences,
+     * and non‑standard parameters are applied.
+     * <p>
+     * Example: OpenAI expects a JSON object with a {@code messages} array of role‑content pairs and a
+     * {@code tools} array; Ollama uses a flat JSON with a {@code prompt} field and stream control
+     * attributes. Each delegate’s implementation ensures the correct shape.
      *
-     * @param llmChatRequestData the structured request data
-     * @return a JSON {@link ObjectNode} representing the request body
+     * @param llmChatRequestData the canonical request data to be converted
+     * @return a JSON {@link ObjectNode} ready to be serialised into the HTTP request body
      */
     ObjectNode initializeRequestBody(LlmChatRequestData llmChatRequestData);
 
     /**
-     * Extracts individual stream chunks from a parsed Server-Sent Event (SSE).
+     * Breaks down a single parsed Server‑Sent Event (SSE) line into one or more stream‑chunk slides.
+     * Many LLM APIs bundle multiple deltas (e.g., choices for different choices, or tool‑call fragments)
+     * inside a single SSE message; this method extracts each individually addressable piece so that the
+     * streaming pipeline can process them uniformly.
+     * <p>
+     * The returned array may be empty (e.g., for keep‑alive comments), or contain several slides when
+     * the SSE carries compound updates.
      *
-     * @param jsonChunkParsingData the parsed JSON SSE event
-     * @return an array of {@link JsonStreamChunkSlide} containing the extracted data
+     * @param jsonChunkParsingData the raw event data already decoded into a JSON tree, plus metadata
+     * @return an array of {@link JsonStreamChunkSlide}, never {@code null} but possibly empty
      */
     JsonStreamChunkSlide[] extractStreamChunks(JsonChunkParsingData jsonChunkParsingData);
 
     /**
-     * Merges multiple raw tool call message chunks into a single, cohesive JSON object.
+     * Reassembles a complete tool‑call definition from potentially fragmented raw JSON chunks that
+     * arrived during streaming. Providers streaming tool calls often deliver function name, arguments
+     * (which themselves may be spread across multiple events), and other metadata in separate SSE
+     * payloads. This method merges those fragments into a single JSON object that mirrors the expected
+     * non‑streaming tool‑call shape.
+     * <p>
+     * If {@code distinctToolCalls} is {@code true}, the implementation should de‑duplicate by
+     * {@code tool‑call index} or id, keeping only the latest merged copy for each distinct call.
      *
-     * @param rawToolCallMessages a list of raw JSON tool call fragments
-     * @param distinctToolCalls   whether to filter for distinct tool calls
-     * @return the merged {@link ObjectNode}
+     * @param rawToolCallMessages an ordered list of raw JSON nodes, each representing one fragment of a tool call
+     * @param distinctToolCalls   whether to keep only distinct (usually the latest) tool calls
+     * @return a single {@link ObjectNode} containing the merged and possibly de‑duplicated tool call array
      */
     ObjectNode mergeRawToolCallMessages(List<ObjectNode> rawToolCallMessages, boolean distinctToolCalls);
 
     /**
-     * Extracts a standardized {@link GeneralResponse} from the raw provider response.
+     * Converts a raw provider response (the entire HTTP body of a non‑streaming completion) into a
+     * standardised {@link GeneralResponse}. The extracted response includes:
+     * <ul>
+     *     <li>The assistant’s text reply (if present)</li>
+     *     <li>Any tool‑call requests issued by the model</li>
+     *     <li>Metadata such as finish reason, token usage, and model identification</li>
+     * </ul>
+     * The conversion relies on the provided {@link ToolDefinition} list to correctly reconstruct
+     * tool calls whose argument structure may be partially embedded in the provider’s JSON.
      *
-     * @param toolDefinitions the tools that were available during the request
-     * @param rawResponse     the raw response data
-     * @return a Mono emitting the parsed {@link GeneralResponse}
+     * @param toolDefinitions the tools that were advertised to the model; used for argument schema reconstruction
+     * @param rawResponse     the raw HTTP response body, pre‑parsed into a structure the delegate understands
+     * @return a Mono emitting the fully parsed, framework‑compatible {@link GeneralResponse}
      */
     Mono<GeneralResponse> extractGeneralResponse(List<ToolDefinition> toolDefinitions, RawResponse rawResponse);
 
     /**
-     * Extracts a standardized {@link StreamResponse} from a raw stream chunk.
+     * Maps a single raw stream chunk (a just‑in‑time fragment of a streaming completion) into a
+     * standardised {@link StreamResponse}. The publisher returned by this method emits zero or more
+     * stream responses; each one corresponds to a meaningful unit of information deliverable to the
+     * caller (a text delta, a tool‑call delta, a final message marker, etc.).
+     * <p>
+     * The implementation must handle provider idiosyncrasies like streaming tool‑call argument
+     * accumulation and partial finish signals, leveraging the supplied tool definitions as needed.
      *
-     * @param toolDefinitions   the tools that were available during the request
-     * @param rawStreamResponse the raw stream chunk
-     * @return a Publisher emitting the parsed {@link StreamResponse}
+     * @param toolDefinitions   the tools available for the request; may be empty
+     * @param rawStreamResponse the raw chunk data as received from the HTTP stream
+     * @return a Publisher of {@link StreamResponse} items representing parsed deltas
      */
     Publisher<StreamResponse> extractStreamResponseContent(List<ToolDefinition> toolDefinitions, RawStreamResponse rawStreamResponse);
 
     /**
-     * Checks if the required token certification is present in the request data.
-     * Providers that do not require token certification (like Ollama) can override this to do nothing.
+     * Verifies that the request carries at least one valid token certification. Most cloud‑based
+     * providers require an API key (Bearer token or custom header). Providers that are accessed
+     * locally without authentication (e.g., Ollama on localhost) may override this method with
+     * an empty implementation to skip the check.
+     * <p>
+     * The default implementation throws an {@link IllegalStateException} if no certification is present.
+     * Override with caution; skipping validation for a provider that actually needs it will result
+     * in runtime authorization failures.
      *
-     * @param llmChatRequestData the structured request data
+     * @param llmChatRequestData the request data carrying the token certifications (if any)
+     * @throws IllegalStateException if no certification is found (default behaviour)
      */
     default void checkTokenCertification(LlmChatRequestData llmChatRequestData) {
         if (llmChatRequestData.getTokenCertification().isEmpty()) {
@@ -114,15 +173,16 @@ public interface LlmChatProviderDelegate {
     }
 
     /**
-     * Default utility method to apply standard TokenCertification to a WebClient RequestBodySpec.
-     * Delegates can invoke this internally within `loadRequestBodySpec` to avoid logic duplication.
-     * <p/>
-     * UriTokenCertification needs to be applied at the URI construction level, which is usually
-     * handled directly by the delegate when creating the URI, not on the RequestBodySpec directly.
-     * Therefore, it's typically ignored here or handled manually by the provider.
+     * Applies a standard {@link TokenCertification} to a {@link RequestBodySpec} by setting the
+     * appropriate HTTP headers. This convenience method is intended to be called from within
+     * {@link #loadRequestBodySpec(LlmChatRequestData)} to avoid repeating header‑setting logic.
+     * <p>
+     * It currently handles {@link BearerTokenCertification} (sets the {@code Authorization: Bearer …} header)
+     * and {@link HttpHeaderTokenCertification} (custom header name/value). Other certification types,
+     * such as URI‑path tokens, must be handled at the URI construction level and are not covered here.
      *
-     * @param requestBodySpec    the request spec to modify
-     * @param tokenCertification the token certification to apply
+     * @param requestBodySpec    the mutable request spec where headers will be added
+     * @param tokenCertification the token certification instance to apply
      */
     default void applyStandardTokenCertification(RequestBodySpec requestBodySpec, TokenCertification tokenCertification) {
         if (tokenCertification instanceof BearerTokenCertification bearerTokenCertification) {

@@ -23,12 +23,32 @@ import pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange.LlmProvi
 import java.util.Optional;
 
 /**
- * The default implementation of {@link LlmProviderGeneralResponseExchange}.
+ * Default implementation of {@link LlmProviderGeneralResponseExchange}, specializing
+ * {@link AbstractLlmProviderExchange} for non‑streaming (general) LLM provider responses.
  * <p>
- * This class extends {@link AbstractLlmProviderExchange} to provide the specific
- * response data for a non-streaming (general) request. It encapsulates the raw JSON
- * response body as an {@link ObjectNode} and any error that might have occurred
- * during the HTTP exchange.
+ * In the interceptor exchange model, a general response carries the complete JSON body
+ * returned by the LLM provider after a synchronous or non‑streaming call. This class
+ * embraces a “success‑or‑failure” contract: either the raw JSON payload is available,
+ * or an exception describes why the exchange failed. Using {@link Optional} accessors
+ * enforces explicit handling of both branches by downstream processors.
+ * </p>
+ * <p>
+ * The {@link #rawResponseBody} is intentionally typed as a Jackson {@link ObjectNode}
+ * to allow flexible, path‑based inspection without carrying a concrete model. Any error
+ * encountered during the exchange (network, timeout, deserialization, provider‑specific
+ * error response) is captured in {@link #error} so that interceptors can react to failures
+ * uniformly.
+ * </p>
+ * <p>
+ * Instances are created via the {@link SuperBuilder} from the parent class. Typical
+ * construction:
+ * <pre>
+ *   DefaultLlmProviderGeneralResponseExchange.builder()
+ *       .startTime(...)
+ *       .connectionInfo(...)
+ *       .rawResponseBody(responseJson)
+ *       .build();
+ * </pre>
  * </p>
  *
  * @author Gang Cheng
@@ -38,21 +58,32 @@ import java.util.Optional;
 public class DefaultLlmProviderGeneralResponseExchange extends AbstractLlmProviderExchange implements LlmProviderGeneralResponseExchange {
 
     /**
-     * The raw JSON response body. May be null if the request failed.
+     * The complete JSON response body received from the LLM provider, expressed as a
+     * Jackson {@link ObjectNode}. This field is {@code null} when the exchange did not
+     * produce a valid response (i.e., when {@link #error} is present). The node preserves
+     * the original tree structure, enabling interceptors to extract data points without
+     * depending on provider‑specific POJOs.
      */
     @Nullable
     private final ObjectNode rawResponseBody;
 
     /**
-     * An error that occurred during the execution, if any.
+     * Any exception thrown during the LLM provider exchange, {@code null} if the request
+     * completed successfully. This can capture a wide range of failures: low‑level I/O
+     * errors, HTTP error statuses, JSON parsing exceptions, or provider error messages
+     * transformed into exceptions. The presence of this field indicates that the
+     * {@link #rawResponseBody} is absent and the exchange should be treated as failed.
      */
     @Nullable
     private final Throwable error;
 
     /**
-     * Retrieves the raw JSON response body, if present.
+     * Returns the raw JSON response body if the exchange completed successfully;
+     * otherwise {@link Optional#empty()}. This method enforces the invariant that a
+     * successful response is never null but may be missing entirely when an error
+     * occurred.
      *
-     * @return an {@link Optional} containing the raw JSON body, or empty
+     * @return an {@link Optional} wrapping the {@link ObjectNode}, or empty on failure
      */
     @Override
     public Optional<ObjectNode> rawResponseBody() {
@@ -60,9 +91,11 @@ public class DefaultLlmProviderGeneralResponseExchange extends AbstractLlmProvid
     }
 
     /**
-     * Retrieves the execution error, if one occurred.
+     * Returns the exception that prevented a successful exchange, if one occurred.
+     * When no error happened, the returned {@link Optional} is empty, meaning
+     * {@link #rawResponseBody()} will contain the response.
      *
-     * @return an {@link Optional} containing the error, or empty
+     * @return an {@link Optional} wrapping the {@link Throwable} error, or empty
      */
     @Override
     public Optional<Throwable> error() {

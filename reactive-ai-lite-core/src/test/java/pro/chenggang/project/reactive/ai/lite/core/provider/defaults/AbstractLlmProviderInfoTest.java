@@ -15,18 +15,16 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.provider.defaults;
 
-import lombok.NonNull;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AbstractLlmProviderInfoTest {
 
-    static class TestProviderInfo extends AbstractLlmProviderInfo {
-        protected TestProviderInfo(String baseUrl, String endpoint, boolean isDefault, @NonNull Set<String> profiles, Set<String> supportedModels) {
+    static class TestLlmProviderInfo extends AbstractLlmProviderInfo {
+        protected TestLlmProviderInfo(String baseUrl, String endpoint, boolean isDefault, Set<String> profiles, Set<String> supportedModels) {
             super(baseUrl, endpoint, isDefault, profiles, supportedModels);
         }
 
@@ -37,45 +35,22 @@ class AbstractLlmProviderInfoTest {
     }
 
     @Test
-    void testBasicProperties() {
-        Set<String> profiles = Collections.singleton("default");
-        TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, null);
-        assertThat(info.baseUrl()).isEqualTo("url");
-        assertThat(info.endpoint()).isEqualTo("end");
-        assertThat(info.isDefault()).isTrue();
-        assertThat(info.profiles()).isEqualTo(profiles);
-    }
+    void testAbstractLlmProviderInfo() {
+        TestLlmProviderInfo infoWithModels = new TestLlmProviderInfo("http://base", "/end", true, Set.of("p1"), Set.of("m1", "m2"));
+        
+        assertThat(infoWithModels.baseUrl()).isEqualTo("http://base");
+        assertThat(infoWithModels.endpoint()).isEqualTo("/end");
+        assertThat(infoWithModels.isDefault()).isTrue();
+        assertThat(infoWithModels.profiles()).containsExactly("p1");
+        
+        assertThat(infoWithModels.supportModel("m1")).isTrue();
+        assertThat(infoWithModels.supportModel("m3")).isFalse();
+        
+        assertThat(infoWithModels.toString()).contains("test", "http://base", "/end", "p1", "m1");
 
-    @Test
-    void testSupportModel() {
-        Set<String> profiles = Collections.singleton("default");
-        Set<String> models = Set.of("gpt-4", "gpt-3.5");
-        TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, models);
-
-        assertThat(info.supportModel("gpt-4")).isTrue();
-        assertThat(info.supportModel("gpt-3.5")).isTrue();
-        assertThat(info.supportModel("claude")).isFalse();
-    }
-
-    @Test
-    void testSupportModelAll() {
-        Set<String> profiles = Collections.singleton("default");
-        TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, null);
-
-        assertThat(info.supportModel("any")).isTrue();
-    }
-
-    @Test
-    void testToString() {
-        Set<String> profiles = Collections.singleton("default");
-        TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, null);
-        assertThat(info.toString()).contains("url").contains("end").contains("default");
-    }
-
-    @Test
-    void testEmptySupportedModels() {
-        Set<String> profiles = Collections.singleton("default");
-        TestProviderInfo info = new TestProviderInfo("url", "end", true, profiles, Collections.emptySet());
-        assertThat(info.supportModel("any")).isTrue();
+        TestLlmProviderInfo infoWithoutModels = new TestLlmProviderInfo("http://base", "/end", false, Set.of("p1"), null);
+        
+        assertThat(infoWithoutModels.supportModel("m1")).isTrue();
+        assertThat(infoWithoutModels.supportModel("any-model")).isTrue();
     }
 }

@@ -25,36 +25,82 @@ import reactor.core.publisher.Flux;
 import java.util.Optional;
 
 /**
- * The default implementation of {@link LlmProviderStreamResponseExchange}.
+ * The default implementation of {@link LlmProviderStreamResponseExchange} used by the reactive AI lite framework.
  * <p>
- * This class extends {@link AbstractLlmProviderExchange} to provide the
- * specific response data for a streaming request. It encapsulates the inbound
- * {@link Flux} of raw JSON stream chunks and any error that might have
- * occurred during the HTTP exchange.
- * </p>
+ * This class serves as a container for the streaming response received from an LLM (Large Language Model) provider
+ * over a reactive HTTP connection. Unlike its non-streaming counterpart, this exchange holds a {@link Flux} of
+ * {@link RawStreamResponse} chunks that are produced by the provider in real-time, allowing downstream components
+ * (such as interceptors or response handlers) to process the stream reactively with backpressure support.
+ * <p>
+ * Additionally, this exchange captures any {@link Throwable} that occurred during the initial request or stream
+ * establishment, enabling error-aware processing without disrupting the reactive flow. The {@code @SuperBuilder}
+ * annotation provides a builder pattern that can be extended by subclasses, ensuring consistency in object creation
+ * across the interceptor chain.
+ * <p>
+ * Instances of this class are typically created by the framework's HTTP client layer after successfully initiating
+ * a streaming connection. They are then passed through a chain of interceptors (implementing
+ * {@link pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptor}) before reaching the
+ * final response handler. The raw stream can be transformed, filtered, or enriched by interceptors, and the error
+ * field can be inspected to trigger fallback logic.
+ * <p>
+ * The immutability of the fields (marked as {@code private final}) guarantees thread-safety and prevents accidental
+ * modifications during the exchange lifecycle.
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see AbstractLlmProviderExchange
+ * @see LlmProviderStreamResponseExchange
+ * @see RawStreamResponse
  */
 @SuperBuilder
 public class DefaultLlmProviderStreamResponseExchange extends AbstractLlmProviderExchange implements LlmProviderStreamResponseExchange {
 
     /**
-     * The stream of raw JSON response chunks. May be null if the stream failed to initiate.
+     * The reactive stream of raw JSON response chunks from the LLM provider.
+     * <p>
+     * This {@link Flux} emits {@link RawStreamResponse} objects as they become available from the underlying HTTP
+     * connection. Each chunk typically contains a single line of the server-sent events (SSE) or a similar streaming
+     * protocol fragment. The stream may be empty or terminated with an error signal if the connection fails.
+     * <p>
+     * The field is nullable to indicate that the stream could not be established at all (e.g., due to network issues,
+     * HTTP 4xx/5xx responses, or timeout). In such cases, the {@link #error()} method provides the reason. By default,
+     * the {@link #rawStreamResponse()} method returns an empty {@link Flux} when this field is {@code null} to avoid
+     * null checks in downstream operators.
+     * <p>
+     * This field is set once via the builder and is not intended to be modified afterward, aligning with the immutable
+     * design pattern of the exchange object.
      */
     @Nullable
     private final Flux<RawStreamResponse> rawStreamResponse;
 
     /**
-     * An error that occurred during the execution, if any.
+     * The error that prevented the normal execution of the streaming request, if any.
+     * <p>
+     * This field holds the exception or {@link Throwable} that occurred during the HTTP request initiation or stream
+     * processing. Common scenarios include network timeouts, SSL handshake failures, provider-side errors returned
+     * as HTTP status codes, or interceptors deliberately aborting the exchange. When this field is non-null, the
+     * {@link #rawStreamResponse()} will typically be empty or null.
+     * <p>
+     * Interceptors can use this field to implement error handling strategies such as retries, fallback responses,
+     * or metric recording. The {@link #error()} method provides convenient {@link Optional} access.
      */
     @Nullable
     private final Throwable error;
 
     /**
-     * Retrieves the stream of raw JSON responses.
+     * Returns the reactive stream of raw JSON response chunks.
+     * <p>
+     * This accessor provides a safe, non-null view of the {@link #rawStreamResponse} field. If the stream could not
+     * be initiated (field is {@code null}), an empty {@link Flux} is returned to simplify downstream operators and
+     * avoid {@link NullPointerException} risks. The returned {@link Flux} is the original instance if present,
+     * preserving its lazy and cold nature.
+     * <p>
+     * Downstream components, especially interceptors, can subscribe to this flux to perform transformations,
+     * logging, or aggregation. Because the flux is cold, each subscription initiates a new processing pipeline;
+     * sharing strategies such as {@link Flux#share()} or {@link Flux#cache()} must be applied by the consumer if
+     * multiple subscribers are expected.
      *
-     * @return the {@link Flux} of stream chunks
+     * @return the {@link Flux} of {@link RawStreamResponse} chunks; never {@code null}
      */
     @Override
     public Flux<RawStreamResponse> rawStreamResponse() {
@@ -62,9 +108,14 @@ public class DefaultLlmProviderStreamResponseExchange extends AbstractLlmProvide
     }
 
     /**
-     * Retrieves the execution error, if one occurred.
+     * Returns the execution error, if any, wrapped in an {@link Optional}.
+     * <p>
+     * This method allows interceptors and response handlers to check for errors without null checks. A non-empty
+     * optional indicates that the streaming request failed, and the contained {@link Throwable} can be used for
+     * detailed diagnosis, logging, or recovery. It is recommended to inspect this error before attempting to
+     * consume the raw stream, as errors often correlate with a missing stream.
      *
-     * @return an {@link Optional} containing the error, or empty
+     * @return an {@link Optional} containing the error if present, otherwise {@link Optional#empty()}
      */
     @Override
     public Optional<Throwable> error() {

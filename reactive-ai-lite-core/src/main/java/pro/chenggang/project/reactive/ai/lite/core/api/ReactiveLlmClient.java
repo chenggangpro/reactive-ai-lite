@@ -15,30 +15,93 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.api;
 
-import pro.chenggang.project.reactive.ai.lite.core.api.chat.ChatModule;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
 
 /**
  * Reactive LLM (Large Language Model) client interface for interacting with AI services.
  * <p>
- * This interface provides a reactive, non-blocking API for communicating with LLM providers.
- * It serves as the main entry point for accessing various LLM functionalities through
- * specialized modules.
+ * This interface is the central entry point for building and executing requests against
+ * language model providers in a reactive, non-blocking manner. It encapsulates the pattern
+ * of first selecting a provider, then a profile (which governs the model and its parameters),
+ * and finally specifying the desired operation (chat, embedding, etc.). This layered design
+ * separates configuration from invocation, simplifies multi-provider support, and allows
+ * default settings to be applied transparently.
+ * </p>
+ * <p>
+ * The typical interaction flow begins with {@link #newRequest()}, which returns a
+ * {@link ClientRequest} instance. From there, the caller can explicitly set a provider and
+ * profile before choosing an operation, or rely on the convenience methods
+ * {@link #chat()} and {@link #embedding()} that automatically use the
+ * application‑configured defaults.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see ClientRequest
+ * @see ConfigurableChatSpec
+ * @see ConfigurableEmbeddingSpec
  */
 public interface ReactiveLlmClient {
 
     /**
-     * Retrieves the chat module for performing chat-based interactions with the LLM.
+     * Initiates a new request specification.
      * <p>
-     * The chat module provides methods for sending messages and receiving responses
-     * from the language model in a conversational context.
+     * This method creates a fresh {@link ClientRequest} object that acts as a fluent
+     * builder for configuring the LLM interaction. The returned instance is stateful and
+     * thread‑safe only when used within a single thread; each invocation produces a new,
+     * independent spec. The typical builder chain follows the pattern:
+     * <pre>{@code
+     * client.newRequest()
+     *       .provider("openai")
+     *       .profile("gpt-4-turbo")
+     *       .chat()
+     *       .messages(...)
+     *       ...
+     * }</pre>
+     * </p>
+     * <p>
+     * Because {@code newRequest()} always returns a fresh spec, it is safe to use in
+     * concurrent scenarios where multiple requests are being constructed simultaneously.
      * </p>
      *
-     * @return the {@link ChatModule} instance for chat operations
+     * @return the {@link ClientRequest} instance used to continue building the request
      */
-    ChatModule chat();
+    ClientRequest newRequest();
+
+    /**
+     * A convenience method to start a chat request using the default provider and default
+     * profile immediately.
+     * <p>
+     * This is equivalent to calling
+     * <code>newRequest().defaultProvider().defaultProfile().chat()</code> and is designed
+     * for scenarios where a single LLM backend is configured and the application does not
+     * need to dynamically switch providers or profiles. The returned
+     * {@link ConfigurableChatSpec} allows further fine‑tuning of the chat prompt,
+     * temperature, and other parameters before execution.
+     * </p>
+     *
+     * @return a {@link ConfigurableChatSpec} instance ready to be configured and executed
+     */
+    default ConfigurableChatSpec chat() {
+        return newRequest().defaultProvider().defaultProfile().chat();
+    }
+
+    /**
+     * A convenience method to start an embedding request using the default provider and
+     * default profile immediately.
+     * <p>
+     * This is equivalent to calling
+     * <code>newRequest().defaultProvider().defaultProfile().embedding()</code> and is
+     * useful when the application only uses the default embedding model. The returned
+     * {@link ConfigurableEmbeddingSpec} provides methods to set the input texts and
+     * adjust parameters such as the embedding dimension.
+     * </p>
+     *
+     * @return a {@link ConfigurableEmbeddingSpec} instance ready to be configured and executed
+     */
+    default ConfigurableEmbeddingSpec embedding() {
+        return newRequest().defaultProvider().defaultProfile().embedding();
+    }
 
 }

@@ -18,27 +18,67 @@ package pro.chenggang.project.reactive.ai.lite.core.execution.converter;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 
 /**
- * A functional interface for converting a generic, unparsed {@link RawResponse}
- * into a specific, application-defined response type.
+ * A functional interface that allows custom, application‑specific conversion
+ * of a raw, unparsed AI provider response into a typed domain object.
  * <p>
- * This interface is typically used within the fluent execution API (like
- * {@link pro.chenggang.project.reactive.ai.lite.core.execution.GeneralExecution#execute(RawResponseConverter)})
- * to allow developers to supply custom parsing logic when the standard framework
- * extractions are insufficient or when dealing with experimental provider APIs.
+ * Most of the time the framework’s built‑in response extraction (e.g., via
+ * {@code .contentAsJson()} or {@code .contentAsText()}) is sufficient.
+ * However, when a provider introduces new, non‑standard response structures,
+ * or when the application needs to map raw JSON into its own data model,
+ * a custom converter can be supplied directly to the fluent execution API.
+ * The execution engine invokes {@link #convert(RawResponse)} once the provider
+ * has returned the raw HTTP body and metadata, and before returning control
+ * to the caller.
+ * </p>
+ * <p>
+ * Typical usage:
+ * <pre>{@code
+ * GeneralExecution<MyResponse> execution = ...;
+ * MyResponse result = execution.execute(rawResponse -> {
+ *     // parse rawResponse.rawBody() into MyResponse
+ *     return objectMapper.readValue(rawResponse.rawBody(), MyResponse.class);
+ * });
+ * }</pre>
+ * Because the interface is a {@link FunctionalInterface}, lambda expressions
+ * or method references can implement it concisely.
+ * </p>
+ * <p>
+ * Implementations should be stateless and side‑effect free, as the same
+ * converter may be invoked concurrently by different execution threads.
+ * Any parsing errors should be propagated as unchecked exceptions; the
+ * framework will wrap them into appropriate runtime exceptions.
  * </p>
  *
- * @param <RESPONSE> the target type of the converted response
+ * @param <RESPONSE> the target type of the converted response; this is
+ *                   typically a domain DTO, a JSON node, or a string
+ *                   representation chosen by the application
  * @author Gang Cheng
  * @version 0.1.0
+ * @see RawResponse
+ * @see pro.chenggang.project.reactive.ai.lite.core.execution.GeneralExecution#execute(RawResponseConverter)
  */
 @FunctionalInterface
 public interface RawResponseConverter<RESPONSE> {
 
     /**
-     * Converts the given raw JSON response into the target type.
+     * Transforms the raw, provider‑agnostic response into the application’s
+     * own representation.
+     * <p>
+     * This method is invoked by the framework after the AI provider has
+     * returned a response and before it is handed back to the client code.
+     * The supplied {@link RawResponse} contains the complete HTTP body
+     * (as a {@link String}) as well as any headers, status code, and
+     * provider metadata. This gives full flexibility to parse vendor‑specific
+     * JSON shapes, handle streaming responses, or enrich the result with
+     * additional information.
+     * </p>
      *
-     * @param rawResponse the raw response containing the unparsed JSON body
-     * @return the converted response of type {@code RESPONSE}
+     * @param rawResponse non‑null raw response object wrapping the provider’s
+     *                    JSON body and associated metadata
+     * @return the converted instance of type {@code RESPONSE}; must not be
+     *         {@code null}
+     * @throws RuntimeException if parsing fails; the framework will wrap any
+     *                          exception in a {@code ResponseConversionException}
      */
     RESPONSE convert(RawResponse rawResponse);
 

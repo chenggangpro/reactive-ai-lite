@@ -16,141 +16,101 @@
 package pro.chenggang.project.reactive.ai.lite.core.execution.values;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.Message;
-import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
-import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * An immutable container that holds all the dynamic configuration functions
- * necessary to construct an LLM request.
+ * Immutable container capturing all dynamic configuration functions required to assemble
+ * an LLM request at execution time.
  * <p>
- * During the execution phase, the provider iterates over the functions defined in this
- * object, applying them to the active runtime {@link ExecutionContext} (typically obtained
- * from the Reactor context) to resolve the static values needed for the final payload
- * (e.g., resolving the specific model name, temperature, or list of historical messages).
+ * Instead of hardcoding request parameters, the provider uses this interface's functions
+ * to resolve values from the current {@link ExecutionContext} (typically sourced from the
+ * Reactor context). This enables per‑request decisions such as profile selection, model
+ * name assignment, or raw payload customization without altering the provider's core
+ * logic.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
  */
-@Getter
-@Builder(toBuilder = true)
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class ExecutionInfo {
+public interface ExecutionInfo {
 
     /**
-     * Indicates whether the default profile should be used.
+     * Communicates whether the provider should fall back to the configured default
+     * profile instead of applying a dynamic choice.
+     * <p>
+     * When {@code true}, the execution skips the profile‑picker function entirely,
+     * reducing overhead in scenarios where profile selection is static or predetermined
+     * by the environment.
+     * </p>
+     *
+     * @return {@code true} if the default profile is to be used, {@code false} if
+     *         dynamic profile selection must occur
      */
-    private final boolean defaultProfile;
+    boolean isDefaultProfile();
 
     /**
-     * A function to dynamically pick a profile from a set of available profiles.
+     * Supplies a function that chooses a profile name from the set of available profiles,
+     * driven by the runtime {@link ExecutionContext}.
+     * <p>
+     * This decouples profile routing from the provider, enabling logic such as:
+     * <ul>
+     *   <li>selecting a premium profile for authenticated users</li>
+     *   <li>falling back to a free tier profile when credits are exhausted</li>
+     *   <li>using a region‑specific endpoint based on user locality</li>
+     * </ul>
+     * The function receives the context and the complete set of known profile names,
+     * and must return exactly one valid name.
+     * </p>
+     *
+     * @return a bi‑function mapping {@code (ExecutionContext, Set<String>)} to the
+     *         chosen profile name; not invoked when {@link #isDefaultProfile()} returns
+     *         {@code true}
      */
-    private final BiFunction<ExecutionContext, Set<String>, String> profilePicker;
+    BiFunction<ExecutionContext, Set<String>, String> getProfilePicker();
 
     /**
-     * A function to dynamically configure the default system message.
+     * Provides a function that determines the concrete model name to use for the
+     * current request, based on the execution context.
+     * <p>
+     * Typical use‑cases include:
+     * <ul>
+     *   <li>selecting a lighter, faster model for low‑latency responses</li>
+     *   <li>routing to a fine‑tuned variant when the user provides specific instructions</li>
+     *   <li>applying a default model name when no explicit choice is made</li>
+     * </ul>
+     * The function is invoked by the provider during request assembly and its result is
+     * directly embedded into the outgoing payload.
+     * </p>
+     *
+     * @return a function that accepts the current {@link ExecutionContext} and returns
+     *         the desired model name
      */
-    private final Function<ExecutionContext, String> defaultSystemMessageConfigure;
+    Function<ExecutionContext, String> getModelNameConfigure();
 
     /**
-     * A function to dynamically configure the specific model name to use.
+     * Offers a consumer that can inject arbitrary modifications into the raw JSON
+     * request payload just before it is dispatched.
+     * <p>
+     * This hook is intended for advanced scenarios that cannot be expressed through
+     * standard configuration fields. For example:
+     * <ul>
+     *   <li>attaching custom provider‑specific parameters (e.g., {@code top_k})</li>
+     *   <li>applying request‑level metadata (tenant id, trace id) from the context</li>
+     *   <li>performing last‑minute validation or transformation of the payload</li>
+     * </ul>
+     * The consumer receives both the current context and a mutable {@link ObjectNode}
+     * representing the JSON body, allowing it to read from the context and write into
+     * the node.
+     * </p>
+     *
+     * @return a bi‑consumer accepting {@code (ExecutionContext, ObjectNode)} to
+     *         customize the raw request
      */
-    @NonNull
-    private final Function<ExecutionContext, String> modelNameConfigure;
-
-    /**
-     * A function to dynamically configure the temperature setting.
-     */
-    private final Function<ExecutionContext, Double> temperatureConfigure;
-
-    /**
-     * A function to dynamically configure the Top-P sampling parameter.
-     */
-    private final Function<ExecutionContext, Double> topPConfigure;
-
-    /**
-     * A function to dynamically determine whether usage metrics should be requested.
-     */
-    private final Function<ExecutionContext, Boolean> includeUsageConfigure;
-
-    /**
-     * A function to dynamically configure reasoning or thinking parameters.
-     */
-    private final Function<ExecutionContext, String> reasoningConfigure;
-
-    /**
-     * A function to dynamically configure the maximum number of completion tokens to generate.
-     */
-    private final Function<ExecutionContext, Integer> maxCompletionTokensConfigure;
-
-    /**
-     * A function to dynamically configure the user's text message.
-     */
-    private final Function<ExecutionContext, String> textMessageConfigure;
-
-    /**
-     * A function to dynamically configure a user's media message.
-     */
-    private final Function<ExecutionContext, MediaMessage> mediaMessageConfigure;
-
-    /**
-     * A function to dynamically configure the system message.
-     */
-    private final Function<ExecutionContext, String> systemMessageConfigure;
-
-    /**
-     * A function to dynamically configure the conversation history.
-     */
-    private final Function<ExecutionContext, List<Message>> historicalMessageConfigure;
-
-    /**
-     * A function to dynamically configure the set of available tools.
-     */
-    private final Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure;
-
-    /**
-     * A function to dynamically configure the tool choice behavior.
-     */
-    private final Function<ExecutionContext, String> toolChoiceConfigure;
-
-    /**
-     * A function to dynamically configure the tool execution results to send back to the model.
-     */
-    private final Function<ExecutionContext, Collection<ToolResultMessage>> toolResultMessageConfigure;
-
-    /**
-     * A consumer to dynamically customize the raw request JSON object before it is sent.
-     */
-    private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure;
-
-    /**
-     * A flag indicating whether distinct tool calls should be enforced.
-     */
-    private final boolean distinctToolCalls;
-
-    /**
-     * The response JSON schema for structured output.
-     */
-    private final String responseJsonSchema;
-
-    /**
-     * The structured output type for deserialization.
-     */
-    private final java.lang.reflect.Type structuredOutputType;
+    BiConsumer<ExecutionContext, ObjectNode> getRawRequestCustomizerConfigure();
 
 }

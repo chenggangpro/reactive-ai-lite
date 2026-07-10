@@ -35,51 +35,81 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * An extension of {@link ChatSpec} that provides a fluent API for configuring
- * the parameters of a chat request. This interface allows for setting various
- * options such as the model, temperature, messages, and tools.
+ * Extension of {@link ChatSpec} that provides a fluent configuration API for
+ * building a chat request. Implementations collect parameters such as model,
+ * temperature, messages, tools, and provider‑specific options.
  * <p>
- * Most configuration methods come in two forms: one that accepts a static value,
- * and another that accepts a {@code Function<ExecutionContext, T>} for dynamic
- * configuration based on the request context.
+ * The fluent design relies on two complementary patterns:
+ * <ul>
+ *   <li><strong>static values:</strong> shortcut methods that accept a plain value
+ *       and delegate to a {@code Function} returning the same value.</li>
+ *   <li><strong>dynamic factories:</strong> methods that accept a
+ *       {@link Function}{@code <}{@link ExecutionContext}{@code , T>} so that the
+ *       value can be computed at request time based on pipeline state. This
+ *       allows reusable, context‑aware specs.</li>
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * After configuration the spec exposes its accumulated parameters via the
+ * {@link ChatSpec} interface, making it suitable for use in higher‑level
+ * components such as {@code ChatClient}.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see ChatSpec
+ * @see ExecutionContext
  */
 public interface ConfigurableChatSpec extends ChatSpec {
 
     /**
-     * Dynamically configures the model name to be used for the chat request.
+     * Registers a function that provides the model name to be used for the
+     * chat request. The function receives the current {@link ExecutionContext}
+     * and must return a non‑null model identifier.
+     * <p>
+     * This is the dynamic version; use {@link #model(String)} for static
+     * configuration.
+     * </p>
      *
-     * @param modelNameConfigure a function that returns the model name based on the execution context
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param modelNameConfigure a context‑aware supplier for the model name
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec model(@NonNull Function<ExecutionContext, String> modelNameConfigure);
 
     /**
-     * Sets a static model name for the chat request.
+     * Sets a fixed model name for the chat request. Internally delegates to
+     * {@link #model(Function)} with a function that ignores the context and
+     * returns the given string.
      *
-     * @param modelName the name of the model to use
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param modelName the model identifier (e.g. "gpt-4o", "claude-3-haiku")
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec model(@NonNull String modelName) {
         return model(contextView -> modelName);
     }
 
     /**
-     * Dynamically configures the temperature for the chat request. Temperature controls randomness.
+     * Registers a function that controls the temperature parameter sent to the
+     * AI provider. Temperature influences response randomness: values closer to 0
+     * make output deterministic, values closer to 2 increase variability.
+     * <p>
+     * If the function returns {@code null} the parameter is omitted, allowing
+     * the provider to use its default.
+     * </p>
      *
-     * @param temperatureConfigure a function that returns the temperature value based on the execution context
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param temperatureConfigure a context‑aware supplier for the temperature
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec temperature(@NonNull Function<ExecutionContext, Double> temperatureConfigure);
 
     /**
-     * Sets a static temperature for the chat request.
+     * Sets a static temperature value. Delegates to the dynamic version only if
+     * the argument is non‑null, preserving the ability to later provide a
+     * context‑aware function.
      *
-     * @param temperature the temperature value
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param temperature a value typically between 0.0 and 2.0
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec temperature(Double temperature) {
         if (Objects.nonNull(temperature)) {
@@ -89,19 +119,21 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures the Top-P (nucleus sampling) value for the chat request.
+     * Registers a function that provides the Top‑P (nucleus sampling) value.
+     * Top‑P restricts the model to consider only the most probable tokens whose
+     * cumulative probability exceeds the given threshold. Generally used as an
+     * alternative to temperature for controlling randomness.
      *
-     * @param topPConfigure a function that returns the Top-P value based on the execution context
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param topPConfigure a context‑aware supplier for the Top‑P value
+     * @return this spec, for method chaining
      */
-
     ConfigurableChatSpec topP(@NonNull Function<ExecutionContext, Double> topPConfigure);
 
     /**
-     * Sets a static Top-P value for the chat request.
+     * Sets a static Top‑P value. If non‑null, delegates to the dynamic version.
      *
-     * @param topP the Top-P value
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param topP the nucleus sampling threshold (commonly 0.0–1.0)
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec topP(Double topP) {
         if (Objects.nonNull(topP)) {
@@ -111,71 +143,53 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures whether to include usage metadata (e.g., token counts)
-     * in the chat response.
+     * Registers a function that decides whether the response should include
+     * usage metadata (token counts, etc.). Providers often expose this as a
+     * separate flag; setting it to {@code true} adds a {@code stream_options}
+     * or equivalent field in the request.
      *
-     * @param includeUsageConfigure a function that returns {@code true} to include usage
-     *                              metadata, or {@code false} to omit it, based on the
-     *                              execution context
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param includeUsageConfigure a context‑aware predicate for including usage
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec includeUsage(@NonNull Function<ExecutionContext, Boolean> includeUsageConfigure);
 
     /**
-     * Statically configures the chat request to include usage metadata (e.g., token counts)
-     * in the response. This is a convenience method that sets the inclusion flag to {@code true}.
+     * Convenience method that forces the inclusion of usage metadata by
+     * delegating to {@link #includeUsage(Function)} with a constant {@code true}
+     * supplier.
      *
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec includeUsage() {
         return includeUsage(contextView -> true);
     }
 
     /**
-     * Dynamically configures the reasoning for the model.
-     * This can be used to guide the model's thought process or provide meta-prompts,
-     * which might be supported by specific AI providers.
+     * Registers a function that supplies the reasoning or thinking configuration
+     * string for the model. Different providers interpret this value differently:
      * <ul>
-     * <li>low/medium/high value in openai</li>
-     * <li>enabled/disabled in deepseek's thinking param</li>
-     * <li>true/false in ollama's think param</li>
+     * <li><b>OpenAI o‑series models:</b> {@code "low"}, {@code "medium"},
+     *     {@code "high"}</li>
+     * <li><b>DeepSeek R1:</b> {@code "enabled"}, {@code "disabled"},
+     *     {@code "enabled:high"}, {@code "enabled:max"}</li>
+     * <li><b>Ollama:</b> {@code "true"}, {@code "false"}</li>
+     * <li><b>Anthropic:</b> {@code "enabled:budgetTokens"}
+     *     (e.g. {@code "enabled:1024"})</li>
      * </ul>
+     * The string is passed unchanged into the provider‑specific request body
+     * when supported.
      *
-     * @param reasoningConfigure a function that returns the reasoning string based on the execution context
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param reasoningConfigure a context‑aware supplier for the reasoning string
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec reasoning(@NonNull Function<ExecutionContext, String> reasoningConfigure);
 
     /**
-     * Sets a static reasoning or system-level instruction for the model.
-     * <ul>
-     * <li>openai:
-     * <ul>
-     * <li>low</li>
-     * <li>medium</li>
-     * <li>high</li>
-     * </ul>
-     * <li>deepseek</li>
-     * <ul>
-     *     <li>enabled</li>
-     *     <li>disabled</li>
-     *     <li>enabled:high</li>
-     *     <li>enabled:max</li>
-     * </ul>
-     * <li>ollama</li>
-     * <ul>
-     *     <li>true</li>
-     *     <li>false</li>
-     * </ul>
-     * <li>anthropic</li>
-     * <ul>
-     *     <li>enabled:budgetTokens(enabled:1024)</li>
-     *     <li>false</li>
-     * </ul>
-     * </ul>
+     * Sets a static reasoning/thinking string. Only applies if the argument is
+     * non‑empty, otherwise leaves the spec unchanged.
      *
-     * @param reasoning the reasoning string to use
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param reasoning a provider‑recognised reasoning value
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec reasoning(String reasoning) {
         if (StringUtils.hasText(reasoning)) {
@@ -185,18 +199,21 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures the system message for the chat request.
+     * Registers a function that returns the system message emitted at the
+     * beginning of the conversation. System messages set the assistant’s
+     * persona, behaviour constraints, or response format.
      *
-     * @param systemMessageConfigure a function that returns the system message based on the execution context
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param systemMessageConfigure a context‑aware supplier for the system message text
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec systemMessage(@NonNull Function<ExecutionContext, String> systemMessageConfigure);
 
     /**
-     * Sets a static system message for the chat request.
+     * Sets a static system message. If the argument is non‑null, delegates to
+     * the dynamic version.
      *
-     * @param systemMessage the content of the system message
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param systemMessage the system prompt content
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec systemMessage(String systemMessage) {
         if (Objects.nonNull(systemMessage)) {
@@ -206,18 +223,22 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures the historical messages (conversation history) for the chat request.
+     * Registers a function that supplies the conversation history (previous
+     * turns) as a list of {@link Message} objects. These messages are sent
+     * before the current user request, allowing the model to maintain context.
      *
-     * @param historicalMessageConfigure a function that returns a collection of historical messages
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param historicalMessageConfigure a context‑aware supplier of the history
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec historicalMessage(@NonNull Function<ExecutionContext, List<Message>> historicalMessageConfigure);
 
     /**
-     * Sets a static collection of historical messages for the chat request.
+     * Sets a static list of historical messages. If the list is empty or
+     * {@code null} the call is ignored, preserving previously registered
+     * dynamic history.
      *
-     * @param historicalMessages a collection of historical messages
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param historicalMessages previous assistant/user messages
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec historicalMessage(List<Message> historicalMessages) {
         if (CollectionUtils.isEmpty(historicalMessages)) {
@@ -227,145 +248,165 @@ public interface ConfigurableChatSpec extends ChatSpec {
     }
 
     /**
-     * Dynamically configures the user's text message for the chat request.
+     * Registers a function that provides the textual content of the user’s
+     * message. This is the simplest way to send a prompt.
      *
-     * @param textMessageConfigure a function that returns the user's text message
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param textMessageConfigure a context‑aware supplier for the user’s text
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec textMessage(@NonNull Function<ExecutionContext, String> textMessageConfigure);
 
     /**
-     * Sets the user's text message for the chat request.
+     * Sets a static user text message.
      *
-     * @param textContent the content of the user's message
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param textContent the user input
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec textMessage(@NonNull String textContent) {
         return textMessage(contextView -> textContent);
     }
 
     /**
-     * Dynamically configures a media message (text + attachments) for the chat request.
+     * Registers a function that supplies a multimedia user message, which
+     * includes text and attached files (images, audio, video, etc.).
      *
-     * @param mediaMessageConfigure a function that returns the media message
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param mediaMessageConfigure a context‑aware supplier for the media message
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec mediaMessage(@NonNull Function<ExecutionContext, MediaMessage> mediaMessageConfigure);
 
     /**
-     * Sets a media message with text content and a list of attachments.
+     * Builds a media message with the given text and attachments and registers
+     * it statically. The message role is automatically set to {@link Role#USER}.
      *
-     * @param textContent the text part of the message
-     * @param attachments a list of media attachments
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param textContent the explanatory text
+     * @param attachments the media files to attach
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec mediaMessage(@NonNull String textContent, @NonNull List<Attachment> attachments) {
         return mediaMessage(contextView -> MediaMessage.newMediaMessage(Role.USER).content(textContent).attachments(attachments).build());
     }
 
     /**
-     * Dynamically configures the maximum number of tokens to generate in the completion.
+     * Registers a function that provides the maximum number of tokens the model
+     * is allowed to generate in the completion. This parameter maps directly to
+     * most providers’ {@code max_tokens} or equivalent field.
      *
-     * @param maxCompletionTokensConfigure a function that returns the maximum number of tokens
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param maxCompletionTokensConfigure a context‑aware supplier for the cap
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec maxCompletionTokens(@NonNull Function<ExecutionContext, Integer> maxCompletionTokensConfigure);
 
     /**
-     * Sets the maximum number of tokens to generate in the completion.
+     * Sets a static maximum token count.
      *
-     * @param maxCompletionTokens the maximum number of tokens
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param maxCompletionTokens the generation limit
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec maxCompletionTokens(@NonNull Integer maxCompletionTokens) {
         return maxCompletionTokens(contextView -> maxCompletionTokens);
     }
 
     /**
-     * Dynamically configures the tools (e.g., functions) available to the model.
+     * Registers a function that supplies the tool (function) definitions
+     * available to the model. Each {@link ToolDefinition} describes a callable
+     * function, including its name, description, and parameters schema.
      *
-     * @param toolsConfigure a function that returns a collection of tool definitions
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param toolsConfigure a context‑aware supplier for the tool definitions
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec tools(@NonNull Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure);
 
     /**
-     * Sets a static collection of tools (e.g., functions) available to the model.
+     * Registers a static collection of tool definitions.
      *
-     * @param toolDefinitions a collection of tool definitions
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param toolDefinitions the tools the model may invoke
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec tools(@NonNull Collection<ToolDefinition> toolDefinitions) {
         return tools(contextView -> toolDefinitions);
     }
 
     /**
-     * Configures whether to filter for distinct tool calls in the model's response.
-     * <p>
-     * Some models may return multiple, identical tool call requests in a single turn.
-     * Setting this to {@code true} ensures that only unique tool calls are processed.
-     * </p>
+     * Controls whether duplicate tool calls returned by the model should be
+     * filtered out before processing. Some models may emit identical tool
+     * requests multiple times; enabling this flag ensures only the first
+     * occurrence is acted upon, preventing redundant executions.
      *
-     * @param distinctToolCalls if {@code true}, filters for unique tool calls; if {@code false}, preserves all tool calls
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param distinctToolCalls {@code true} to deduplicate, {@code false} to keep all
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec distinctToolCalls(boolean distinctToolCalls);
 
     /**
-     * Dynamically configures the tool choice behavior for the model.
-     * <p>
-     * This can be "auto", "none", or a specific tool name to force its use.
-     * </p>
+     * Registers a function that selects the tool choice mode. Typical values
+     * include:
+     * <ul>
+     *   <li>{@code "auto"} – the model decides whether to call a tool</li>
+     *   <li>{@code "none"} – the model must not call any tool</li>
+     *   <li>{@code "required"} – the model must call at least one tool</li>
+     *   <li>a specific tool name – forces the model to call that tool</li>
+     * </ul>
+     * The exact format depends on the provider; the string is passed through
+     * without validation.
      *
-     * @param toolChoiceConfigure a function that returns the tool choice string
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param toolChoiceConfigure a context‑aware supplier for the tool choice string
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec toolChoice(@NonNull Function<ExecutionContext, String> toolChoiceConfigure);
 
     /**
-     * Sets a static tool choice behavior for the model.
+     * Sets a static tool choice string.
      *
-     * @param toolChoice the tool choice string (e.g., "auto", "none")
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param toolChoice the mode or tool name
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec toolChoice(@NonNull String toolChoice) {
         return toolChoice(contextView -> toolChoice);
     }
 
     /**
-     * Dynamically provides the result message from tool calls that the model previously requested.
+     * Registers a function that supplies the results of previously requested
+     * tool calls. These {@link ToolResultMessage} objects are inserted into the
+     * conversation so the model can use their outputs to generate a final
+     * answer or request additional tools.
      *
-     * @param toolResultMessageConfigure a function that returns a collection of tool call result messages
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param toolResultMessageConfigure a context‑aware supplier for tool results
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec toolsResponse(@NonNull Function<ExecutionContext, Collection<ToolResultMessage>> toolResultMessageConfigure);
 
     /**
-     * Provides a static collection of result messages from tool calls.
+     * Registers a static collection of tool result messages.
      *
-     * @param toolResultMessages a collection of tool call result messages
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param toolResultMessages the outcomes of executed tools
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec toolsResponse(@NonNull Collection<ToolResultMessage> toolResultMessages) {
         return toolsResponse(contextView -> toolResultMessages);
     }
 
     /**
-     * Configures a customizer for the raw request object (JSON node).
-     * This allows for low-level manipulation of the request payload before it is sent to the AI provider,
-     * enabling support for provider-specific parameters not explicitly covered by this API.
+     * Registers a raw request customizer that accepts both the
+     * {@link ExecutionContext} and the JSON {@link ObjectNode} representing the
+     * provider request payload. This hook allows injecting or overriding
+     * provider‑specific fields that are not exposed by the declarative
+     * configuration methods.
+     * <p>
+     * Example: setting an Ollama‑specific {@code keep_alive} field.
+     * </p>
      *
-     * @param rawRequestCustomizerConfigure a consumer that accepts the execution context and the raw request ObjectNode
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param rawRequestCustomizerConfigure a bi‑consumer that modifies the request
+     * @return this spec, for method chaining
      */
     ConfigurableChatSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure);
 
     /**
-     * Configures a customizer for the raw request object (JSON node).
-     * This is a convenience method that ignores the execution context.
+     * Convenience version of {@link #rawRequestCustomizer(BiConsumer)} that
+     * ignores the execution context.
      *
-     * @param rawRequestCustomizerConfigure a consumer that accepts the raw request ObjectNode
-     * @return this {@link ConfigurableChatSpec} instance for method chaining
+     * @param rawRequestCustomizerConfigure a consumer that operates on the raw request JSON
+     * @return this spec, for method chaining
      */
     default ConfigurableChatSpec rawRequestCustomizer(@NonNull Consumer<ObjectNode> rawRequestCustomizerConfigure) {
         return rawRequestCustomizer((contextView, jsonNode) -> rawRequestCustomizerConfigure.accept(jsonNode));

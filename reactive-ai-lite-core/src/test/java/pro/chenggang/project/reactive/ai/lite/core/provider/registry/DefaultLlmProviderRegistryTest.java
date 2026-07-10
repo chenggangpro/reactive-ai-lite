@@ -18,94 +18,137 @@ package pro.chenggang.project.reactive.ai.lite.core.provider.registry;
 import org.junit.jupiter.api.Test;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Collections;
+import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class DefaultLlmProviderRegistryTest {
 
     @Test
-    void testRegistryInitialization() {
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        LlmProviderInfo info = mock(LlmProviderInfo.class);
-        when(provider.info()).thenReturn(info);
-        when(provider.capability()).thenReturn(Capability.CHAT);
-        when(info.isDefault()).thenReturn(true);
+    void testEmptyProviders() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new DefaultLlmProviderRegistry(List.of()))
+                .withMessageContaining("At least one LlmProvider must be provided.");
+    }
 
-        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT).cast(LlmChatProvider.class))
-                .expectNext(provider)
+    @Test
+    void testNullProviderInfo() {
+        LlmProvider provider = mock(LlmProvider.class);
+        when(provider.info()).thenReturn(null);
+
+        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(List.of(provider));
+
+        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
+                .verifyErrorMessage("At least one default LlmProvider is required for CHAT. Use 'LlmProvider.info().isDefault()' to mark a provider as default.");
+    }
+
+    @Test
+    void testMultipleDefaultProviders() {
+        LlmChatProvider provider1 = mock(LlmChatProvider.class);
+        LlmProviderInfo info1 = mock(LlmProviderInfo.class);
+        when(info1.isDefault()).thenReturn(true);
+        when(provider1.info()).thenReturn(info1);
+        when(provider1.capability()).thenReturn(Capability.CHAT);
+
+        LlmChatProvider provider2 = mock(LlmChatProvider.class);
+        LlmProviderInfo info2 = mock(LlmProviderInfo.class);
+        when(info2.isDefault()).thenReturn(true);
+        when(provider2.info()).thenReturn(info2);
+        when(provider2.capability()).thenReturn(Capability.CHAT);
+
+        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(List.of(provider1, provider2));
+
+        StepVerifier.create((Mono<LlmProvider>) registry.getDefaultProvider(Capability.CHAT))
+                .expectNext(provider1)
                 .verifyComplete();
     }
 
     @Test
     void testGetChatProvider() {
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        LlmProviderInfo info = mock(LlmProviderInfo.class);
-        when(provider.info()).thenReturn(info);
-        when(provider.capability()).thenReturn(Capability.CHAT);
-        when(info.name()).thenReturn("test-provider");
+        LlmChatProvider provider1 = mock(LlmChatProvider.class);
+        LlmProviderInfo info1 = mock(LlmProviderInfo.class);
+        when(info1.name()).thenReturn("chat-1");
+        when(provider1.info()).thenReturn(info1);
+        when(provider1.capability()).thenReturn(Capability.CHAT);
 
-        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        StepVerifier.create(registry.getChatProvider(i -> i.name().equals("test-provider")))
-                .expectNext(provider)
+        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(List.of(provider1));
+
+        StepVerifier.create(registry.getChatProvider(info -> info.name().equals("chat-1")))
+                .expectNext(provider1)
                 .verifyComplete();
+                
+        StepVerifier.create(registry.getChatProvider(info -> info.name().equals("chat-2")))
+                .verifyErrorMessage("No LlmChatProvider found that matches the given filter.");
     }
 
     @Test
-    void testGetChatProviderNotFound() {
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        LlmProviderInfo info = mock(LlmProviderInfo.class);
-        when(provider.info()).thenReturn(info);
-        when(provider.capability()).thenReturn(Capability.CHAT);
-        when(info.name()).thenReturn("test-provider");
+    void testGetEmbeddingProvider() {
+        LlmEmbeddingProvider provider1 = mock(LlmEmbeddingProvider.class);
+        LlmProviderInfo info1 = mock(LlmProviderInfo.class);
+        when(info1.name()).thenReturn("embed-1");
+        when(provider1.info()).thenReturn(info1);
+        when(provider1.capability()).thenReturn(Capability.EMBEDDING);
 
-        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        StepVerifier.create(registry.getChatProvider(i -> i.name().equals("other")))
-                .expectError(IllegalStateException.class)
-                .verify();
+        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(List.of(provider1));
+
+        StepVerifier.create(registry.getEmbeddingProvider(info -> info.name().equals("embed-1")))
+                .expectNext(provider1)
+                .verifyComplete();
+                
+        StepVerifier.create(registry.getEmbeddingProvider(info -> info.name().equals("embed-2")))
+                .verifyErrorMessage("No LlmEmbeddingProvider found that matches the given filter.");
     }
 
     @Test
-    void testEmptyRegistry() {
-        assertThatThrownBy(() -> new DefaultLlmProviderRegistry(Collections.emptyList()))
+    void testGetProvider() {
+        LlmChatProvider provider1 = mock(LlmChatProvider.class);
+        LlmProviderInfo info1 = mock(LlmProviderInfo.class);
+        when(info1.name()).thenReturn("chat-1");
+        when(provider1.info()).thenReturn(info1);
+        when(provider1.capability()).thenReturn(Capability.CHAT);
+
+        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(List.of(provider1));
+
+        StepVerifier.create(registry.getProvider(Capability.CHAT, LlmChatProvider.class, info -> info.name().equals("chat-1")))
+                .expectNext(provider1)
+                .verifyComplete();
+                
+        StepVerifier.create(registry.getProvider(Capability.CHAT, LlmChatProvider.class, info -> info.name().equals("chat-2")))
+                .verifyErrorMessage("No provider found that matches the given capability and filter.");
+    }
+    @Test
+    void testNonNullChecks() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new DefaultLlmProviderRegistry(null))
                 .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @Test
-    void testRegistryWithNullInfo() {
-        LlmProvider provider = mock(LlmProvider.class);
-        when(provider.info()).thenReturn(null);
-
-        LlmChatProvider validProvider = mock(LlmChatProvider.class);
-        LlmProviderInfo info = mock(LlmProviderInfo.class);
-        when(validProvider.info()).thenReturn(info);
-        when(validProvider.capability()).thenReturn(Capability.CHAT);
-        when(info.isDefault()).thenReturn(true);
-
-        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(java.util.Arrays.asList(provider, validProvider));
-        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT).cast(LlmChatProvider.class))
-                .expectNext(validProvider)
-                .verifyComplete();
-    }
-
-    @Test
-    void testGetDefaultProviderNotFound() {
-        LlmChatProvider provider = mock(LlmChatProvider.class);
-        LlmProviderInfo info = mock(LlmProviderInfo.class);
-        when(provider.info()).thenReturn(info);
-        when(provider.capability()).thenReturn(Capability.CHAT);
-        when(info.isDefault()).thenReturn(false);
-
-        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(Collections.singletonList(provider));
-        StepVerifier.create(registry.getDefaultProvider(Capability.CHAT))
-                .expectError(IllegalArgumentException.class)
-                .verify();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new DefaultLlmProviderRegistry(java.util.List.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+                
+        pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider mockProvider = org.mockito.Mockito.mock(pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider.class);
+        pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo mockInfo = org.mockito.Mockito.mock(pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo.class);
+        org.mockito.Mockito.when(mockProvider.info()).thenReturn(mockInfo);
+        
+        DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(java.util.List.of(mockProvider));
+        
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getDefaultProvider(null))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getChatProvider(null))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getEmbeddingProvider(null))
+                .isInstanceOf(IllegalArgumentException.class);
+                
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(null, pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider.class, info -> true))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(pro.chenggang.project.reactive.ai.lite.core.option.Capability.CHAT, null, info -> true))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(pro.chenggang.project.reactive.ai.lite.core.option.Capability.CHAT, pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider.class, null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

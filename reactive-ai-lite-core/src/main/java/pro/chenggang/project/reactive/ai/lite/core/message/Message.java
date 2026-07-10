@@ -16,11 +16,21 @@
 package pro.chenggang.project.reactive.ai.lite.core.message;
 
 /**
- * Represents a single message in a conversation with an AI model.
+ * The fundamental contract for any message exchanged within an AI conversation.
  * <p>
- * A message is the fundamental unit of data exchanged, containing content such as text,
- * media, or tool interactions. This interface provides a common abstraction for different
- * types of messages, allowing them to be processed generically.
+ * In a reactive AI pipeline, messages flow as the primary unit of information between
+ * the user, the system, and the AI model. This interface abstracts the common structure,
+ * enabling polymorphic processing and type-safe handling across different message variants
+ * (e.g., plain text, tool invocation results, multimedia content). By exposing the
+ * sender's role and the concrete Java type, components can route, transform, or react
+ * to messages without coupling to specific implementations.
+ * </p>
+ * <p>
+ * Typical roles include {@code "user"} for human input, {@code "assistant"} for model
+ * responses, and {@code "system"} for instructions that steer the conversation. The
+ * {@link #getActualType()} method is particularly important for frameworks that need to
+ * deserialize or dispatch messages based on their true runtime type, avoiding unsafe casts
+ * and enabling compile-time safety where possible.
  * </p>
  *
  * @author Gang Cheng
@@ -29,21 +39,42 @@ package pro.chenggang.project.reactive.ai.lite.core.message;
 public interface Message {
 
     /**
-     * Returns the role of the message sender (e.g., "user", "assistant", "system").
+     * Retrieves the conversational role of the entity that produced this message.
+     * <p>
+     * The role acts as a discriminator that signals how the message should be interpreted
+     * by downstream processors. For example, a message with role {@code "system"} might
+     * influence the model's behavior globally, while a {@code "user"} message represents
+     * a direct query. The exact set of allowed roles is defined by the AI model and the
+     * higher-level orchestration logic; this method simply returns the assigned role as a
+     * plain string, allowing maximum flexibility.
+     * </p>
      *
-     * @return the role of the message sender
+     * @return the role identifier, never null, typically one of "user", "assistant", "system", or a model-specific value
      */
     String getRole();
 
     /**
-     * Returns the actual concrete type of the message.
+     * Returns the specific concrete class that implements this message at runtime.
      * <p>
-     * This is useful for safely downcasting the generic Message interface to a
-     * specific implementation (like TextMessage or ToolCallMessage) when specific
-     * processing is required based on the message type.
+     * Because the {@code Message} interface is generic, consumers often need to downcast
+     * to access traits like the text payload of a {@code TextMessage} or the tool call
+     * details of a {@code ToolCallMessage}. This method exposes the actual type in a
+     * type-safe manner, enabling patterns such as:
+     * </p>
+     * <pre>{@code
+     * if (message.getActualType() == TextMessage.class) {
+     *     TextMessage tm = (TextMessage) message;
+     *     // process text
+     * }
+     * }</pre>
+     * <p>
+     * It is also instrumental for serialization frameworks and dynamic dispatchers that
+     * reconstruct messages from a wire format and need to instantiate the correct subclass.
+     * The returned class is guaranteed to be an implementation of {@code Message}, and it
+     * is typically a more specific subtype that carries meaningful data.
      * </p>
      *
-     * @return the actual class type of the message
+     * @return the runtime class of this message, never null, extending {@code Message}
      */
     Class<? extends Message> getActualType();
 

@@ -23,52 +23,80 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * An abstract base class that implements the {@link AttributesAbility} interface.
+ * A thread-safe base implementation of {@link AttributesAbility} that provides a mutable,
+ * concurrent attribute store.
  * <p>
- * This class provides a thread-safe, concurrent backing map for storing and managing
- * parsingAttributes. It is intended to be extended by message or context classes that require
- * the ability to carry metadata or context-specific data across the application.
+ * This class is designed to be extended by any entity that needs to carry additional metadata
+ * or context-specific key-value pairs through the application pipeline. By using a
+ * {@link ConcurrentHashMap} as the underlying storage, it guarantees safe concurrent access
+ * from multiple threads without the need for external synchronization. This is especially
+ * important in reactive and asynchronous environments where messages and contexts can be
+ * processed in parallel.
+ * <p>
+ * Subclasses can choose to interact with the attribute map directly through the protected
+ * {@link #attributes} field, or rely on the methods exposed by {@link AttributesAbility}.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see AttributesAbility
  */
 public abstract class AbstractAttribute implements AttributesAbility {
 
     /**
-     * The underlying map storing the parsingAttributes.
+     * The concurrent map that holds all attributes.
      * <p>
-     * Protected access allows subclasses to potentially interact with the map
-     * directly if necessary, though standard access should be via the methods
-     * defined in {@link AttributesAbility}.
+     * A {@link ConcurrentHashMap} is chosen over a plain {@link java.util.HashMap} to ensure
+     * thread safety without locking the entire map. It allows multiple readers and a limited
+     * number of writers to operate concurrently, which is essential for high-throughput,
+     * non-blocking applications. The map is declared {@code protected} so that subclasses can
+     * provide custom serialization, extension methods, or direct access if required, while
+     * still maintaining encapsulation of the core storage.
      * </p>
      */
     protected final Map<String, Object> attributes;
 
     /**
-     * Constructs a new {@link AbstractAttribute} with an empty, concurrent attribute map.
+     * Constructs a new instance with an empty attribute map.
+     * <p>
+     * Delegates to {@link #AbstractAttribute(Map)} with a {@code null} argument, which
+     * results in a fresh, empty {@link ConcurrentHashMap}. This constructor is ideal for
+     * situations where no initial metadata is available and attributes will be built up
+     * progressively.
+     * </p>
      */
     public AbstractAttribute() {
         this(null);
     }
 
     /**
-     * Constructs a new {@link AbstractAttribute} using the provided attribute map.
+     * Constructs a new instance and initializes the attribute map from an existing map.
      * <p>
-     * If the provided map is {@code null}, a new {@link ConcurrentHashMap} is created
-     * to ensure thread-safe operations on the parsingAttributes.
+     * If the provided map is non-null, its entries are copied into a new
+     * {@link ConcurrentHashMap}. This copying ensures that the internal store remains
+     * thread-safe and isolated from any external modifications to the original map. If the
+     * supplied map is {@code null}, a new empty {@link ConcurrentHashMap} is used,
+     * guaranteeing that the instance always has a valid, mutable attribute container.
      * </p>
      *
-     * @param attributes the initial map of parsingAttributes, or {@code null} to create a new empty map
+     * @param attributes the initial attributes to seed the store, or {@code null} if none
      */
     protected AbstractAttribute(@Nullable Map<String, Object> attributes) {
         this.attributes = Objects.isNull(attributes) ? new ConcurrentHashMap<>() : new ConcurrentHashMap<>(attributes);
     }
 
     /**
-     * Retrieves the map of parsingAttributes.
+     * Returns the underlying mutable map that holds all attributes.
+     * <p>
+     * The returned map is the same instance used internally, so any modifications made to
+     * it are immediately reflected in the attribute store. This aligns with the contract of
+     * {@link AttributesAbility#getAttributes()}, allowing callers to read, add, or remove
+     * metadata without additional synchronization. Because the backing map is a
+     * {@link ConcurrentHashMap}, concurrent operations are safe even in highly parallel
+     * scenarios.
+     * </p>
      *
-     * @return the mutable map of parsingAttributes
+     * @return the modifiable, thread-safe map of attributes
      */
     @Override
     public Map<String, Object> getAttributes() {

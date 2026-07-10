@@ -15,10 +15,9 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.util;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
+import pro.chenggang.project.reactive.ai.lite.core.exception.LlmClientException;
 
 import java.util.Map;
 
@@ -28,32 +27,79 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class JsonRelatedUtilTest {
 
     @Test
-    void testObjectMapperConfig() {
-        ObjectMapper mapper = JsonRelatedUtil.OBJECT_MAPPER;
-        assertThat(mapper.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)).isFalse();
-        assertThat(mapper.isEnabled(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT)).isTrue();
+    void testJsonToMapWithValidJson() {
+        String json = "{\"key\":\"value\",\"number\":123}";
+        Map<String, Object> result = JsonRelatedUtil.jsonToMap(json);
+
+        assertThat(result).isNotNull()
+                .hasSize(2)
+                .containsEntry("key", "value")
+                .containsEntry("number", 123);
     }
 
     @Test
-    void testJsonToMap() {
-        String json = "{\"name\": \"test\", \"value\": 123}";
-        Map<String, Object> map = JsonRelatedUtil.jsonToMap(json);
-        assertThat(map).containsEntry("name", "test")
-                .containsEntry("value", 123);
+    void testJsonToMapWithNullJson() {
+        Map<String, Object> result = JsonRelatedUtil.jsonToMap(null);
+
+        assertThat(result).isNotNull().isEmpty();
     }
 
     @Test
-    void testJsonToMapInvalid() {
-        String json = "invalid json";
-        assertThatThrownBy(() -> JsonRelatedUtil.jsonToMap(json))
-                .isInstanceOf(RuntimeException.class);
+    void testJsonToMapWithInvalidJson() {
+        String invalidJson = "{invalid_json";
+
+        assertThatThrownBy(() -> JsonRelatedUtil.jsonToMap(invalidJson))
+                .isInstanceOf(LlmClientException.class)
+                .hasMessageContaining("Failed to convert to map with json string");
     }
 
     @Test
-    void testEmptyStringToEnumAsNull() throws Exception {
-        // Test coercion for empty strings to null for Enum types
-        String json = "\"\"";
-        LlmClientType result = JsonRelatedUtil.OBJECT_MAPPER.readValue(json, LlmClientType.class);
-        assertThat(result).isNull();
+    void testJsonToMapWithCustomMapper() {
+        String json = "{\"custom\":\"mapper\"}";
+        ObjectMapper mapper = new ObjectMapper();
+
+        Map<String, Object> result = JsonRelatedUtil.jsonToMap(json, mapper);
+
+        assertThat(result).isNotNull()
+                .hasSize(1)
+                .containsEntry("custom", "mapper");
+    }
+
+    @Test
+    void testEnumCoercion() throws Exception {
+        // Since JsonRelatedUtil configures OBJECT_MAPPER to coerce empty strings to null for enums,
+        // we should test this specific configuration.
+        String json = "{\"testEnum\":\"\"}";
+        
+        TestDto result = JsonRelatedUtil.OBJECT_MAPPER.readValue(json, TestDto.class);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getTestEnum()).isNull();
+    }
+    
+    @Test
+    void testEnumCoercionValidValue() throws Exception {
+        String json = "{\"testEnum\":\"VALUE_ONE\"}";
+        
+        TestDto result = JsonRelatedUtil.OBJECT_MAPPER.readValue(json, TestDto.class);
+        
+        assertThat(result).isNotNull();
+        assertThat(result.getTestEnum()).isEqualTo(TestEnum.VALUE_ONE);
+    }
+
+    static class TestDto {
+        private TestEnum testEnum;
+
+        public TestEnum getTestEnum() {
+            return testEnum;
+        }
+
+        public void setTestEnum(TestEnum testEnum) {
+            this.testEnum = testEnum;
+        }
+    }
+
+    enum TestEnum {
+        VALUE_ONE, VALUE_TWO
     }
 }

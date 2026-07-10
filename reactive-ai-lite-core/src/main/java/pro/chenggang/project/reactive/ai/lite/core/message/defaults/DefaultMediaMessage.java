@@ -26,15 +26,33 @@ import pro.chenggang.project.reactive.ai.lite.core.message.Message;
 import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Attachment;
 
 /**
- * The default, immutable implementation of the {@link MediaMessage} interface.
+ * The default, immutable implementation of the {@link MediaMessage} interface,
+ * designed for use within the reactive AI lite messaging framework.
  * <p>
- * This class provides a concrete representation of a message that can contain both text
- * and media attachments. It uses Lombok's {@code @Builder} for construction and is
- * configured for Jackson JSON serialization/deserialization.
+ * This class represents a complete message entity that can carry both textual content and
+ * an arbitrary number of media attachments (images, files, etc.). It is used as a standard
+ * message carrier in conversational pipelines and is fully JSON‑friendly thanks to the
+ * {@link Jacksonized} annotation, which enables deserialization via the generated builder.
+ * </p>
+ * <p>
+ * <b>Immutability:</b> All fields are declared {@code final}, and the class provides no
+ * setters, ensuring thread‑safety and predictability. The builder pattern (via
+ * {@code @Builder}) is the only way to construct an instance.
+ * </p>
+ * <p>
+ * <b>Defaults:</b> The {@code attachments} array defaults to an empty array rather than
+ * {@code null}, simplifying client code by avoiding ubiquitous null‑checks.
+ * </p>
+ * <p>
+ * <b>Type safety:</b> Overriding {@link #getActualType()} allows runtime inspection of the
+ * concrete message type, which is crucial when messages are passed through generic
+ * interfaces or collections.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see MediaMessage
+ * @see Message
  */
 @Jacksonized
 @Builder
@@ -42,41 +60,55 @@ import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Attachment
 public class DefaultMediaMessage implements MediaMessage {
 
     /**
-     * The role of the message sender.
+     * The role of the message sender (for example, {@code "user"} or {@code "assistant"}).
+     * This field must never be {@code null} and is used to distinguish the origin of the
+     * message within a conversation. It follows the conventions defined by the reactive AI
+     * lite protocol.
      */
     @NonNull
     private final String role;
 
     /**
-     * The optional name of the sender.
+     * The optional name of the sender (e.g., a specific user alias or model variant). This
+     * field provides a more granular identity on top of the role. It can be {@code null}
+     * when not needed.
      */
     @Nullable
     private final String name;
 
     /**
-     * The primary textual content of the message.
+     * The primary textual content of the message. This field holds the main payload that
+     * is processed by the language model or displayed to the user. It must never be
+     * {@code null}, though it may be an empty string.
      */
     @NonNull
     private final String content;
 
     /**
-     * The optional reasoning content associated with the message.
+     * Optional reasoning content, often used for chain‑of‑thought or explainability
+     * features. When present, it represents the model's internal reasoning steps. This
+     * field is separate from the main {@link #content} to allow a clean separation of
+     * output and thought process. It may be {@code null}.
      */
     @Nullable
     private final String reasoningContent;
 
     /**
-     * An array of media attachments included in the message.
-     * Defaults to an empty array.
+     * An array of media attachments (images, audio, files, etc.) associated with this
+     * message. The builder defaults this to an empty array rather than {@code null},
+     * guaranteeing that client code always receives a non‑null value. This field is
+     * declared as {@code @NonNull} to enforce that invariant.
      */
     @NonNull
     @Builder.Default
     private final Attachment[] attachments = new Attachment[0];
 
     /**
-     * Retrieves the role of the message sender.
+     * Returns the role of the message sender. This value identifies the participant
+     * category (user, assistant, system, etc.) and is used for routing and context
+     * management in the conversation pipeline.
      *
-     * @return the role as a string
+     * @return the role string, never {@code null}
      */
     @Override
     public String getRole() {
@@ -84,9 +116,11 @@ public class DefaultMediaMessage implements MediaMessage {
     }
 
     /**
-     * Retrieves the optional name of the sender.
+     * Returns the optional name of the sender. The name can be used to distinguish
+     * between multiple participants sharing the same role (e.g., two different user
+     * profiles) or to identify a specific model version.
      *
-     * @return the name, or {@code null} if not provided
+     * @return the sender's name, or {@code null} if none was set
      */
     @Nullable
     @Override
@@ -95,9 +129,10 @@ public class DefaultMediaMessage implements MediaMessage {
     }
 
     /**
-     * Retrieves the primary textual content of the message.
+     * Returns the main textual content of the message. This is the actual information
+     * exchanged between the user and the AI model.
      *
-     * @return the text content
+     * @return the text content, never {@code null}
      */
     @Override
     public String getContent() {
@@ -105,9 +140,11 @@ public class DefaultMediaMessage implements MediaMessage {
     }
 
     /**
-     * Retrieves the reasoning content associated with the message.
+     * Returns any reasoning content that accompanies the message. In advanced AI
+     * interactions (e.g., with o‑series models), the model may provide a separate
+     * “thinking” output. This method exposes that auxiliary information.
      *
-     * @return the reasoning content, or {@code null} if not available
+     * @return the reasoning text, or {@code null} if absent
      */
     @Nullable
     @Override
@@ -116,9 +153,11 @@ public class DefaultMediaMessage implements MediaMessage {
     }
 
     /**
-     * Retrieves the array of media attachments.
+     * Returns the media attachments of this message. The returned array is never
+     * {@code null} (defaults to an empty array), enabling safe iteration without
+     * null‑checks.
      *
-     * @return an array of {@link Attachment} objects
+     * @return an array of {@link Attachment} objects, possibly empty
      */
     @Override
     public Attachment[] getAttachments() {
@@ -126,9 +165,14 @@ public class DefaultMediaMessage implements MediaMessage {
     }
 
     /**
-     * Retrieves the actual concrete type of this message.
+     * Returns the concrete Java type of this message implementation.
+     * <p>
+     * This method is used for type introspection in generic message processing logic
+     * (e.g., routing based on message type or serialization). It always returns
+     * {@code DefaultMediaMessage.class}.
+     * </p>
      *
-     * @return the {@link DefaultMediaMessage} class type
+     * @return {@code DefaultMediaMessage.class}
      */
     @Override
     public Class<? extends Message> getActualType() {

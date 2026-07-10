@@ -16,40 +16,50 @@
 package pro.chenggang.project.reactive.ai.lite.core.certification;
 
 /**
- * Token-based certification interface for AI provider authentication.
+ * Defines a token-based certification used for authenticating requests to AI service providers.
  * <p>
- * This interface extends {@link ProviderCertification} to provide a standard
- * token-based authentication mechanism for accessing AI service providers.
- * It defines methods to retrieve the certification's unique name and the
- * actual authentication token (e.g., an API key).
- * </p>
+ * This interface extends {@link ProviderCertification} to support a common authentication
+ * pattern where an opaque token (such as an API key or bearer token) is presented to the
+ * provider to prove identity and authorize access. Implementations typically hold the
+ * token securely and expose it for inclusion in HTTP Authorization headers.
+ * <p>
+ * The {@link #name()} method provides an identifier for the certification instance,
+ * allowing applications with multiple providers or environments (e.g., development,
+ * staging, production) to distinguish between credentials easily. The {@link #token()}
+ * method returns the actual secret material; therefore, implementations must guard
+ * against accidental logging or exposure.
+ * <p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see ProviderCertification
  */
 public interface TokenCertification extends ProviderCertification {
 
     /**
-     * Returns the name of this token certification.
+     * Returns the logical name of this token certification.
      * <p>
-     * The name uniquely identifies this specific credential configuration,
-     * often corresponding to a specific provider or environment setup.
-     * </p>
+     * This name is used to uniquely identify a set of credentials within an application
+     * context. For example, it might correspond to a provider key ("openai", "azure") or
+     * a profile name ("default", "admin"). The value is often derived from configuration
+     * properties and helps route the correct token to the correct provider at runtime.
      *
-     * @return the certification name
+     * @return a non-null, non-empty string identifying the certification
      */
     String name();
 
     /**
-     * Returns the authentication token for this certification.
+     * Provides the actual authentication token (e.g., API key, JWT) to be sent to the
+     * AI service provider.
      * <p>
-     * The token (such as an API key) is used to authenticate HTTP requests
-     * sent to the AI service provider. It is highly sensitive and should
-     * be handled securely, ensuring it is not exposed in application logs
-     * or error messages.
-     * </p>
+     * This method returns the secret credential that the framework will embed into
+     * outgoing HTTP requests—typically as a {@code Bearer} token in the
+     * {@code Authorization} header or as a custom header (such as {@code api-key}).
+     * Because the returned value is highly sensitive, implementations must ensure it
+     * is never written to logs, error messages, or serialized in plaintext without
+     * explicit sanitization.
      *
-     * @return the authentication token string
+     * @return the raw authentication token; never {@code null}
      */
     String token();
 }

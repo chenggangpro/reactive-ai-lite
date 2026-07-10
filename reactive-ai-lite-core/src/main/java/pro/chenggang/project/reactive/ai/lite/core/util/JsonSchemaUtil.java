@@ -44,10 +44,25 @@ import java.util.stream.Stream;
  */
 public final class JsonSchemaUtil {
 
+    /**
+     * The singleton {@link SchemaGenerator} instance used for producing JSON schemas from arbitrary Java types.
+     * <p>
+     * This generator is configured with:
+     * <ul>
+     *     <li>JSON Schema Draft 2020-12</li>
+     *     <li>Plain JSON preset, avoiding schema version indicators</li>
+     *     <li>Jackson module integration that respects {@code @JsonProperty(required=true)} annotations</li>
+     *     <li>Standard format values (e.g., date-time, email) and OpenAPI format extensions</li>
+     *     <li>Plain definition keys for clean, readable schemas</li>
+     * </ul>
+     * These settings ensure the generated schemas are compatible with AI tool-calling specifications and provide
+     * sufficient annotations for model interpretation.
+     */
     private static final SchemaGenerator TYPE_SCHEMA_GENERATOR;
 
     /*
-     * Initialize JSON Schema generators with standard presets and Jackson integration.
+     * Build the generator with Draft 2020-12 and PLAIN_JSON preset; integrates Jackson modules
+     * to handle JSON annotations and includes format extensions for richer schema descriptions.
      */
     static {
         Module jacksonModule = new JacksonModule(JacksonOption.RESPECT_JSONPROPERTY_REQUIRED);
@@ -69,7 +84,9 @@ public final class JsonSchemaUtil {
      * <p>
      * This method analyzes the provided {@link Type} and produces a JSON string representing
      * its schema according to JSON Schema Draft 2020-12. It applies any specified
-     * {@link SchemaOption}s to modify the resulting schema.
+     * {@link SchemaOption}s to modify the resulting schema. Special handling is applied for
+     * {@code Void} types: if no properties are present, an empty {@code "properties"} object is
+     * inserted, ensuring that AI models can interpret the schema as “no additional input required”.
      * </p>
      *
      * @param type          the Java type to generate the schema for
@@ -88,10 +105,16 @@ public final class JsonSchemaUtil {
     }
 
     /**
-     * Processes and applies the specified schema options to the generated schema object.
+     * Applies the requested {@link SchemaOption}s to the generated JSON schema node.
+     * <p>
+     * By default, this method enforces {@code "additionalProperties": false} unless
+     * {@link SchemaOption#ALLOW_ADDITIONAL_PROPERTIES_BY_DEFAULT} is present. It also
+     * optionally converts all {@code "type"} values to uppercase if
+     * {@link SchemaOption#UPPER_CASE_TYPE_VALUES} is requested, ensuring compatibility
+     * with AI providers that expect uppercase type identifiers.
      *
-     * @param schemaOptions the options to apply
-     * @param schema        the generated schema node
+     * @param schemaOptions the options to process; never {@code null}
+     * @param schema the schema object node to mutate
      */
     private static void processSchemaOptions(SchemaOption[] schemaOptions, ObjectNode schema) {
         if (Stream.of(schemaOptions)
@@ -104,13 +127,14 @@ public final class JsonSchemaUtil {
     }
 
     /**
-     * Recursively traverses the JSON schema node and converts all "type" property values to uppercase.
+     * Recursively transforms all {@code "type"} property values in the given JSON node to uppercase.
      * <p>
-     * This is sometimes required for compatibility with specific AI providers that expect
-     * uppercase type indicators in the schema.
-     * </p>
+     * This operation exists because some AI model providers (e.g., certain versions of OpenAI-compatible APIs)
+     * expect type keywords like {@code "OBJECT"} and {@code "STRING"} rather than the standard lowercase
+     * form. By applying this transformation, the generated schema remains compliant with those providers
+     * without altering the base generation logic.
      *
-     * @param node the JSON node to traverse and modify
+     * @param node the root node of the JSON schema to process; will be mutated in place
      */
     public static void convertTypeValuesToUpperCase(JsonNode node) {
         if (node.isObject()) {

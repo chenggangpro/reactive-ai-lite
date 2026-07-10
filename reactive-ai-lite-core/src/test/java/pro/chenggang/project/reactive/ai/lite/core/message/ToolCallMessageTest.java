@@ -16,6 +16,8 @@
 package pro.chenggang.project.reactive.ai.lite.core.message;
 
 import org.junit.jupiter.api.Test;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage.AssistantToolCall;
+import pro.chenggang.project.reactive.ai.lite.core.message.ToolCallMessage.AssistantToolCallFunction;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,54 +27,58 @@ import static org.mockito.Mockito.mock;
 class ToolCallMessageTest {
 
     @Test
-    void testAssistantToolCallFunctionBuilder() {
-        ToolCallMessage.AssistantToolCallFunction function = ToolCallMessage.AssistantToolCallFunction.builder()
-                .name("test-func")
-                .arguments("{\"a\": 1}")
+    void testAssistantToolCallFunction() {
+        AssistantToolCallFunction func = AssistantToolCallFunction.builder()
+                .name("test")
+                .arguments("{\"key\":\"value\"}")
                 .build();
-
-        assertThat(function.getName()).isEqualTo("test-func");
-        assertThat(function.getArguments()).isEqualTo("{\"a\": 1}");
-        assertThat(function.jsonArguments().get("a").asInt()).isEqualTo(1);
-    }
-
-    @Test
-    void testAssistantToolCallFunctionWithEmptyArgs() {
-        ToolCallMessage.AssistantToolCallFunction function = ToolCallMessage.AssistantToolCallFunction.builder()
-                .name("test-func")
+                
+        assertThat(func.getName()).isEqualTo("test");
+        assertThat(func.getArguments()).isEqualTo("{\"key\":\"value\"}");
+        assertThat(func.jsonArguments().get("key").asText()).isEqualTo("value");
+        
+        AssistantToolCallFunction emptyArgs = AssistantToolCallFunction.builder()
+                .name("test2")
+                .arguments(null)
+                .build();
+        assertThat(emptyArgs.getArguments()).isEqualTo("{}");
+        assertThat(emptyArgs.jsonArguments().isEmpty()).isTrue();
+        
+        AssistantToolCallFunction emptyArgs2 = AssistantToolCallFunction.builder()
+                .name("test2")
                 .arguments("")
                 .build();
-
-        assertThat(function.getArguments()).isEqualTo("{}");
-    }
-
-    @Test
-    void testAssistantToolCallFunctionWithInvalidJson() {
-        ToolCallMessage.AssistantToolCallFunction function = ToolCallMessage.AssistantToolCallFunction.builder()
-                .name("test-func")
-                .arguments("{invalid}")
+        assertThat(emptyArgs2.getArguments()).isEqualTo("{}");
+        
+        AssistantToolCallFunction invalidArgs = AssistantToolCallFunction.builder()
+                .name("test3")
+                .arguments("invalid")
                 .build();
-
-        assertThatThrownBy(function::jsonArguments)
+        assertThatThrownBy(invalidArgs::jsonArguments)
                 .isInstanceOf(RuntimeException.class);
     }
-
+    
     @Test
-    void testAssistantToolCallBuilder() {
-        ToolCallMessage.AssistantToolCallFunction function = mock(ToolCallMessage.AssistantToolCallFunction.class);
-        ToolDefinition toolDefinition = mock(ToolDefinition.class);
-        ToolCallMessage.AssistantToolCall toolCall = ToolCallMessage.AssistantToolCall.builder()
-                .index(0)
-                .id("id")
-                .type("function")
-                .function(function)
-                .toolDefinition(toolDefinition)
+    void testAssistantToolCall() {
+        AssistantToolCallFunction func = AssistantToolCallFunction.builder()
+                .name("test")
+                .arguments("{}")
                 .build();
-
-        assertThat(toolCall.getIndex()).isEqualTo(0);
-        assertThat(toolCall.getId()).isEqualTo("id");
-        assertThat(toolCall.getType()).isEqualTo("function");
-        assertThat(toolCall.getFunction()).isEqualTo(function);
-        assertThat(toolCall.getToolDefinition()).isEqualTo(toolDefinition);
+                
+        ToolDefinition toolDef = mock(ToolDefinition.class);
+        
+        AssistantToolCall call = AssistantToolCall.builder()
+                .index(1)
+                .id("call_1")
+                .type("function")
+                .function(func)
+                .toolDefinition(toolDef)
+                .build();
+                
+        assertThat(call.getIndex()).isEqualTo(1);
+        assertThat(call.getId()).isEqualTo("call_1");
+        assertThat(call.getType()).isEqualTo("function");
+        assertThat(call.getFunction()).isEqualTo(func);
+        assertThat(call.getToolDefinition()).isEqualTo(toolDef);
     }
 }

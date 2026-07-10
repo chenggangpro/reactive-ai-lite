@@ -21,29 +21,38 @@ import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import java.util.Set;
 
 /**
- * A marker interface defining the common contract for an interceptor that modifies
- * or inspects the execution flow of an LLM provider request.
+ * Defines a contract for interceptors that can observe or modify the execution flow
+ * of a request to an LLM provider.
  * <p>
- * Interceptors implement Spring's {@link Ordered} interface to define their relative
- * position in the execution chain. They can specify which types of LLM clients they
- * support (e.g., CHAT only, or all types) so that the framework can dynamically route
- * requests through the appropriate interceptors.
+ * Implementations are ordered via Spring's {@link Ordered} interface, allowing the
+ * framework to arrange them in a deterministic order. The {@link #supportedClient()}
+ * method declares which LLM client types this interceptor is designed to work with.
+ * This dual mechanism enables the framework to apply only the relevant interceptors
+ * for each request, reducing unnecessary processing and making it possible to have
+ * specialized interceptors for different LLM providers or client types.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see Ordered
+ * @see LlmClientType
  */
 public interface LlmProviderExecutionInterceptor extends Ordered {
 
     /**
-     * Declares the set of client types that this interceptor supports.
+     * Returns the set of {@link LlmClientType LLM client types} that this
+     * interceptor is intended to handle.
      * <p>
-     * An interceptor will only be applied to requests originating from a client type
-     * included in this set. Returning an empty or null set usually indicates that it
-     * supports no clients (and effectively disables the interceptor).
+     * During interception processing, the framework uses this information to decide
+     * whether to include this interceptor in the chain for a particular request.
+     * Returning an empty set or {@code null} effectively disables the interceptor,
+     * as it will never match any client type. This filtering step improves performance
+     * and allows developers to constrain an interceptor to specific providers without
+     * having to put conditional logic inside the interceptor implementation.
      * </p>
      *
-     * @return a {@link Set} of {@link LlmClientType}s this interceptor can process
+     * @return a set of supported client types, or {@code null}/empty set to indicate
+     *         that this interceptor should not be applied
      */
     Set<LlmClientType> supportedClient();
 

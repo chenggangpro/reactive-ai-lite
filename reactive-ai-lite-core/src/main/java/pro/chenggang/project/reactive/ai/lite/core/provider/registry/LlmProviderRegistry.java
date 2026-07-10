@@ -25,11 +25,19 @@ import reactor.core.publisher.Mono;
 import java.util.function.Predicate;
 
 /**
- * A central registry for managing, discovering, and retrieving configured LLM providers.
+ * Central registry for discovering and retrieving concrete {@link LlmProvider} implementations.
  * <p>
- * This interface acts as the entry point for the framework to find the appropriate
- * provider implementation based on the required capability or dynamically evaluated
- * selection criteria.
+ * The registry maintains a collection of all configured providers and exposes query methods
+ * that allow the framework or client code to obtain the most appropriate provider instance
+ * based on its {@link Capability} (e.g., chat, embedding) and optionally through dynamic
+ * filtering using provider metadata ({@link LlmProviderInfo}).
+ * </p>
+ * <p>
+ * When multiple providers support the same capability, the default provider is selected
+ * according to implementation-specific rules (typically the one marked as default or the
+ * first one registered). For more fine-grained selection, the {@link #getProvider(Capability, Class, Predicate)}
+ * method evaluates a predicate against each candidate’s metadata, enabling criteria such as
+ * model name, cost preferences, or custom tags.
  * </p>
  *
  * @author Gang Cheng
@@ -38,27 +46,70 @@ import java.util.function.Predicate;
 public interface LlmProviderRegistry {
 
     /**
-     * Retrieves the default provider associated with a specific capability.
+     * Returns the default provider for a given capability.
      * <p>
-     * If multiple providers support the given capability, this method returns the one
-     * explicitly marked as default or, if none are marked, the first available provider.
+     * The selection process inspects all registered providers that declare support
+     * for the requested {@link Capability}. If one of them is explicitly marked as
+     * the default, it is returned; otherwise the first matching provider is used.
+     * This guarantees a deterministic result even when no explicit default is configured.
      * </p>
      *
-     * @param capability the {@link Capability} (e.g., CHAT, EMBEDDING) for which to find the provider
-     * @return a {@link Mono} emitting the default {@link LlmProvider} supporting the requested capability
+     * @param capability the required capability (e.g., {@link Capability#CHAT}, {@link Capability#EMBEDDING})
+     * @return a {@link Mono} that emits the default {@link LlmProvider} for the capability
+     * @throws IllegalArgumentException if no provider supports the given capability
      */
     Mono<? extends LlmProvider> getDefaultProvider(@NonNull Capability capability);
 
     /**
-     * Finds and returns an {@link LlmChatProvider} that matches the given dynamic filter.
+     * Retrieves a chat provider that matches the given filter predicate.
      * <p>
-     * This method evaluates the provided predicate against the {@link LlmProviderInfo} of
-     * all registered chat providers. It returns the first provider that satisfies the condition.
+     * This method evaluates the predicate against the {@link LlmProviderInfo} of all
+     * registered chat providers and returns the first one that satisfies the condition.
+     * It is intended for scenarios where the selection must be dynamic, e.g., based on
+     * model attributes or runtime properties.
      * </p>
      *
-     * @param providerFilter a {@link Predicate} used to evaluate each provider's info
-     * @return a {@link Mono} emitting the first {@link LlmChatProvider} that matches the filter
+     * @param providerFilter a predicate applied to each chat provider’s metadata
+     * @return a {@link Mono} emitting the first matching {@link LlmChatProvider}
+     * @deprecated since 0.1.0, use {@link #getProvider(Capability, Class, Predicate)}
+     *             with {@code Capability.CHAT} and {@code LlmChatProvider.class} for
+     *             a more type-safe and extensible selection mechanism.
      */
+    @Deprecated
     Mono<LlmChatProvider> getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter);
+
+    /**
+     * Retrieves an embedding provider that matches the given filter predicate.
+     * <p>
+     * Similar to {@link #getChatProvider(Predicate)}, this method looks for a
+     * registered {@link pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider}
+     * whose {@link LlmProviderInfo} satisfies the provided predicate. It is useful when the
+     * embedding provider must be chosen dynamically based on metadata.
+     * </p>
+     *
+     * @param providerFilter a predicate applied to each embedding provider’s metadata
+     * @return a {@link Mono} emitting the first matching embedding provider
+     */
+    Mono<pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider> getEmbeddingProvider(@NonNull Predicate<LlmProviderInfo> providerFilter);
+
+    /**
+     * Generic method to retrieve a provider of any supported {@link Capability} and concrete type
+     * that satisfies a dynamic filter predicate.
+     * <p>
+     * The registry first narrows the candidate set to those providers that support the given
+     * {@code capability} and are assignable to the requested {@code providerClass}. Then the
+     * {@code providerFilter} is evaluated against each candidate’s {@link LlmProviderInfo},
+     * and the first match is returned. This provides maximum flexibility for selecting a provider
+     * based on runtime conditions such as model name, region, or custom properties.
+     * </p>
+     *
+     * @param capability     the capability the desired provider must support
+     * @param providerClass  the expected runtime type of the provider
+     * @param providerFilter a predicate to evaluate each provider’s metadata
+     * @param <P>            the concrete provider type
+     * @return a {@link Mono} that emits the first provider matching all criteria
+     * @throws IllegalArgumentException if no provider matches the given parameters
+     */
+    <P extends LlmProvider> Mono<P> getProvider(@NonNull Capability capability, @NonNull Class<P> providerClass, @NonNull Predicate<LlmProviderInfo> providerFilter);
 
 }

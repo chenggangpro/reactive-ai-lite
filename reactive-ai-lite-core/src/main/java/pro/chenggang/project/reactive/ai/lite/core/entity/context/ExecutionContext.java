@@ -17,68 +17,89 @@ package pro.chenggang.project.reactive.ai.lite.core.entity.context;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import pro.chenggang.project.reactive.ai.lite.core.api.ClientRequest.ContextMerger;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.AbstractAttribute;
-import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec.ContextMerger;
 import reactor.util.context.Context;
 
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents the mutable execution context for reactive AI operations.
+ * Mutable execution context that orchestrates state and attribute sharing during the lifecycle
+ * of a reactive AI request.
  * <p>
- * This class manages the execution state and attributes during the lifecycle of an AI request.
- * It acts as a thread-safe container for storing contextual metadata and shared data across
- * interceptors, providers, and execution engines.
+ * The {@code ExecutionContext} serves as the central, thread-safe container for all contextual information
+ * flowing through the reactive pipeline. It extends {@link AbstractAttribute} to inherit a concurrent
+ * map of key-value attributes, enabling interceptor, provider, and execution engine components to
+ * exchange data dynamically without coupling. The mutable nature supports progressive enrichment of the
+ * context as the request evolves, while the Reactor {@link Context} binding guarantees safe propagation
+ * across reactive operators.
  * </p>
  * <p>
- * The execution context is typically bound to and propagated through the Reactor {@link Context}.
- * It extends {@link AbstractAttribute} to provide a concurrent key-value store for arbitrary data,
- * allowing modular components in the pipeline to exchange information dynamically.
+ * Typical usage involves creating a fresh context at the start of a request, populating it with initial
+ * attributes (e.g., trace ID, user properties), and then using the {@link #initializeExecutionContext(Context, Map, ContextMerger)}
+ * utility to integrate it into the reactive chain. The context can be read or updated at any stage by
+ * subscribing to the Reactor context, making it the backbone for cross-cutting concerns like logging,
+ * monitoring, and audit.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
  * @see AbstractAttribute
  * @see Context
+ * @see ContextMerger
  */
 @Slf4j
 @Getter
 public class ExecutionContext extends AbstractAttribute {
 
     /**
-     * Constructs a new {@link ExecutionContext}.
+     * Private constructor to enforce factory-based instantiation.
      * <p>
-     * Initializes the thread-safe backing attribute map inherited from {@link AbstractAttribute}.
+     * All instances are created via the static {@link #newContext()} method to guarantee a consistent
+     * initialization path. The constructor only invokes the superclass constructor to set up the
+     * underlying {@link java.util.concurrent.ConcurrentHashMap}-based attribute store.
      * </p>
      */
     private ExecutionContext() {
     }
 
     /**
-     * Creates a new instance of an {@link ExecutionContext}.
+     * Creates a new, empty {@link ExecutionContext}.
      * <p>
-     * This factory method is the primary way to instantiate a fresh execution context
-     * at the beginning of an AI request pipeline.
+     * This factory method is the entry point for acquiring a fresh context at the beginning of an
+     * AI request pipeline. The returned context contains no attributes and is fully thread-safe,
+     * ready to be populated and bound to the reactive chain.
      * </p>
      *
-     * @return a new, empty {@link ExecutionContext} instance
+     * @return a new {@link ExecutionContext} instance with an empty attribute map
      */
     public static ExecutionContext newContext() {
         return new ExecutionContext();
     }
 
     /**
-     * Initializes the {@link ExecutionContext} in the Reactor {@link Context} if it is not already present.
+     * Ensures the presence of an {@link ExecutionContext} in the Reactor {@link Context} and merges
+     * parent attributes if applicable.
      * <p>
-     * If an existing context is found, it will merge any parent attributes using the provided {@link ContextMerger}.
-     * Otherwise, a new execution context is created, parent attributes are merged, and it is stored in the Reactor context.
+     * This method performs a critical initialization step before the request pipeline starts. It attempts
+     * to retrieve an existing {@code ExecutionContext} from the reactor context; if one already exists
+     * (for example, set by an outer operator), it copies all its attributes into a new context to preserve
+     * historical state. Then, if a {@link ContextMerger} is provided, it merges the given
+     * {@code parentAttributes} (often coming from a parent request or a default configuration) into the
+     * execution context, allowing custom override or enrichment logic. Finally, the (possibly updated)
+     * context is put back into the reactor context for downstream consumers.
+     * </p>
+     * <p>
+     * This design supports both shared (nested) request scenarios where an outer context may already exist,
+     * and standalone scenarios where a brand-new context is needed. The merger abstraction decouples the
+     * merging strategy from the core framework.
      * </p>
      *
-     * @param context          the current Reactor context
-     * @param parentAttributes the attributes from the parent context, can be null
-     * @param contextConfigure the merger logic to combine parent attributes and customize the context, can be null
-     * @return the Reactor context containing the initialized or existing {@link ExecutionContext}
+     * @param context          the current Reactor {@link Context} at the point of initialization
+     * @param parentAttributes potential attributes from a parent request or configuration (nullable)
+     * @param contextConfigure a merger to combine parent attributes into the execution context (nullable)
+     * @return the Reactor {@link Context} augmented with the initialized {@link ExecutionContext}
      */
     public static Context initializeExecutionContext(Context context, Map<String, Object> parentAttributes, ContextMerger contextConfigure) {
         ExecutionContext executionContext = ExecutionContext.newContext();
@@ -91,6 +112,17 @@ public class ExecutionContext extends AbstractAttribute {
         return context.put(ExecutionContext.class, executionContext);
     }
 
+    /**
+     * Returns a concise, human-readable representation of the execution context.
+     * <p>
+     * The string includes the simple class name, the object's identity hash code, and the number of
+     * stored attributes. This format aids debugging by quickly revealing the context identity and its
+     * cardinality without exposing sensitive attribute data. The hash code helps distinguish between
+     * multiple context instances in log trails.
+     * </p>
+     *
+     * @return a string representation of the form {@code ExecutionContext@1a2b3c4d with 5 attributes}
+     */
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(this.hashCode()) + " with " + this.getAttributes().size() + " attributes";

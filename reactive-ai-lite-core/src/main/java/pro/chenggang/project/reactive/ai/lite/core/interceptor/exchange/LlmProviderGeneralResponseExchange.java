@@ -20,26 +20,43 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Optional;
 
 /**
- * Represents the data exchange specifically for general, non-streaming responses from the LLM provider.
+ * An exchange representing a general, non-streaming response from an LLM provider.
  * <p>
- * This interface extends {@link LlmProviderResponseExchange} to provide access to the complete,
- * unparsed JSON response body received from the provider. Interceptors operating after the request
- * execution can use this to inspect or modify the payload before it is parsed into domain objects.
+ * In the interceptor pipeline, after the request is executed and the provider returns
+ * a response, this exchange carries the unprocessed JSON response body. It extends
+ * {@link LlmProviderResponseExchange} to allow interceptors to access common response
+ * metadata (status, headers, etc.) in addition to manipulating the raw response content
+ * before it is transformed into domain-specific objects.
+ * </p>
+ * <p>
+ * This exchange is typically used by interceptors that need to inspect, transform, or
+ * enrich the raw LLM output, for instance for auditing, content filtering, or adding
+ * provider-specific metadata. The {@link #rawResponseBody()} method provides direct
+ * access to the Jackson {@link ObjectNode}, enabling structural modifications.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see LlmProviderResponseExchange
+ * @see ObjectNode
  */
 public interface LlmProviderGeneralResponseExchange extends LlmProviderResponseExchange {
 
     /**
-     * Retrieves the raw JSON response body returned by the provider, if available.
+     * Returns the raw JSON response body as a Jackson {@link ObjectNode} tree, if available.
      * <p>
-     * This will be empty if the request failed before a valid JSON body could be
-     * received or parsed (e.g., a network error occurred).
+     * This method provides mutable access to the entire JSON structure returned by the
+     * provider. Interceptors can navigate and modify the tree directly using the Jackson
+     * node API. Changes made here will propagate to the subsequent parsing and object mapping
+     * stages.
+     * </p>
+     * <p>
+     * An empty {@link Optional} indicates that the response could not be parsed as JSON
+     * (e.g., due to a network error or a non-JSON response). In such cases, the exchange
+     * may still contain error details accessible via superclass methods.
      * </p>
      *
-     * @return an {@link Optional} containing the JSON {@link ObjectNode}, or empty
+     * @return an {@link Optional} containing the JSON tree, or {@link Optional#empty()} if no valid JSON body
      */
     Optional<ObjectNode> rawResponseBody();
 }

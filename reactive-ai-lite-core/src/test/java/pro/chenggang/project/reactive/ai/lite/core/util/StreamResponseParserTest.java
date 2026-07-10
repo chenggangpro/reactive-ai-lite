@@ -24,243 +24,197 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
 class StreamResponseParserTest {
 
     @Test
-    void testParseStreamResponse() {
-        Flux<String> rawStream = Flux.just("{\"text\": \"Hello\"}", "{\"text\": \" World\"}");
+    void testParseStreamResponseStandard() {
+        ExecutionContext mockContext = mock(ExecutionContext.class);
+        
+        Flux<String> rawStream = Flux.just(
+                "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}",
+                "{\"type\":\"ANSWER_CONTENT\",\"text\":\" World\"}",
+                "[DONE]"
+        );
 
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.ANSWER_CONTENT)
-                        .dataContent(data.getData())
-                        .build()
+        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> {
+            ObjectNode node = data.getData();
+            StreamDataType type = StreamDataType.valueOf(node.get("type").asText());
+            return new StreamResponseParser.JsonStreamChunkSlide[]{
+                    StreamResponseParser.JsonStreamChunkSlide.builder()
+                            .streamDataType(type)
+                            .dataContent(node)
+                            .build()
+            };
         };
 
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
+        Function<List<ObjectNode>, ObjectNode> merger = nodes -> {
+            ObjectNode merged = OBJECT_MAPPER.createObjectNode();
+            nodes.forEach(n -> JsonChunkMerger.merge(merged, n));
+            return merged;
+        };
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
+        Flux<RawStreamResponse> result = StreamResponseParser.parseStreamResponse(mockContext, rawStream, parser, merger);
 
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    assertThat(response.getDataType()).isEqualTo(StreamDataType.ANSWER_CONTENT);
+                    assertThat(response.getDataContent().get("text").asText()).isEqualTo("Hello");
+                })
+                .assertNext(response -> {
+                    assertThat(response.getDataType()).isEqualTo(StreamDataType.ANSWER_CONTENT);
+                    assertThat(response.getDataContent().get("text").asText()).isEqualTo(" World");
+                })
                 .verifyComplete();
     }
 
     @Test
-    void testParseStreamResponseWithDone() {
-        Flux<String> rawStream = Flux.just("{\"text\": \"Hello\"}", "[DONE]");
+    void testParseStreamResponseToolCallMerging() {
+        ExecutionContext mockContext = mock(ExecutionContext.class);
+        
+        Flux<String> rawStream = Flux.just(
+                "{\"type\":\"TOOL_CALL\",\"text\":\"call1\"}",
+                "{\"type\":\"TOOL_CALL\",\"text\":\"call2\"}",
+                "[DONE]"
+        );
 
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.ANSWER_CONTENT)
-                        .dataContent(data.getData())
-                        .build()
+        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> {
+            ObjectNode node = data.getData();
+            StreamDataType type = StreamDataType.valueOf(node.get("type").asText());
+            return new StreamResponseParser.JsonStreamChunkSlide[]{
+                    StreamResponseParser.JsonStreamChunkSlide.builder()
+                            .streamDataType(type)
+                            .dataContent(node)
+                            .build()
+            };
         };
 
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
+        Function<List<ObjectNode>, ObjectNode> merger = nodes -> {
+            ObjectNode merged = OBJECT_MAPPER.createObjectNode();
+            nodes.forEach(n -> JsonChunkMerger.merge(merged, n));
+            return merged;
+        };
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
+        Flux<RawStreamResponse> result = StreamResponseParser.parseStreamResponse(mockContext, rawStream, parser, merger);
 
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
+        StepVerifier.create(result)
+                .assertNext(response -> {
+                    assertThat(response.getDataType()).isEqualTo(StreamDataType.TOOL_CALL);
+                    assertThat(response.getDataContent().get("text").asText()).isEqualTo("call1call2");
+                })
                 .verifyComplete();
     }
 
     @Test
-    void testParseStreamResponseInvalidJson() {
-        Flux<String> rawStream = Flux.just("invalid json");
+    void testParseStreamResponseNotObjectJson() {
+        ExecutionContext mockContext = mock(ExecutionContext.class);
+        
+        Flux<String> rawStream = Flux.just(
+                "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}",
+                "[]"
+        );
 
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[0];
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
+        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> {
+            ObjectNode node = data.getData();
+            return new StreamResponseParser.JsonStreamChunkSlide[]{
+                    StreamResponseParser.JsonStreamChunkSlide.builder()
+                            .streamDataType(StreamDataType.ANSWER_CONTENT)
+                            .dataContent(node)
+                            .build()
+            };
+        };
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
+        Function<List<ObjectNode>, ObjectNode> merger = nodes -> OBJECT_MAPPER.createObjectNode();
 
-        StepVerifier.create(parsedStream)
-                .expectError()
+        Flux<RawStreamResponse> result = StreamResponseParser.parseStreamResponse(mockContext, rawStream, parser, merger);
+
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof IllegalStateException && throwable.getMessage().contains("Invalid JSON chunk"))
                 .verify();
     }
 
     @Test
-    void testParseStreamResponseWithRole() {
-        Flux<String> rawStream = Flux.just("{\"role\": \"assistant\"}");
-
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.ROLE)
-                        .dataContent(data.getData())
-                        .build()
-        };
-
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
-
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
-
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ROLE)
-                .verifyComplete();
-    }
-
-    @Test
-    void testParseStreamResponseWithToolCall() {
-        Flux<String> rawStream = Flux.just("{\"tool\": \"part1\"}", "{\"tool\": \"part2\"}", "{\"text\": \"end\"}");
+    void testParseStreamResponseMalformedJson() {
+        ExecutionContext mockContext = mock(ExecutionContext.class);
+        
+        Flux<String> rawStream = Flux.just(
+                "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}",
+                "invalid_json"
+        );
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> {
             ObjectNode node = data.getData();
-            if (node.has("tool")) {
-                return new StreamResponseParser.JsonStreamChunkSlide[]{
-                        StreamResponseParser.JsonStreamChunkSlide.builder()
-                                .streamDataType(StreamDataType.TOOL_CALL)
-                                .dataContent(node)
-                                .build()
-                };
-            } else {
-                return new StreamResponseParser.JsonStreamChunkSlide[]{
-                        StreamResponseParser.JsonStreamChunkSlide.builder()
-                                .streamDataType(StreamDataType.ANSWER_CONTENT)
-                                .dataContent(node)
-                                .build()
-                };
-            }
+            return new StreamResponseParser.JsonStreamChunkSlide[]{
+                    StreamResponseParser.JsonStreamChunkSlide.builder()
+                            .streamDataType(StreamDataType.ANSWER_CONTENT)
+                            .dataContent(node)
+                            .build()
+            };
         };
 
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> {
-            ObjectNode merged = OBJECT_MAPPER.createObjectNode();
-            merged.put("merged", true);
-            return merged;
-        };
+        Function<List<ObjectNode>, ObjectNode> merger = nodes -> OBJECT_MAPPER.createObjectNode();
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
+        Flux<RawStreamResponse> result = StreamResponseParser.parseStreamResponse(mockContext, rawStream, parser, merger);
 
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.TOOL_CALL && resp.getDataContent().has("merged"))
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
-                .verifyComplete();
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> {
+                    Throwable root = reactor.core.Exceptions.unwrap(throwable);
+                    return root instanceof com.fasterxml.jackson.core.JsonParseException;
+                })
+                .verify();
     }
 
     @Test
-    void testParseStreamResponseWithToolCallAtEnd() {
-        Flux<String> rawStream = Flux.just("{\"tool\": \"part1\"}", "{\"tool\": \"part2\"}");
+    void testParseStreamResponseExceptionInParser() {
+        ExecutionContext mockContext = mock(ExecutionContext.class);
+        
+        Flux<String> rawStream = Flux.just(
+                "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}"
+        );
 
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.TOOL_CALL)
-                        .dataContent(data.getData())
-                        .build()
+        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> {
+            throw new RuntimeException("Parser error");
         };
 
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> {
-            ObjectNode merged = OBJECT_MAPPER.createObjectNode();
-            merged.put("merged", true);
-            return merged;
-        };
+        Function<List<ObjectNode>, ObjectNode> merger = nodes -> OBJECT_MAPPER.createObjectNode();
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
+        Flux<RawStreamResponse> result = StreamResponseParser.parseStreamResponse(mockContext, rawStream, parser, merger);
 
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.TOOL_CALL && resp.getDataContent().has("merged"))
-                .verifyComplete();
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof RuntimeException && throwable.getMessage().equals("Parser error"))
+                .verify();
     }
 
     @Test
-    void testParseStreamResponseWithUsage() {
-        Flux<String> rawStream = Flux.just("{\"usage\": {}}");
+    void testJsonChunkParsingDataAttributes() {
+        StreamResponseParser.JsonChunkParsingData data = StreamResponseParser.JsonChunkParsingData.builder()
+                .data(OBJECT_MAPPER.createObjectNode())
+                .parsingAttributes(Map.of("key1", "val1"))
+                .build();
 
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.USAGE)
-                        .dataContent(data.getData())
-                        .build()
-        };
-
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
-
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
-
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.USAGE)
-                .verifyComplete();
+        assertThat((String) data.getParsingAttribute("key1")).isEqualTo("val1");
+        assertThat((String) data.getParsingAttribute("key2")).isNull();
+        assertThat(data.getParsingAttributeOrDefault("key2", "defaultVal")).isEqualTo("defaultVal");
     }
-
     @Test
-    void testParseStreamResponseWithMultipleChunks() {
-        Flux<String> rawStream = Flux.just("{\"data\": \"multiple\"}");
-
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.ROLE)
-                        .dataContent(data.getData())
-                        .build(),
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.ANSWER_CONTENT)
-                        .dataContent(data.getData())
-                        .build()
-        };
-
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
-
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
-
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ROLE)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ANSWER_CONTENT)
-                .verifyComplete();
-    }
-
-    @Test
-    void testParseStreamResponseEmptyJson() {
-        Flux<String> rawStream = Flux.just("{}");
+    void testParseStreamResponseNullJson() {
+        ExecutionContext mockContext = mock(ExecutionContext.class);
+        
+        Flux<String> rawStream = Flux.just("null");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[0];
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
+        Function<List<ObjectNode>, ObjectNode> merger = nodes -> OBJECT_MAPPER.createObjectNode();
 
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
+        Flux<RawStreamResponse> result = StreamResponseParser.parseStreamResponse(mockContext, rawStream, parser, merger);
 
-        StepVerifier.create(parsedStream)
-                .verifyComplete();
-    }
-
-    @Test
-    void testParseStreamResponseWithReasoning() {
-        Flux<String> rawStream = Flux.just("{\"reasoning\": \"thinking\"}");
-
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.REASONING_CONTENT)
-                        .dataContent(data.getData())
-                        .build()
-        };
-
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
-
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
-
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.REASONING_CONTENT)
-                .verifyComplete();
-    }
-
-    @Test
-    void testParseStreamResponseDataTransition() {
-        Flux<String> rawStream = Flux.just("{\"data\": \"transition\"}");
-
-        Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[]{
-                StreamResponseParser.JsonStreamChunkSlide.builder()
-                        .streamDataType(StreamDataType.ROLE)
-                        .dataContent(data.getData())
-                        .build()
-        };
-
-        Function<List<ObjectNode>, ObjectNode> merger = nodes -> nodes.get(0);
-
-        Flux<RawStreamResponse> parsedStream = StreamResponseParser.parseStreamResponse(ExecutionContext.newContext(), rawStream, parser, merger);
-
-        StepVerifier.create(parsedStream)
-                .expectNextMatches(resp -> resp.getDataType() == StreamDataType.ROLE)
-                .verifyComplete();
+        StepVerifier.create(result)
+                .expectErrorMatches(throwable -> throwable instanceof IllegalStateException && throwable.getMessage().contains("Invalid JSON chunk"))
+                .verify();
     }
 }

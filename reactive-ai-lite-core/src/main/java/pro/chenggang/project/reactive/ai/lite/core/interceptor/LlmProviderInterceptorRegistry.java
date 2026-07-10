@@ -23,12 +23,10 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry.InterceptedDataInfo.InterceptedDataInfoBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
 
 /**
  * A central registry for managing and applying interceptors to LLM requests and responses.
@@ -37,6 +35,12 @@ import reactor.core.publisher.Mono;
  * request with a chain of interceptors. Interceptors can modify the request before it is sent
  * (e.g., logging, adding headers, mutating the JSON body) and can inspect or modify the
  * response after it is received (e.g., logging the response, extracting metadata).
+ * </p>
+ * <p>
+ * Implementations typically maintain an ordered list of {@link LlmProviderInterceptor} instances
+ * and apply them sequentially: first all "before" callbacks, then the actual provider execution,
+ * then all "after" callbacks. This pattern centralizes cross-cutting concerns like logging,
+ * authentication, monitoring, and request/response transformation.
  * </p>
  *
  * @author Gang Cheng
@@ -49,10 +53,13 @@ public interface LlmProviderInterceptorRegistry {
      * <p>
      * Applies the registered 'before' interceptors to the request data, executes the provided
      * {@code generalExecution} Mono, and then applies the 'after' interceptors to the response data.
+     * The {@code interceptedDataInfo} contains all necessary context for interceptors to make decisions.
+     * The core execution logic is supplied as a {@link Mono} because it is a single asynchronous
+     * operation.
      * </p>
      *
-     * @param interceptedDataInfo the metadata and payload of the request
-     * @param generalExecution    the core execution logic that returns the raw JSON response
+     * @param interceptedDataInfo the metadata and payload of the request, never null
+     * @param generalExecution    the core execution logic that returns the raw JSON response, never null
      * @return a {@link Mono} emitting the intercepted and potentially modified JSON response
      */
     Mono<ObjectNode> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<ObjectNode> generalExecution);
@@ -62,27 +69,25 @@ public interface LlmProviderInterceptorRegistry {
      * <p>
      * Applies the registered 'before' interceptors to the request data, executes the provided
      * {@code streamExecution} Flux, and then applies the 'after' interceptors to each chunk
-     * emitted by the stream.
+     * emitted by the stream. The stream is wrapped in a {@link Flux} to allow per‑item
+     * post‑processing (e.g., logging each chunk, aggregating stream‑wide metrics).
      * </p>
      *
-     * @param interceptedDataInfo the metadata and payload of the request
-     * @param streamExecution     the core execution logic that returns a stream of raw responses
+     * @param interceptedDataInfo the metadata and payload of the request, never null
+     * @param streamExecution     the core execution logic that returns a stream of raw responses, never null
      * @return a {@link Flux} emitting the intercepted and potentially modified stream chunks
      */
     Flux<RawStreamResponse> interceptStream(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution);
 
     /**
-     * Creates a new builder for constructing an {@link InterceptedDataInfo} instance.
-     *
-     * @return a new {@link InterceptedDataInfoBuilder}
-     */
-    static InterceptedDataInfoBuilder newInterceptedDataInfoBuilder() {
-        return InterceptedDataInfo.builder();
-    }
-
-    /**
      * A data container holding all necessary context and payload information for interceptors
      * to inspect or modify during an execution cycle.
+     * <p>
+     * This immutable object bundles the request raw data, execution context, client type,
+     * and provider information so that interceptors can make informed decisions without external
+     * lookups. It also provides convenience methods to trigger the registry directly from the
+     * data object, improving code readability.
+     * </p>
      *
      * @author Gang Cheng
      */
@@ -93,33 +98,43 @@ public interface LlmProviderInterceptorRegistry {
 
         /**
          * The type of LLM client making the request (e.g., CHAT, IMAGE).
+         * Allows interceptors to differentiate behavior based on the interaction category.
          */
         @NonNull
         private final LlmClientType clientType;
 
         /**
          * The metadata of the LLM provider handling the request.
+         * Contains information such as the provider name, model, and endpoint,
+         * which interceptors may use for routing, logging, or header injection.
          */
         @NonNull
         private final LlmProviderInfo llmProviderInfo;
 
         /**
-         * The execution context, useful for passing correlation IDs or tracing data.
+         * The execution context, useful for passing correlation IDs, tracing data,
+         * or user‑specific attributes across the interceptor chain and the actual provider call.
          */
         @NonNull
         private final ExecutionContext executionContext;
 
         /**
          * The raw JSON request body that will be sent to the provider.
+         * Interceptors may read or mutate this payload before the actual execution.
          */
         @NonNull
         private final ObjectNode rawRequestBody;
 
         /**
          * A convenience method to trigger the interception of a general execution using this data info.
+         * <p>
+         * Delegates to {@link LlmProviderInterceptorRegistry#interceptGeneral(InterceptedDataInfo, Mono)}
+         * so that callers can invoke the interceptor chain directly from the data object,
+         * reducing boilerplate.
+         * </p>
          *
-         * @param lLmProviderInterceptorRegistry the registry to apply
-         * @param generalExecution               the core execution mono
+         * @param lLmProviderInterceptorRegistry the registry to apply, never null
+         * @param generalExecution               the core execution mono, never null
          * @return the intercepted Mono
          */
         public Mono<ObjectNode> interceptGeneral(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Mono<ObjectNode> generalExecution) {
@@ -128,9 +143,14 @@ public interface LlmProviderInterceptorRegistry {
 
         /**
          * A convenience method to trigger the interception of a stream execution using this data info.
+         * <p>
+         * Delegates to {@link LlmProviderInterceptorRegistry#interceptStream(InterceptedDataInfo, Flux)}
+         * so that callers can invoke the interceptor chain directly from the data object,
+         * reducing boilerplate.
+         * </p>
          *
-         * @param lLmProviderInterceptorRegistry the registry to apply
-         * @param streamExecution                the core execution flux
+         * @param lLmProviderInterceptorRegistry the registry to apply, never null
+         * @param streamExecution                the core execution flux, never null
          * @return the intercepted Flux
          */
         public Flux<RawStreamResponse> interceptStream(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Flux<RawStreamResponse> streamExecution) {

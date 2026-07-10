@@ -22,11 +22,22 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import java.io.Serial;
 
 /**
- * Exception thrown when a valid configuration profile cannot be resolved for a provider.
+ * Exception thrown when the framework cannot map a provider to a usable
+ * {@link pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification}
+ * because the required configuration profile is missing.
  * <p>
- * This occurs during request execution if the dynamic profile selection logic
- * (the picker function) returns null, or if it returns a profile name that does
- * not exist in the provider's registered {@link pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification}s.
+ * The root cause is always a failure in the dynamic profile resolution step:
+ * either the profile‑picker function returned {@code null} (meaning no candidate
+ * could be determined), or it returned a name that is not registered among the
+ * provider's profiles. In both cases the exception carries the {@link LlmProviderInfo}
+ * so that callers can inspect the available profiles and decide how to handle
+ * the misconfiguration.
+ * </p>
+ * <p>
+ * This exception is typically thrown from
+ * {@link pro.chenggang.project.reactive.ai.lite.core.template.LlmClientTemplate}
+ * at the moment a request is about to be executed, guaranteeing a clear failure
+ * before any network round‑trip.
  * </p>
  *
  * @author Gang Cheng
@@ -36,25 +47,41 @@ import java.io.Serial;
 public class NoProfileFoundLlmClientException extends LlmClientException {
 
     /**
-     * Unique serial version identifier.
+     * Unique serial version identifier for {@link java.io.Serializable} compatibility.
+     * Ensures that a deserialized exception matches the exact class definition used
+     * at serialization time.
      */
     @Serial
     private static final long serialVersionUID = 3598018502894298913L;
 
     /**
-     * The provider info against which the profile lookup failed.
+     * The provider metadata that was being processed when the lookup failed.
+     * Contains the provider's identifier and the full list of registered profiles.
      */
     private final LlmProviderInfo llmProviderInfo;
 
     /**
-     * The name of the profile that was requested but not found (may be null).
+     * The specific profile name that could not be found, or {@code null}
+     * when the picker function itself returned {@code null}.
+     * <p>
+     * When non‑null, the value is exactly the string that was returned by the
+     * user‑supplied picker but was absent from {@link LlmProviderInfo#profiles()}.
+     * </p>
      */
     private final String pickedProfile;
 
     /**
-     * Constructs a new exception indicating that the profile selection logic yielded null.
+     * Constructs an exception for the case where the profile‑picker function
+     * returned {@code null}, indicating that it could not determine any candidate
+     * for the current provider.
+     * <p>
+     * The resulting message includes the provider name and a list of the
+     * profiles that are actually available, aiding diagnostics. The
+     * {@link #pickedProfile} field is set to {@code null} to differentiate
+     * this scenario from a non‑existent named profile.
+     * </p>
      *
-     * @param llmProviderInfo the metadata of the provider that was selected
+     * @param llmProviderInfo the provider that was being resolved; must not be {@code null}
      */
     public NoProfileFoundLlmClientException(@NonNull LlmProviderInfo llmProviderInfo) {
         super("No profile found for LLM provider: " + llmProviderInfo.name() + ". Cause the picked profile is null. Available profiles: " + llmProviderInfo.profiles());
@@ -63,10 +90,15 @@ public class NoProfileFoundLlmClientException extends LlmClientException {
     }
 
     /**
-     * Constructs a new exception indicating that a specific requested profile does not exist.
+     * Constructs an exception for the case where the profile‑picker returned a
+     * specific name that does not exist among the provider's registered profiles.
+     * <p>
+     * The message explicitly states the requested profile and the set of
+     * available ones, making it easy to identify typos or configuration drift.
+     * </p>
      *
-     * @param llmProviderInfo the metadata of the provider
-     * @param pickedProfile   the specific profile name that could not be resolved
+     * @param llmProviderInfo the provider that was being resolved; must not be {@code null}
+     * @param pickedProfile   the profile name that was returned but not found; must not be {@code null}
      */
     public NoProfileFoundLlmClientException(@NonNull LlmProviderInfo llmProviderInfo, @NonNull String pickedProfile) {
         super("No profile found for LLM provider: " + llmProviderInfo.name() + ". Picked profile: " + pickedProfile + ". Available profiles: " + llmProviderInfo.profiles());

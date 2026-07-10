@@ -35,10 +35,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
- * Utility class for common tasks related to LLM provider interactions.
+ * Common helper for standardizing error handling when interacting with AI provider APIs.
  * <p>
- * This class primarily provides standardized mechanisms for handling HTTP errors
- * returned by AI provider APIs during reactive WebClient operations.
+ * Provides a reactive pipeline that converts non‑success WebClient {@link ClientResponse}s into
+ * meaningful, typed exceptions. This ensures that downstream error processors (e.g., global
+ * exception handlers) receive consistent, diagnostic‑rich failure information regardless of
+ * the particular provider’s error format.
+ * </p>
+ * <p>
+ * The utility reads the raw response body, extracts the charset from the content‑type header,
+ * constructs a human‑readable error message, and maps HTTP 4xx/5xx statuses to
+ * {@link RestClientResponseException} subclasses (or a fallback for unknown status codes).
+ * All resulting exceptions are then wrapped in a {@link ClientResponseErrorException}, which
+ * carries the original response details and can be handled uniformly throughout the framework.
  * </p>
  *
  * @author Gang Cheng
@@ -46,19 +55,34 @@ import java.util.Objects;
  */
 public abstract class LlmProviderUtil {
 
-
     /**
-     * Extracts and handles error responses from a WebClient {@link ClientResponse}.
+     * Transforms a non‑successful {@link ClientResponse} into a typed exception wrapped in a
+     * {@link Mono} error signal.
      * <p>
-     * This method reads the error response body, formats an error message including
-     * the HTTP status and body content, and maps the error to an appropriate
-     * {@link RestClientResponseException} (e.g., HttpClientErrorException for 4xx,
-     * HttpServerErrorException for 5xx). The resulting exception is then wrapped
-     * into a custom {@link ClientResponseErrorException} within the reactive stream.
+     * This method is typically used inside a reactive WebClient chain via
+     * {@code .onStatus(status, response -> handleClientResponseError(response))}. It first
+     * reads the error body as a byte array (defaulting to an empty array if no body is present),
+     * then extracts the HTTP status code, status text, response headers, and character set.
+     * Using those, it builds a descriptive error message that includes both the status line and
+     * the body content (sanitised for logging).
+     * </p>
+     * <p>
+     * The mapping logic distinguishes between client errors (4xx) and server errors (5xx),
+     * creating an {@link HttpClientErrorException} or {@link HttpServerErrorException}
+     * respectively. For any other status code that cannot be resolved to a known {@link HttpStatus},
+     * an {@link UnknownHttpStatusCodeException} is used. This ensures that the error type conveys
+     * semantic meaning beyond a generic HTTP failure.
+     * </p>
+     * <p>
+     * Finally, any {@link RestClientResponseException} that results from the mapping is caught
+     * and wrapped in a {@link ClientResponseErrorException} via {@code .onErrorMap}. This
+     * provides a single custom exception type that can be conveniently handled by application‑level
+     * error handlers while still preserving the original response data.
      * </p>
      *
-     * @param clientResponse the HTTP client response representing the error
-     * @return a {@link Mono} emitting the mapped error exception
+     * @param clientResponse the reactive HTTP client response representing the error (status not in 2xx family)
+     * @return a {@link Mono} that emits only an error signal; the emitted {@link Throwable} is a
+     *         {@link ClientResponseErrorException} wrapping the appropriate Spring exception
      */
     public static Mono<Throwable> handleClientResponseError(ClientResponse clientResponse) {
         return clientResponse.bodyToMono(new ParameterizedTypeReference<byte[]>() {})
@@ -106,13 +130,20 @@ public abstract class LlmProviderUtil {
     }
 
     /**
-     * Formats a human-readable error message combining the status code, status text, and response body.
+     * Constructs a human‑readable error message from the HTTP status components and the response body.
+     * <p>
+     * The message is designed to be useful for both logging and debugging. It prepends the numeric
+     * status code and status text, followed by the decoded body content. If the body is empty, a
+     * placeholder {@code [no body]} is appended. The body text is formatted using
+     * {@code LogFormatUtils#formatValue(String, int, boolean)} to truncate extremely long bodies
+     * when necessary (max length is unlimited here, indicated by -1).
+     * </p>
      *
-     * @param rawStatusCode the raw HTTP status code
-     * @param statusText    the HTTP status reason phrase
-     * @param responseBody  the raw byte array of the response body
-     * @param charset       the character set to use for decoding the body
-     * @return a formatted error message string
+     * @param rawStatusCode the raw HTTP status code (e.g., 404)
+     * @param statusText    the reason phrase associated with the status (e.g., "Not Found")
+     * @param responseBody  the raw byte array of the response body; may be empty or null
+     * @param charset       the character set to decode the body; if {@code null}, UTF-8 is used as fallback
+     * @return a formatted string beginning with "{@code 404 Not Found: }" followed by body content or "[no body]"
      */
     protected static String getErrorMessage(int rawStatusCode, String statusText, byte[] responseBody, Charset charset) {
         String preface = rawStatusCode + " " + statusText + ": ";
@@ -126,14 +157,19 @@ public abstract class LlmProviderUtil {
     }
 
     /**
-     * Extracts the character set from the HTTP headers, if present.
+     * Retrieves the character set from the HTTP headers' Content‑Type field.
+     * <p>
+     * Proper charset detection is crucial for correctly decoding error response bodies,
+     * especially when the provider returns non‑UTF‑8 content (e.g., legacy APIs). This
+     * method parses the {@code Content-Type} header and returns the associated charset,
+     * or {@code null} if the header is missing or does not specify a charset.
+     * </p>
      *
-     * @param headers the HTTP headers to inspect
-     * @return the {@link Charset}, or null if not explicitly defined
+     * @param headers the HTTP headers from the response
+     * @return the {@link Charset} defined in the Content‑Type, or {@code null} if not present
      */
     protected static Charset getCharset(HttpHeaders headers) {
         MediaType contentType = headers.getContentType();
         return (contentType != null ? contentType.getCharset() : null);
     }
-
 }

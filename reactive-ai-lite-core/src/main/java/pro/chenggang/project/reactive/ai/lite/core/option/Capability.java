@@ -19,45 +19,66 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 
 /**
- * Represents the different capabilities or functionalities that an AI model or provider can support.
+ * Enumerates the distinct capabilities that an AI provider or model can support within the
+ * reactive-ai-lite framework.
  * <p>
- * This enum is used to categorize and identify the type of AI service being used, allowing
- * the system to route requests to the appropriate handlers and ensure that providers are
- * capable of fulfilling specific requests.
- * </p>
+ * Each capability is associated with a specific {@link LlmProvider} sub‑interface that represents
+ * the contract any concrete provider must fulfill to serve that capability. This design allows
+ * the system to dynamically discover, validate, and route requests to the appropriate provider
+ * implementation without tightly coupling to concrete classes.
+ * <p>
+ * For example, when a chat request is received, the framework can look up the registered provider
+ * whose class is assignable to {@link #CHAT}'s {@link #getProviderClass() provider class} and
+ * delegate the call. This ensures that capabilities are decoupled from provider implementations,
+ * supporting extensibility and multi‑model scenarios.
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see LlmProvider
+ * @see LlmChatProvider
+ * @see LlmEmbeddingProvider
  */
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public enum Capability {
 
     /**
-     * Represents chat or conversational AI capabilities, typically involving text-based interactions.
+     * Represents conversational AI capabilities: the ability to engage in text‑based, multi‑turn
+     * dialogues. A provider advertising this capability must implement the
+     * {@link LlmChatProvider} interface, which defines the contract for building and processing
+     * chat requests and streaming responses.
      */
     CHAT(LlmChatProvider.class),
 
     /**
-     * Represents audio processing capabilities, such as speech-to-text or text-to-speech.
+     * Represents the capability to produce vector embeddings (numerical representations) of
+     * textual or other input data. Providers supporting this capability must implement
+     * {@link LlmEmbeddingProvider} and are typically used for semantic search, clustering,
+     * and other machine learning tasks that rely on vector similarity.
      */
-    AUDIO(null),
+    EMBEDDING(LlmEmbeddingProvider.class),
 
-    /**
-     * Represents image generation or analysis capabilities.
-     */
-    IMAGE(null),
-
-    /**
-     * Represents the capability to generate embeddings or vector representations of text or other data.
-     */
-    EMBEDDING(null),
+//    /**
+//     * Represents audio processing capabilities, such as speech-to-text or text-to-speech.
+//     */
+//    AUDIO(null),
+//
+//    /**
+//     * Represents image generation or analysis capabilities.
+//     */
+//    IMAGE(null),
 
     ;
 
-
+    /**
+     * The base interface class that any concrete provider must extend or implement in order to
+     * be considered eligible for this capability. This field serves as a marker for dynamic
+     * registration and lookup, ensuring that only providers implementing the correct contract
+     * can be used to serve requests for the associated capability.
+     */
     private final Class<? extends LlmProvider> providerClass;
 }

@@ -28,7 +28,10 @@ class JacksonUtilsTest {
     void testInstantiateAvailableModules() {
         List<Module> modules = JacksonUtils.instantiateAvailableModules();
         assertThat(modules).isNotNull();
-        // At least JavaTimeModule should be present if configured in pom
-        assertThat(modules.stream().anyMatch(m -> m.getClass().getSimpleName().equals("JavaTimeModule"))).isTrue();
+        
+        // As long as jackson-datatype-jsr310 is in the classpath, JavaTimeModule should be present
+        assertThat(modules)
+            .extracting(m -> m.getClass().getSimpleName())
+            .contains("JavaTimeModule");
     }
 }

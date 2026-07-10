@@ -18,26 +18,57 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor.exchange;
 import java.util.Optional;
 
 /**
- * The base data exchange specifically for inbound responses from the LLM provider.
+ * Represents the exchange context for an inbound response received from an LLM provider,
+ * forming the basis for both general and streaming response interception.
  * <p>
- * This interface extends {@link LlmProviderExchange} to provide a common foundation
- * for both general and streaming response interceptions. It includes the capability
- * to surface any errors or exceptions that may have occurred during the execution of the request.
+ * In the reactive AI lite framework, every interaction with an external LLM provider
+ * is modeled through exchange objects that carry request/response metadata and payloads.
+ * This interface extends {@link LlmProviderExchange} to specialize in the response phase,
+ * allowing interceptors to inspect and process the result (or failure) of the provider invocation.
+ * </p>
+ * <p>
+ * The presence of this contract enables a consistent interceptor API where the same
+ * interception logic can be applied to both synchronous and reactive streaming response flows.
+ * Interceptor implementations can rely on this type to obtain the final response data
+ * and to react to any execution errors without coupling to the underlying transport details.
+ * </p>
+ * <p>
+ * One key design feature is the exposure of a potential {@link Throwable} via {@link #error()}.
+ * In a reactive pipeline, an error may occur before a successful response is produced,
+ * or even during streaming. By surfacing the error as an {@code Optional}, interceptors can
+ * centrally handle failures (e.g., logging, metrics, fallback decisions) without requiring
+ * separate exception-handling logic at the call site.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see LlmProviderExchange
  */
 public interface LlmProviderResponseExchange extends LlmProviderExchange {
 
     /**
-     * Retrieves an optional error that may have occurred during the request execution.
+     * Provides access to an error that may have been raised during the request execution.
      * <p>
-     * Interceptors can check this to perform error-specific logging or handling.
-     * If empty, the execution succeeded.
+     * In the interception chain, this method is crucial for differentiating between a
+     * successful response and a failure scenario. When the LLM provider call succeeds,
+     * the returned {@code Optional} is empty; when an exception is thrown at any stage
+     * (e.g., network failure, timeout, invalid response), the {@code Optional} contains
+     * the corresponding {@link Throwable}. This design avoids separate error interceptors
+     * and enables a unified processing model where all response outcomes – success or failure –
+     * are handled within the same interceptor.
+     * </p>
+     * <p>
+     * Typical usage in an interceptor might involve:
+     * <ul>
+     *   <li>Logging the error with contextual information (request ID, timestamp).</li>
+     *   <li>Incrementing failure metrics or triggering alerts.</li>
+     *   <li>Performing custom fallback logic, such as retrying or returning a cached response.</li>
+     *   <li>Modifying the behavior further down the interceptor chain based on the error presence.</li>
+     * </ul>
      * </p>
      *
-     * @return an {@link Optional} containing a {@link Throwable} if an error occurred, otherwise empty
+     * @return an {@link Optional} wrapping a {@link Throwable} if the execution failed,
+     *         or an empty {@code Optional} if it succeeded without errors.
      */
     Optional<Throwable> error();
 }

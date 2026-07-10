@@ -24,54 +24,85 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * An abstract base class for implementing {@link LlmProviderInfo}.
+ * An abstract base implementation of {@link LlmProviderInfo} that encapsulates
+ * common provider metadata and default behaviors.
  * <p>
- * This class provides common state and logic for managing provider metadata.
- * It handles the storage of base URLs, endpoints, profiles, and a predefined
- * list of supported models. It implements the default logic for checking model
- * support and default provider status.
+ * This class stores the essential properties of an LLM provider—base URL, endpoint,
+ * active profiles, and a set of explicitly supported models. The model support
+ * logic uses a <em>broad‑support fallback</em>: if no supported models are
+ * configured (i.e., the set is empty), any model is considered supported. This
+ * allows concrete providers to opt out of model filtering entirely while still
+ * adhering to the contractual interface.
+ * </p>
+ * <p>
+ * Instances are typically created via the Lombok {@code @SuperBuilder}‑generated
+ * builder, which enforces the mandatory profiles set and provides a fluent API
+ * for setting other properties. Concrete subclasses must implement the
+ * {@link LlmProviderInfo#name()} method to provide a unique identifier for the
+ * provider.
  * </p>
  *
  * @author Gang Cheng
  * @version 0.1.0
+ * @see LlmProviderInfo
  */
 @Slf4j
 @SuperBuilder
 public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
 
     /**
-     * The base URL for the provider's API.
+     * The base URL of the provider's API, for example {@code https://api.openai.com}.
+     * This value is used as the root when constructing complete request URIs together
+     * with the {@link #endpoint}.
      */
     protected final String baseUrl;
 
     /**
-     * The specific endpoint path for the provider's capability.
+     * The specific API endpoint path relative to the {@link #baseUrl}, such as
+     * {@code /v1/chat/completions}. Together with the base URL it forms the full
+     * service URL for LLM interactions.
      */
     protected final String endpoint;
 
     /**
-     * Flag indicating if this is the default provider.
+     * Whether this provider should be treated as the default when multiple
+     * providers are configured. Resolving logic may prefer the default provider
+     * if no explicit model‑to‑provider mapping exists.
      */
     protected final boolean isDefault;
 
     /**
-     * The set of configured profiles for this provider.
+     * The set of Spring‑style profile names for which this provider is activated.
+     * This enables conditional registration and selection of providers based on
+     * the active runtime environment.
      */
     protected final Set<String> profiles;
 
     /**
-     * A set of explicitly supported model names. If empty, all models are assumed to be supported.
+     * An explicit set of model names that are advertised as supported by this
+     * provider. If the set is empty (either because no models were supplied or
+     * a {@code null} or empty collection was passed), the implementation assumes
+     * <em>all</em> models are supported, simplifying configuration for providers
+     * that do not need to restrict model availability.
      */
     protected final Set<String> supportedModels;
 
     /**
-     * Constructs a new {@link AbstractLlmProviderInfo}.
+     * Constructs a new {@link AbstractLlmProviderInfo} instance, normally invoked
+     * by the Lombok‑generated builder.
+     * <p>
+     * The {@code supportedModels} parameter is handled specially: if it is
+     * non‑null and non‑empty, an immutable copy is stored; otherwise an empty
+     * set is assigned and a log message is emitted to signal that the provider
+     * will accept any model.
+     * </p>
      *
-     * @param baseUrl         the API base URL
-     * @param endpoint        the API endpoint
-     * @param isDefault       whether this is the default provider
-     * @param profiles        the set of available profiles
-     * @param supportedModels the set of supported models, or empty/null if all are supported
+     * @param baseUrl         the API base URL, may be {@code null} if not applicable
+     * @param endpoint        the API endpoint, may be {@code null} if not applicable
+     * @param isDefault       {@code true} if this provider is the default
+     * @param profiles        the set of profile names; must not be {@code null}
+     * @param supportedModels the set of explicitly supported model names, or
+     *                        {@code null}/empty to indicate all models are supported
      */
     protected AbstractLlmProviderInfo(String baseUrl, String endpoint, boolean isDefault, @NonNull Set<String> profiles, Set<String> supportedModels) {
         this.baseUrl = baseUrl;
@@ -87,14 +118,21 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     /**
-     * Checks if a given model is supported by this provider.
+     * Determines whether a given model name is supported by this provider.
      * <p>
-     * If the {@code supportedModels} set is empty, it assumes all models are supported.
-     * Otherwise, it checks if the model name is contained within the set.
+     * The check follows a broad‑support fallback strategy:
+     * <ul>
+     *   <li>If no supported models were configured (i.e., the internal
+     *       {@code supportedModels} set is empty), the method returns
+     *       {@code true}, assuming the provider is capable of handling any model.</li>
+     *   <li>Otherwise, only explicit membership in the set is considered support.</li>
+     * </ul>
+     * This design enables providers that do not wish to restrict model usage to
+     * bypass explicit model lists without additional configuration.
      * </p>
      *
-     * @param modelName the name of the model to check
-     * @return true if supported, false otherwise
+     * @param modelName the name of the model to check; must not be {@code null}
+     * @return {@code true} if the model is supported, {@code false} otherwise
      */
     @Override
     public boolean supportModel(@NonNull String modelName) {
@@ -105,9 +143,9 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     /**
-     * Returns the base URL.
+     * Returns the API base URL configured for this provider.
      *
-     * @return the base URL string
+     * @return the base URL string, or {@code null} if not set
      */
     @Override
     public String baseUrl() {
@@ -115,9 +153,10 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     /**
-     * Returns the endpoint.
+     * Returns the API endpoint path that, together with the {@link #baseUrl()},
+     * forms the complete address for LLM requests.
      *
-     * @return the endpoint string
+     * @return the endpoint string, or {@code null} if not set
      */
     @Override
     public String endpoint() {
@@ -125,9 +164,11 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     /**
-     * Returns the set of profiles.
+     * Returns the set of profile names assigned to this provider. The profiles
+     * can be used to conditionally activate or select the provider based on the
+     * runtime environment.
      *
-     * @return the set of profile names
+     * @return the set of profile names (non‑null)
      */
     @Override
     public Set<String> profiles() {
@@ -135,9 +176,10 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     /**
-     * Returns whether this is the default provider.
+     * Indicates whether this provider is designated as the default among multiple
+     * configured providers.
      *
-     * @return true if default, false otherwise
+     * @return {@code true} if this is the default provider, {@code false} otherwise
      */
     @Override
     public boolean isDefault() {
@@ -145,9 +187,11 @@ public abstract class AbstractLlmProviderInfo implements LlmProviderInfo {
     }
 
     /**
-     * Returns a string representation of the provider info.
+     * Returns a comprehensive string representation of this provider's metadata,
+     * including its name, profiles, supported models, default flag, base URL,
+     * and endpoint. Useful for debugging and logging.
      *
-     * @return a formatted string containing the provider's metadata
+     * @return a formatted string containing all provider properties
      */
     @Override
     public String toString() {

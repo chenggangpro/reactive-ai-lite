@@ -15,22 +15,8 @@
  */
 package pro.chenggang.project.reactive.ai.lite.client.anthropic;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.annotation.Bean;
-import pro.chenggang.project.reactive.ai.lite.core.api.DefaultReactiveLlmClient;
-import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionAfterInterceptor;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderExecutionBeforeInterceptor;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.defaults.DefaultLlmProviderInterceptorRegistry;
-import pro.chenggang.project.reactive.ai.lite.core.interceptor.logging.LlmProviderExecutionLoggingInterceptor;
-import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
-import pro.chenggang.project.reactive.ai.lite.core.provider.registry.DefaultLlmProviderRegistry;
-import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
-
 
 @SpringBootApplication
 public class AnthropicLlmClientTestApplication {
@@ -39,25 +25,4 @@ public class AnthropicLlmClientTestApplication {
         SpringApplication.run(AnthropicLlmClientTestApplication.class, args);
     }
 
-    @Bean
-    public LlmProviderExecutionLoggingInterceptor llmProviderExecutionLoggingInterceptor() {
-        return new LlmProviderExecutionLoggingInterceptor(() -> true);
-    }
-
-    @ConditionalOnMissingBean
-    @Bean
-    public LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry(ObjectProvider<LlmProviderExecutionBeforeInterceptor> beforeInterceptorObjectProvider,
-                                                                         ObjectProvider<LlmProviderExecutionAfterInterceptor> afterInterceptorObjectProvider) {
-        return new DefaultLlmProviderInterceptorRegistry(beforeInterceptorObjectProvider.stream().toList(), afterInterceptorObjectProvider.stream().toList());
-    }
-
-    @Bean
-    public LlmProviderRegistry llmProviderRegistry(ObjectProvider<LlmProvider> objectProvider) {
-        return new DefaultLlmProviderRegistry(objectProvider.stream().toList());
-    }
-
-    @Bean
-    public ReactiveLlmClient reactiveLlmClient(LlmProviderRegistry llmProviderRegistry) {
-        return new DefaultReactiveLlmClient(llmProviderRegistry);
-    }
 }

@@ -25,13 +25,15 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import java.util.Map;
 
 /**
- * An abstract base implementation of the {@link LlmProviderExchange} interface.
+ * An abstract foundation for {@link LlmProviderExchange} implementations that carry phase-agnostic metadata
+ * through the interceptor chain.
  * <p>
- * This class provides the common data structure and accessor methods for all
- * interceptor exchange types. It stores the mutable parsingAttributes map, the
- * execution context, the client type, and the provider metadata. Subclasses
- * (like request, general response, or stream response exchanges) extend this
- * to add phase-specific payload data.
+ * This class encapsulates the common elements required by all exchange types (request, generic response,
+ * streaming response): the mutable {@link #attributes} map for interceptor communication, the
+ * {@link ExecutionContext} holding request-specific state, the {@link LlmClientType} identifying the LLM adapter,
+ * and the {@link LlmProviderInfo} containing provider-specific details. By centralizing these fields, subclasses
+ * only need to extend this base and add phase-specific payloads, ensuring consistency and enabling the
+ * {@link SuperBuilder} pattern to construct immutable exchange instances with a fluent API.
  * </p>
  *
  * @author Gang Cheng
@@ -41,31 +43,45 @@ import java.util.Map;
 public abstract class AbstractLlmProviderExchange implements LlmProviderExchange {
 
     /**
-     * A mutable map for interceptors to share data across the execution chain.
+     * A mutable map that serves as a shared clipboard for interceptors along the processing pipeline.
+     * Interceptors can store arbitrary key–value pairs to communicate state or pass metadata between
+     * themselves (e.g., caching parsed results, timestamp markers, or custom flags). The map is
+     * intentionally mutable to allow dynamic addition and removal during chain execution.
+     * Populated via the builder and made visible to all interceptors through {@link #getAttributes()}.
      */
     @NonNull
     protected final Map<String, Object> attributes;
 
     /**
-     * The type of LLM client handling the request.
+     * The type of the LLM client adapter used to handle the current request. This field distinguishes
+     * between different LLM backends (e.g., OpenAI, Azure, Ollama) and is used by interceptors to
+     * tailor behavior based on the client type, such as adjusting request formats or interpreting
+     * response structures.
      */
     @NonNull
     protected final LlmClientType clientType;
 
     /**
-     * Metadata about the specific LLM provider.
+     * Metadata describing the concrete LLM provider, including endpoint URLs, authentication tokens,
+     * model naming conventions, and any provider-specific options. This immutable information is
+     * injected at construction time and serves as a reference for interceptors that need to know
+     * exactly which provider is being called, without requiring repeated lookups.
      */
     @NonNull
     protected final LlmProviderInfo llmProviderInfo;
 
     /**
-     * The execution context.
+     * The execution context that carries all request-scoped data, including original user messages,
+     * conversation history, tool definitions, and other parameters. It is passed unchanged through
+     * the entire interception chain and is available via {@link #executionContext()}.
      */
     @NonNull
     protected final ExecutionContext executionContext;
 
     /**
-     * Retrieves the mutable parsingAttributes map.
+     * Returns the mutable parsingAttributes map, which is the primary vehicle for interceptor communication.
+     * Interceptors can read from and write to this map during the exchange. Because the map is the same instance
+     * across all phases, state set in a request interceptor can be retrieved in a response interceptor.
      *
      * @return the parsingAttributes map
      */
@@ -75,7 +91,9 @@ public abstract class AbstractLlmProviderExchange implements LlmProviderExchange
     }
 
     /**
-     * Retrieves the execution context.
+     * Returns the execution context that encapsulates the current request's conversation state,
+     * tool history, and configuration. Interceptors can inspect this context to enrich logging
+     * or make conditional decisions.
      *
      * @return the execution context
      */
@@ -85,7 +103,9 @@ public abstract class AbstractLlmProviderExchange implements LlmProviderExchange
     }
 
     /**
-     * Retrieves the LLM client type.
+     * Returns the {@link LlmClientType} that identifies the LLM adapter handling the request.
+     * This value remains constant throughout the exchange and can be used by interceptors to
+     * implement client-type-specific logic.
      *
      * @return the client type
      */
@@ -95,7 +115,9 @@ public abstract class AbstractLlmProviderExchange implements LlmProviderExchange
     }
 
     /**
-     * Retrieves the LLM provider metadata.
+     * Returns the {@link LlmProviderInfo} object containing the details of the LLM provider being invoked.
+     * This includes information such as provider name, endpoint, and API version, which may be used by
+     * interceptors to customize authentication or logging.
      *
      * @return the provider info
      */

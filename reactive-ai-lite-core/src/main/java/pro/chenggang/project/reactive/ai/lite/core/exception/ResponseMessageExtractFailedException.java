@@ -22,12 +22,13 @@ import lombok.NonNull;
 import java.io.Serial;
 
 /**
- * Exception thrown when the framework fails to extract or parse the expected message structure
- * from the raw JSON response returned by an LLM provider.
+ * Exception indicating the framework could not extract a structured message from a provider's raw JSON response.
+ * This typically occurs when the API response deviates from the expected format (e.g., missing "choices"
+ * or "message" nodes in OpenAI‑style responses, or an entirely unrecognized payload). The raw response body
+ * is preserved to facilitate debugging and error reporting.
  * <p>
- * This typically occurs if the provider's API changes unexpectedly, or if a malformed
- * JSON response is received that doesn't conform to the expected format (e.g., missing
- * "choices" or "message" fields). It provides access to the raw response body for debugging.
+ * The exception offers access to the unparseable {@link ObjectNode} through the {@link #getResponseBody()} method,
+ * allowing clients to inspect the problematic JSON structure or log it for later analysis.
  * </p>
  *
  * @author Gang Cheng
@@ -37,18 +38,23 @@ import java.io.Serial;
 public class ResponseMessageExtractFailedException extends LlmClientException {
 
     /**
-     * Unique serial version identifier.
+     * Serial version UID to maintain binary compatibility across different versions of this exception class.
      */
     @Serial
     private static final long serialVersionUID = -1794912786778873701L;
 
     /**
-     * The raw JSON response body that failed to be parsed.
+     * The raw JSON response object (as a Jackson <code>ObjectNode</code>) that could not be parsed
+     * into the expected message structure. Storing the raw node enables detailed logging and debugging
+     * of the unparseable content; the node may contain partial or malformed data.
      */
     private final ObjectNode responseBody;
 
     /**
-     * Constructs a new exception indicating a failure to extract the response message.
+     * Constructs an extraction failure exception with the unparseable JSON body.
+     * The failure is typically because the expected fields for extracting the message content
+     * are missing or the structure is unrecognised. The response body is included in the exception
+     * message in pretty‑printed form for immediate inspection.
      *
      * @param responseBody the raw, unparseable JSON response body
      */
@@ -58,7 +64,9 @@ public class ResponseMessageExtractFailedException extends LlmClientException {
     }
 
     /**
-     * Constructs a new exception with an underlying cause for the extraction failure.
+     * Constructs an extraction failure exception caused by a lower‑level parsing error (e.g., a JSON
+     * processing exception). The underlying cause is preserved for chained exception analysis,
+     * while the raw JSON body is provided for context.
      *
      * @param responseBody the raw, unparseable JSON response body
      * @param cause        the exception that triggered the failure (e.g., a JSON processing error)

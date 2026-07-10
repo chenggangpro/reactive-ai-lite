@@ -21,8 +21,10 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 import java.io.Serial;
 
 /**
- * Exception thrown when the required {@link ExecutionContext} is missing or lost
- * during the reactive execution pipeline.
+ * Exception indicating that an {@link ExecutionContext} required for the reactive AI pipeline
+ * could not be found or was lost unexpectedly. This typically occurs when a chain of reactive
+ * operations expects the context to be propagated but it is missing, leading to inability to
+ * proceed with the execution. Extends {@link LlmClientException} to categorize it as a client-side error.
  *
  * @author Gang Cheng
  * @version 0.1.0
@@ -30,11 +32,17 @@ import java.io.Serial;
 @Getter
 public class ExecutionContextLossException extends LlmClientException {
 
+    /**
+     * Serial version UID for this serializable class.
+     * Required for ensuring compatibility during deserialization.
+     */
     @Serial
     private static final long serialVersionUID = -5817966634060158470L;
 
     /**
-     * Constructs a new {@link ExecutionContextLossException} with a default error message.
+     * Constructs a new exception with a descriptive message indicating the expected execution context class.
+     * This helps in debugging scenarios where the reactive pipeline loses its context,
+     * pointing to the specific type expected.
      */
     public ExecutionContextLossException() {
         super("Missing running execution context of type " + ExecutionContext.class.getName());

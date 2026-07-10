@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException;
-import pro.chenggang.project.reactive.ai.lite.core.execution.values.ExecutionInfo;
+import pro.chenggang.project.reactive.ai.lite.core.execution.values.ChatExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 
 import java.util.Collections;
@@ -33,10 +33,44 @@ import static org.mockito.Mockito.when;
 
 class LlmChatRequestDataTest {
 
+
+    @Test
+
+    void testProtectedMethodsNullChecks() throws Exception {
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder().modelNameConfigure(ctx -> "test").build();
+        LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
+        TokenCertification defaultCert = mock(TokenCertification.class);
+        java.util.Map<String, TokenCertification> certificationMap = Collections.emptyMap();
+        
+        LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(certificationMap, defaultCert, providerInfo, executionInfo, false);
+        
+        String[] methods = {
+            "loadTokenCertification", "loadModelName", "loadSystemMessage", "loadHistoricalMessage",
+            "loadUserMessage", "loadMediaMessage", "loadTemperature", "loadTopP", "loadIncludeUsage",
+            "loadReasoning", "loadMaxCompletionTokens", "loadToolDefinitions", "loadToolChoice", "loadToolResultMessage"
+        };
+        
+        ExecutionContext ctx = ExecutionContext.newContext();
+        for (String methodName : methods) {
+            java.lang.reflect.Method method = LlmChatRequestData.LlmChatRequestDataInitializer.class.getDeclaredMethod(methodName, ChatExecutionInfo.class, ExecutionContext.class);
+            method.setAccessible(true);
+            
+            // arg1 null
+            assertThatThrownBy(() -> method.invoke(initializer, null, ctx))
+                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .hasCauseInstanceOf(IllegalArgumentException.class);
+                
+            // arg2 null
+            assertThatThrownBy(() -> method.invoke(initializer, executionInfo, null))
+                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                .hasCauseInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
     @Test
     void testInitializer() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .build();
@@ -63,7 +97,7 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerWithProfileMissing() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "not-found")
@@ -89,7 +123,7 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerFull() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ ->"gpt-4")
                 .defaultProfile(true)
                 .systemMessageConfigure(__ ->"system-msg")
@@ -144,7 +178,7 @@ class LlmChatRequestDataTest {
         pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition toolNoName = mock(pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition.class);
         when(toolNoName.name()).thenReturn("");
 
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ ->"gpt-4")
                 .defaultProfile(true)
                 .toolsConfigure(__ ->List.of(tool1, toolDuplicate, toolNoName))
@@ -172,7 +206,7 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerWithProfilePicker() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ ->"gpt-4")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "custom")
@@ -200,7 +234,7 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerWithMinimalConfig() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .build();
@@ -227,7 +261,7 @@ class LlmChatRequestDataTest {
     void testInitializerWithNullConfigurators() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         // ExecutionInfo with null configurators
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .build();
@@ -255,7 +289,7 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerWithHistoricalAndMediaMessages() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .historicalMessageConfigure(__ -> List.of(mock(pro.chenggang.project.reactive.ai.lite.core.message.Message.class)))
@@ -286,10 +320,10 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerWithDefaultSystemMessage() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
-                .defaultSystemMessageConfigure(ctx -> "default-system")
+                .systemMessageConfigure(ctx -> "default-system")
                 .build();
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
@@ -313,7 +347,7 @@ class LlmChatRequestDataTest {
     @Test
     void testInitializerWithNullTools() {
         ExecutionContext executionContext = ExecutionContext.newContext();
-        ExecutionInfo executionInfo = ExecutionInfo.builder()
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
                 .toolsConfigure(__ -> Collections.emptyList())
@@ -337,5 +371,56 @@ class LlmChatRequestDataTest {
         assertThat(data).isNotNull();
         assertThat(data.getToolDefinitions()).isEmpty();
         assertThat(data.getToolResultMessages()).isEmpty();
+    }
+    @Test
+    void testInitializerExceptions() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(null, null, null, null, false))
+                .isInstanceOf(IllegalArgumentException.class);
+        
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
+                .modelNameConfigure(__ -> "gpt-4")
+                .defaultProfile(false)
+                .build();
+        LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
+        
+        LlmChatRequestData.LlmChatRequestDataInitializer init1 = LlmChatRequestData.LlmChatRequestDataInitializer.of(
+                Collections.emptyMap(), null, providerInfo, executionInfo, false
+        );
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> init1.initialize().contextWrite(ctx -> ctx.put(ExecutionContext.class, ExecutionContext.newContext())).block())
+                .isInstanceOf(pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException.class);
+                
+        ChatExecutionInfo executionInfo2 = ChatExecutionInfo.builder()
+                .modelNameConfigure(__ -> "gpt-4")
+                .defaultProfile(false)
+                .profilePicker((ctx, profiles) -> "custom")
+                .build();
+        LlmChatRequestData.LlmChatRequestDataInitializer init2 = LlmChatRequestData.LlmChatRequestDataInitializer.of(
+                Collections.emptyMap(), null, providerInfo, executionInfo2, false
+        );
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> init2.initialize().contextWrite(ctx -> ctx.put(ExecutionContext.class, ExecutionContext.newContext())).block())
+                .isInstanceOf(pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException.class);
+                
+        ChatExecutionInfo executionInfo3 = ChatExecutionInfo.builder()
+                .modelNameConfigure(__ -> null)
+                .defaultProfile(true)
+                .build();
+        TokenCertification defaultCert = mock(TokenCertification.class);
+        LlmChatRequestData.LlmChatRequestDataInitializer init3 = LlmChatRequestData.LlmChatRequestDataInitializer.of(
+                Collections.emptyMap(), defaultCert, providerInfo, executionInfo3, false
+        );
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> init3.initialize().contextWrite(ctx -> ctx.put(ExecutionContext.class, ExecutionContext.newContext())).block())
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void testInitializerOfNulls() {
+        ChatExecutionInfo executionInfo = ChatExecutionInfo.builder().modelNameConfigure(ctx -> "test").build();
+        LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
+        TokenCertification defaultCert = mock(TokenCertification.class);
+        java.util.Map<String, TokenCertification> certificationMap = Collections.emptyMap();
+        
+        assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(null, defaultCert, providerInfo, executionInfo, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(certificationMap, defaultCert, null, executionInfo, false)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(certificationMap, defaultCert, providerInfo, null, false)).isInstanceOf(IllegalArgumentException.class);
     }
 }

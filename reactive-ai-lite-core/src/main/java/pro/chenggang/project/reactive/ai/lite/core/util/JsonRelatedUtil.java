@@ -28,12 +28,24 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Utility class for common JSON operations across the framework.
+ * Abstract utility class for common JSON serialization and deserialization tasks
+ * across the reactive AI framework, providing a pre-configured Jackson {@link ObjectMapper}
+ * and convenience methods dealing with the uncertainties of AI provider responses.
  * <p>
- * This class provides a pre-configured Jackson {@link ObjectMapper} instance tailored
- * for robustness in handling potentially malformed or unexpected responses from AI providers.
- * It also offers convenient methods for common serialization and deserialization tasks,
- * such as converting JSON strings directly to Maps.
+ * AI providers may return responses with unexpected structures (e.g., extra fields, empty strings
+ * for enums, missing values). The mapper is hardened against such variability by:
+ * <ul>
+ *     <li>Ignoring unknown properties to avoid deserialization failures on protocol extensions.</li>
+ *     <li>Treating empty strings as null objects to handle optional fields that are transmitted
+ *         as empty strings rather than omitted or null.</li>
+ *     <li>Coercing empty strings to {@code null} specifically for {@code Enum} fields — a common issue
+ *         when a service returns an empty string for a {@code finish_reason} or similar status field
+ *         instead of omitting it.</li>
+ *     <li>Registering all available Jackson modules (e.g., JDK8, JavaTime) so that modern Java types
+ *         are handled correctly.</li>
+ * </ul>
+ * Because this class is abstract and designed purely as a holder for static utilities, it cannot be
+ * instantiated.
  * </p>
  *
  * @author Gang Cheng
@@ -42,15 +54,25 @@ import java.util.Objects;
 public abstract class JsonRelatedUtil {
 
     /**
-     * A global, pre-configured {@link ObjectMapper} instance.
+     * The global, thread-safe {@link ObjectMapper} instance configured for robustness in AI integrations.
      * <p>
-     * This instance is configured to:
+     * Configuration details and their rationale:
      * <ul>
-     *     <li>Ignore unknown properties during deserialization.</li>
-     *     <li>Not fail when serializing empty beans.</li>
-     *     <li>Register standard modules (like JDK8, JavaTime) via {@link JacksonUtils}.</li>
-     *     <li>Accept empty strings as null objects.</li>
+     *     <li>{@link DeserializationFeature#FAIL_ON_UNKNOWN_PROPERTIES} is disabled so that
+     *     forward-compatible API changes (e.g., new optional fields) do not cause deserialization errors.</li>
+     *     <li>{@link SerializationFeature#FAIL_ON_EMPTY_BEANS} is disabled to allow serialization
+     *     of placeholder objects without explicit properties, preventing surprising runtime exceptions.</li>
+     *     <li>All auto-discoverable Jackson modules (such as <em>jackson-datatype-jdk8</em> and
+     *     <em>jackson-datatype-jsr310</em>) are registered via {@link JacksonUtils} to ensure correct
+     *     handling of {@link java.util.Optional}, {@link java.time.Instant}, etc.</li>
+     *     <li>{@link DeserializationFeature#ACCEPT_EMPTY_STRING_AS_NULL_OBJECT} is enabled to treat
+     *     empty strings as {@code null} during deserialization, which is particularly useful when
+     *     AI providers use empty strings instead of omitting optional fields.</li>
+     *     <li>Coercion of empty string to null for {@link Enum} types is set in a static initializer
+     *     block (see below). This addresses a specific reality where JSON responses may contain
+     *     {@code "finish_reason": ""} rather than omitting the key entirely.</li>
      * </ul>
+     * This instance is intentionally immutable and safe for concurrent use.
      * </p>
      */
     public static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
@@ -60,19 +82,32 @@ public abstract class JsonRelatedUtil {
             .build()
             .configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
 
+    /**
+     * Applies additional coercion configuration to handle edge cases in AI provider payloads.
+     * <p>
+     * By default, an empty string cannot be deserialized as an Enum and would cause a failure.
+     * By setting {@code CoercionAction.AsNull} for {@code CoercionInputShape.EmptyString} on
+     * {@code Enum.class}, we instruct the mapper to convert an empty string value into {@code null}
+     * instead of throwing an exception. This is a common pattern when, for example, a model
+     * returns a {@code finish_reason} field as an empty string instead of omitting it.
+     * </p>
+     */
     static {
-        // Configure coercion for empty strings to null for Enum types
-        // This fixes issues where AI providers return empty strings for enum
-        // fields (like finish_reason) instead of omitting the field.
         OBJECT_MAPPER.coercionConfigFor(Enum.class).setCoercion(CoercionInputShape.EmptyString, CoercionAction.AsNull);
     }
 
     /**
-     * Parses a JSON string into a {@code Map<String, Object>} using the global {@link #OBJECT_MAPPER}.
+     * Parses the provided JSON string into a {@code Map<String, Object>} using the
+     * globally configured {@link #OBJECT_MAPPER}.
+     * <p>
+     * A {@code null} or empty input returns an empty, immutable map. The method is designed
+     * to be tolerant of typical AI response payloads, including those with extra fields or
+     * string representations of null values.
+     * </p>
      *
-     * @param json the JSON string to parse
-     * @return a Map representation of the JSON data
-     * @throws RuntimeException if deserialization fails
+     * @param json the JSON string to parse; may be {@code null}
+     * @return a map representing the JSON structure, or an empty map if the input is {@code null}
+     * @throws LlmClientException if the JSON is syntactically invalid or otherwise unparseable
      */
     public static Map<String, Object> jsonToMap(String json) {
         if (Objects.isNull(json)) {
@@ -82,12 +117,18 @@ public abstract class JsonRelatedUtil {
     }
 
     /**
-     * Parses a JSON string into a {@code Map<String, Object>} using the provided {@link ObjectMapper}.
+     * Parses the provided JSON string into a {@code Map<String, Object>} using the given
+     * {@link ObjectMapper}.
+     * <p>
+     * This variant allows callers to supply a custom mapper with different configuration,
+     * e.g., when a particular API contract requires strict handling or additional modules.
+     * </p>
      *
-     * @param json         the JSON string to parse
-     * @param objectMapper the object mapper to use for parsing
-     * @return a Map representation of the JSON data
-     * @throws RuntimeException if deserialization fails
+     * @param json         the JSON string to parse; must not be {@code null} in normal usage
+     * @param objectMapper the Jackson mapper to use for deserialization
+     * @return a map representation of the JSON data
+     * @throws LlmClientException if deserialization fails for any reason (including mapper-specific
+     *                           configuration issues)
      */
     public static Map<String, Object> jsonToMap(String json, ObjectMapper objectMapper) {
         try {

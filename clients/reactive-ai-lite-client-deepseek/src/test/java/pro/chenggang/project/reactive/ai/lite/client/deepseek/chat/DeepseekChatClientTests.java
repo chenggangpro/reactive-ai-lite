@@ -24,6 +24,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -40,6 +41,7 @@ import java.util.List;
  * @author Gang Cheng
  * @version 0.1.0
  */
+@Disabled("Requires a valid API key to run")
 public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTests {
 
     @Autowired
@@ -53,11 +55,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecute() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
@@ -77,11 +74,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteRaw() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
                 .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
@@ -102,11 +94,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStructuredExecuteRaw() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。\n"
                         + "你的结果数据必须满足 JSON SCHEMA：" + JsonSchemaUtil.generateForType(ResultClass.class) + "  \n\n"
@@ -130,11 +117,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
@@ -163,11 +145,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
@@ -196,11 +173,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
@@ -230,11 +202,6 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .newChat()
-                .providerSpec()
-                .defaultProvider()
-                .defaultProfile()
-                .chatSpec()
                 .model(contextView -> model)
                 .systemMessage((contextView -> "You are a helpful assistant"))
                 .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))

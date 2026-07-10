@@ -26,8 +26,10 @@ reactive:
     lite:
       client:
         openai:
-          chat-provider:
-            base-url: http://127.0.0.1:8000
-            certifications:
-              - token: Z46r-1hmn-zZkC-Mws2-Mhwj-G2sD-z0
-                default: true
+          base-url: http://127.0.0.1:8000
+          certifications:
+            - token: Z46r-1hmn-zZkC-Mws2-Mhwj-G2sD-z0
+          chat:
+            enabled: true
+          embedding:
+            enabled: true

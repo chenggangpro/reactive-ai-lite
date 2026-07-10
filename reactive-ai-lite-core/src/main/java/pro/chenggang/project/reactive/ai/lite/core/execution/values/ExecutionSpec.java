@@ -16,22 +16,14 @@
 package pro.chenggang.project.reactive.ai.lite.core.execution.values;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import pro.chenggang.project.reactive.ai.lite.core.api.ClientRequest.ContextMerger;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
-import pro.chenggang.project.reactive.ai.lite.core.message.MediaMessage;
-import pro.chenggang.project.reactive.ai.lite.core.message.Message;
-import pro.chenggang.project.reactive.ai.lite.core.message.ToolResultMessage;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
-import pro.chenggang.project.reactive.ai.lite.core.spec.ExecutionContextSpec.ContextMerger;
-import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -40,169 +32,179 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 
 /**
- * Represents the complete execution specification for an LLM request.
+ * Abstract base for the execution specification that captures all configuration needed to
+ * instantiate an {@link ExecutionInfo} for an LLM request.
  * <p>
- * This class aggregates all the configuration settings collected through the fluent API
- * (like {@link pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec}).
- * It holds the provider selection logic, context setup functions, and message generation functions.
- * Before an actual request is made, this spec is used to instantiate the runtime
- * {@link ExecutionContext} and {@link ExecutionInfo}.
+ * This class serves as the immutable blueprint constructed by the fluent builder (typically from
+ * {@link pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec}). It holds:
+ * <ul>
+ *   <li><b>Static choices</b> – whether to use default provider/profile, and the concrete
+ *       {@link LlmClientType}.</li>
+ *   <li><b>Dynamic selection logic</b> – functions that, at execution time, inspect the
+ *       {@link ExecutionContext} and available providers/profiles to decide which provider,
+ *       profile, and model to use.</li>
+ *   <li><b>Context customization</b> – a {@link ContextMerger} that enriches the execution
+ *       context with attributes and settings before the request is built.</li>
+ *   <li><b>Request customization</b> – a consumer that can modify the raw JSON payload
+ *       right before it is sent to the LLM provider.</li>
+ * </ul>
  * </p>
+ * <p>
+ * When {@link #newExecutionInfo(ExecutionContext)} is invoked, these static and dynamic
+ * configuration elements are combined with the given runtime context to produce a concrete
+ * {@link ExecutionInfo} subtype. This design decouples the specification of “what to execute”
+ * from the actual execution mechanics, enabling lazy resolution of providers and profiles,
+ * context‑aware model selection, and full auditability of the execution parameters.
+ * </p>
+ *
+ * @param <I> the specific type of {@link ExecutionInfo} this spec creates (e.g., a chat‑oriented
+ *            or embedding‑oriented execution info)
  *
  * @author Gang Cheng
  * @version 0.1.0
  */
 @Getter
-@Builder
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class ExecutionSpec {
+@SuperBuilder
+public abstract class ExecutionSpec<I extends ExecutionInfo> {
 
     /**
-     * The type of LLM client required (e.g., CHAT).
+     * The mandatory type of LLM client required for the request (e.g., {@code CHAT}, {@code EMBEDDING}).
+     * <p>
+     * This field defines the core capability expected from the selected provider. During execution
+     * the system uses this to filter available providers to only those that support the given
+     * client type, ensuring the request is routed to a compatible service.
+     * </p>
      */
     @NonNull
     private final LlmClientType llmClientType;
 
     /**
-     * Whether to use the default provider.
+     * Flag indicating whether the built‑in default provider should be used without any
+     * dynamic selection.
+     * <p>
+     * When {@code true}, the execution logic bypasses the {@link #providerFilter} and
+     * directly selects the default provider for the given {@link #llmClientType}. This
+     * is typically set when the user does not specify a particular provider and trusts
+     * the framework's default.
+     * </p>
      */
     private final boolean defaultProvider;
 
     /**
-     * Whether to use the default profile of the selected provider.
+     * Flag indicating whether the default profile of the selected provider should be used.
+     * <p>
+     * When {@code true}, the execution logic skips the {@link #profilePicker} function and
+     * simply adopts the provider's default profile. This simplifies configuration for
+     * users who do not need fine‑grained profile selection.
+     * </p>
      */
     private final boolean defaultProfile;
 
     /**
-     * Attributes inherited from a parent execution context.
+     * Attributes inherited from a parent {@link ExecutionContext}, if any.
+     * <p>
+     * These key‑value pairs are merged into the execution context before any custom
+     * configuration is applied. They allow coarse‑grained settings (like user‑level
+     * defaults or session attributes) to propagate into each LLM request without
+     * re‑specifying them every time.
+     * </p>
      */
     private final Map<String, Object> parentAttributes;
 
     /**
-     * A consumer to perform custom configuration on the execution context.
+     * A consumer that performs additional, user‑defined configuration on the
+     * {@link ExecutionContext} right after the {@code parentAttributes} have been merged.
+     * <p>
+     * This functional interface receives a mutable copy of the context builder and can
+     * set headers, parameters, or any other request‑scoped data. It is the primary hook
+     * for contextual customization in the fluent API. If not set, no extra configuration
+     * is applied.
+     * </p>
      */
     private final ContextMerger contextConfigure;
 
     /**
-     * A predicate to dynamically filter and select an LLM provider.
+     * A dynamic predicate that selects an LLM provider from the available set.
+     * <p>
+     * At execution time, the system retrieves all compatible providers (those supporting
+     * {@link #llmClientType}) and feeds each one – along with the current
+     * {@link ExecutionContext} – into this predicate. The first provider for which the
+     * predicate returns {@code true} is chosen. This enables context‑aware routing,
+     * such as selecting a provider based on user tier, region, or request complexity.
+     * </p>
+     * <p>
+     * If this filter is {@code null} and {@link #defaultProvider} is {@code false}, an
+     * exception is thrown because no selection logic has been provided.
+     * </p>
      */
-    private final BiPredicate<LlmProviderInfo, ExecutionContext> providerFilter;
+    private final BiPredicate<ExecutionContext, LlmProviderInfo> providerFilter;
 
     /**
-     * A function to dynamically select a profile for the chosen provider.
+     * A function that selects a profile name for the chosen provider.
+     * <p>
+     * Once a provider has been determined, the system calls this function with the current
+     * {@link ExecutionContext} and the set of profile names that the provider exposes.
+     * The returned string identifies the profile to use. This allows dynamic profile
+     * switching based on context – for example, using a “fast” profile for simple queries
+     * and a “detailed” profile for complex ones.
+     * </p>
+     * <p>
+     * If this picker is {@code null} and {@link #defaultProfile} is {@code false}, an
+     * exception will be raised during execution.
+     * </p>
      */
     private final BiFunction<ExecutionContext, Set<String>, String> profilePicker;
 
     /**
-     * A function to dynamically generate a default system message.
-     */
-    private final Function<ExecutionContext, String> defaultSystemMessageConfigure;
-
-    /**
-     * A function to dynamically configure the specific model name.
+     * A required function that determines the concrete model name for the request.
+     * <p>
+     * After the provider and profile have been resolved, this function is called with
+     * the execution context to obtain the specific model identifier (e.g., {@code "gpt-4o"}).
+     * This design allows model selection to be fully context‑driven, potentially varying
+     * per request without any static configuration.
+     * </p>
      */
     @NonNull
     private final Function<ExecutionContext, String> modelNameConfigure;
 
     /**
-     * A function to dynamically configure the temperature setting.
+     * A consumer that can adjust the raw JSON request body right before it is sent
+     * to the LLM provider.
+     * <p>
+     * Both the current {@link ExecutionContext} and the root {@link ObjectNode} of the
+     * JSON payload are passed in, allowing arbitrary low‑level modifications (e.g.,
+     * adding custom fields, overriding parameters that are not exposed through higher‑level
+     * APIs). By default this is a no‑op consumer, meaning no customization is applied
+     * unless explicitly configured.
+     * </p>
      */
-    private final Function<ExecutionContext, Double> temperatureConfigure;
-
-    /**
-     * A function to dynamically configure the Top-P sampling parameter.
-     */
-    private final Function<ExecutionContext, Double> topPConfigure;
-
-    /**
-     * A function to dynamically determine whether usage metrics should be requested.
-     */
-    private final Function<ExecutionContext, Boolean> includeUsageConfigure;
-
-    /**
-     * A function to dynamically configure reasoning parameters.
-     */
-    private final Function<ExecutionContext, String> reasoningConfigure;
-
-    /**
-     * A function to dynamically configure the maximum number of completion tokens.
-     */
-    private final Function<ExecutionContext, Integer> maxCompletionTokensConfigure;
-
-    /**
-     * A function to dynamically configure the user's text message.
-     */
-    private final Function<ExecutionContext, String> textMessageConfigure;
-
-    /**
-     * A function to dynamically configure a user's media message.
-     */
-    private final Function<ExecutionContext, MediaMessage> mediaMessageConfigure;
-
-    /**
-     * A function to dynamically configure the system message.
-     */
-    private final Function<ExecutionContext, String> systemMessageConfigure;
-
-    /**
-     * A function to dynamically configure the conversation history.
-     */
-    private final Function<ExecutionContext, List<Message>> historicalMessageConfigure;
-
-    /**
-     * A function to dynamically configure the available tools.
-     */
-    private final Function<ExecutionContext, Collection<ToolDefinition>> toolsConfigure;
-
-    /**
-     * A function to dynamically configure the tool choice behavior. Defaults to returning "auto".
-     */
-    @Builder.Default
-    private final Function<ExecutionContext, String> toolChoiceConfigure = __ -> "auto";
-
-    /**
-     * A function to dynamically configure the results of previous tool calls.
-     */
-    private final Function<ExecutionContext, Collection<ToolResultMessage>> toolResultMessageConfigure;
-
-    /**
-     * A consumer to dynamically customize the raw request JSON node before it is sent to the LLM provider.
-     */
-    @Builder.Default
+    @lombok.Builder.Default
     private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure = ((executionContext, jsonNodes) -> {});
 
     /**
-     * Whether to filter distinct tool calls from the provider's response.
-     */
-    private final boolean distinctToolCalls;
-
-    /**
-     * Creates a new {@link ExecutionInfo} object binding this specification's
-     * dynamic configuration functions to the given runtime execution context.
+     * Creates a concrete {@link ExecutionInfo} by binding this specification's static and
+     * dynamic configuration to the provided runtime {@link ExecutionContext}.
+     * <p>
+     * Implementations of this method are expected to:
+     * <ol>
+     *   <li>Merge {@link #parentAttributes} into the context.</li>
+     *   <li>Apply the {@link #contextConfigure} merger, if present.</li>
+     *   <li>Use {@link #providerFilter}, {@link #profilePicker}, and
+     *       {@link #modelNameConfigure} (respecting the {@code default} flags) to
+     *       resolve the final provider, profile, and model.</li>
+     *   <li>Construct a subtype of {@link ExecutionInfo} that encapsulates all resolved
+     *       parameters along with the remainder of the specification (e.g., the
+     *       {@link #rawRequestCustomizerConfigure} consumer).</li>
+     * </ol>
+     * The resulting {@link ExecutionInfo} is a fully‑realized, immutable descriptor ready
+     * to be passed to the LLM client for invocation.
+     * </p>
      *
-     * @param executionContext the runtime execution context
-     * @return a new {@link ExecutionInfo} instance ready for execution
+     * @param executionContext the runtime execution context that carries request‑scoped
+     *                         attributes and serves as input to all dynamic selection functions;
+     *                         must not be {@code null}
+     * @return a new {@link ExecutionInfo} instance configured according to this specification
+     *         and the given context
      */
-    public ExecutionInfo newExecutionInfo(@NonNull ExecutionContext executionContext) {
-        return ExecutionInfo.builder()
-                .profilePicker(this.profilePicker)
-                .defaultProfile(this.defaultProfile)
-                .defaultSystemMessageConfigure(this.defaultSystemMessageConfigure)
-                .modelNameConfigure(this.modelNameConfigure)
-                .temperatureConfigure(this.temperatureConfigure)
-                .topPConfigure(this.topPConfigure)
-                .includeUsageConfigure(this.includeUsageConfigure)
-                .reasoningConfigure(this.reasoningConfigure)
-                .maxCompletionTokensConfigure(this.maxCompletionTokensConfigure)
-                .textMessageConfigure(this.textMessageConfigure)
-                .mediaMessageConfigure(this.mediaMessageConfigure)
-                .systemMessageConfigure(this.systemMessageConfigure)
-                .historicalMessageConfigure(this.historicalMessageConfigure)
-                .toolsConfigure(this.toolsConfigure)
-                .toolChoiceConfigure(this.toolChoiceConfigure)
-                .toolResultMessageConfigure(this.toolResultMessageConfigure)
-                .rawRequestCustomizerConfigure(this.rawRequestCustomizerConfigure)
-                .distinctToolCalls(this.distinctToolCalls)
-                .build();
-    }
+    public abstract I newExecutionInfo(@NonNull ExecutionContext executionContext);
 }
