@@ -1,40 +1,75 @@
 <div align="center">
-  <h1 style="margin-top: 10px;">Reactive AI Lite</h1>
+  <h1 style="margin-top: 20px;">Reactive AI Lite</h1>
+  <p><strong>High-Performance, Non-Blocking Java Client for Large Language Models</strong></p>
 
-  <h2>High-Performance, Non-Blocking Java Client for Large Language Models</h2>
-
-  <div align="center">
+  <p>
     <a href="https://github.com/chenggangpro/reactive-ai-lite/blob/master/LICENSE"><img alt="License" src="https://img.shields.io/badge/LICENSE-Apache%202.0-blue.svg"/></a>
     <a href="https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html"><img alt="Java" src="https://img.shields.io/badge/Java-21+-orange.svg"/></a>
-    <a href="https://spring.io/projects/spring-boot"><img alt="Spring Boot" src="https://img.shields.io/badge/Spring%20Boot-3.5.12-brightgreen.svg"/></a>
+    <a href="https://spring.io/projects/spring-boot"><img alt="Spring Boot" src="https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg"/></a>
     <a href="https://projectreactor.io/"><img alt="Project Reactor" src="https://img.shields.io/badge/Project%20Reactor-Reactive-blue"/></a>
-  </div>
-
+  </p>
 </div>
-
-## Overview
-
-**Reactive AI Lite** is a modern, reactive Java library designed to integrate Large Language Models (LLMs) into high-concurrency, low-latency applications. Built entirely on **Project Reactor**, it provides a non-blocking, event-driven architecture that ensures optimal resource utilization under heavy load.
-
-By abstracting provider-specific implementations behind a unified **Service Provider Interface (SPI)**, Reactive AI Lite enables developers to write provider-agnostic code using a highly readable, type-safe fluent DSL.
-
-### Core Capabilities
-
-- **🚀 Fully Reactive Architecture**: End-to-end non-blocking I/O leveraging `Mono` and `Flux`, ensuring thread-safe operations without context-switching overhead.
-- **🔌 Unified Provider SPI**: A single, elegant API to interact with diverse model providers including **OpenAI**, **Anthropic**, **DeepSeek**, and **Ollama**.
-- **📜 Fluent Builder DSL**: Construct complex chat completion requests, including system prompts, multi-modal inputs, and tool calls, with an intuitive and type-safe API.
-- **🌊 Native Streaming Support**: First-class support for Server-Sent Events (SSE) streaming via `Flux`, enabling real-time generation and chunk processing.
-- **🧩 Structured Outputs**: Built-in support for generating and parsing complex JSON structures directly from LLM responses with robust markdown fence stripping.
-- **🍃 Spring Boot 3.5+ Integration**: Zero-friction auto-configuration with `reactive-ai-lite-starter`, seamlessly integrating with the Spring ecosystem.
-- **🔍 Interceptor Chain**: An aspect-oriented execution pipeline for observability, request logging, caching, and security enforcement without polluting core business logic.
 
 ---
 
-## Getting Started
+## 📖 Overview
 
-### 1. Add Dependencies
+**Reactive AI Lite** is an enterprise-grade, fully reactive Java library built from the ground up for integrating Large Language Models (LLMs) into high-concurrency, low-latency applications. 
 
-Add the core starter and the desired provider client to your `pom.xml`:
+Unlike traditional blocking HTTP clients that can lead to thread starvation during heavy LLM token streaming, this framework is engineered entirely on **Project Reactor** to provide a non-blocking, event-driven architecture. By utilizing a powerful **Delegate Pattern**, developers can effortlessly switch between AI providers using a highly readable, fluent builder DSL—all with zero thread-blocking overhead.
+
+---
+
+## ✨ Core Features
+
+- **🚀 Fully Reactive Execution Pipeline**: End-to-end non-blocking I/O utilizing Project Reactor (`Mono` and `Flux`). Delivers thread-safe interactions with maximum concurrency and zero context-switching overhead.
+- **🔌 Provider Agnostic & Unified Routing**: The core engine dynamically resolves handlers based on requested capabilities (`CHAT`, `EMBEDDING`, etc.). Swap providers without changing your core business logic.
+- **🌊 Native Streaming (SSE)**: First-class support for Server-Sent Events (SSE) via `Flux` for real-time token generation and immediate UX feedback.
+- **📜 Fluent Builder DSL**: Compose complex requests cleanly and type-safely using static values or dynamic context-aware lambdas.
+- **🛡️ Interceptor Chain**: A robust `ExchangeInterceptor` aspect-oriented middleware chain for request/response manipulation, security, logging, and metrics.
+- **🍃 Spring Boot Native**: The drop-in `reactive-ai-lite-starter` provides zero-friction auto-configuration for modern Spring Boot applications.
+
+---
+
+## 🏗 Architecture & Design
+
+The library enforces strict separation of concerns through an SPI-based (Service Provider Interface) architecture:
+
+1. **Execution Engine:** The central nervous system mapping blocking models to `Mono<GeneralResponse>` and streaming requests to `Flux<StreamResponse>`.
+2. **Interceptor Middleware:** A Chain-of-Responsibility pattern that intercepts requests and responses (useful for auth, metrics, and logging).
+3. **Provider Delegates:** The `LlmChatProviderDelegate` interface bridges the gap between the core framework and external provider REST APIs, handling payload normalization and stream parsing.
+4. **Dynamic Registry:** The `LlmProviderRegistry` automatically resolves and loads the correct client implementations based on the requested capability.
+
+<div align="center">
+  <img alt="Architecture Diagram" src="architecture-diagram.png" width="800"/>
+</div>
+
+---
+
+## 🌐 Supported Providers
+
+Reactive AI Lite currently offers out-of-the-box support for the following providers via their respective client modules:
+
+- **OpenAI** (`reactive-ai-lite-client-openai`)
+- **Anthropic** (`reactive-ai-lite-client-anthropic`)
+- **DeepSeek** (`reactive-ai-lite-client-deepseek`)
+- **Ollama** (`reactive-ai-lite-client-ollama`) — Perfect for local and enterprise deployments.
+
+*Implementing a proprietary model is as simple as extending the `LlmChatProviderDelegate` and registering it via the provider registry.*
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Java 21** or higher
+- **Maven 3.9+** (or Gradle equivalent)
+- **Spring Boot 3.5.16+**
+
+### 1. Installation
+
+Include the core starter and your desired provider client in your application's `pom.xml`:
 
 ```xml
 <dependencies>
@@ -54,9 +89,9 @@ Add the core starter and the desired provider client to your `pom.xml`:
 </dependencies>
 ```
 
-### 2. Configure Properties
+### 2. Configuration
 
-Configure your LLM credentials and provider settings in `application.yml`:
+Set up your LLM API credentials and provider endpoints in your Spring Boot `application.yml` using the `reactive.ai.lite.client` prefix:
 
 ```yaml
 reactive:
@@ -65,98 +100,76 @@ reactive:
       client:
         enable-logging: true
         openai:
-          chat-provider:
-            baseUrl: https://api.openai.com
-            certifications:
-              - profile: default
-                token: ${OPENAI_API_KEY}
-                is-default: true
+          base-url: https://api.openai.com
+          certifications:
+            - profile: default
+              token: ${OPENAI_API_KEY}
+              is-default: true
+          chat:
+            endpoint: /v1/chat/completions
+            is-default: true
+          embedding:
+            endpoint: /v1/embeddings
+            is-default: true
 ```
 
-### 3. Basic Usage (Mono)
+---
 
-Execute a standard, non-blocking chat completion request:
+## 💡 Usage Examples
+
+Inject `ReactiveLlmClient` into your Spring services to construct and execute non-blocking requests.
+
+### Non-Blocking Chat (`Mono`)
+Execute a standard request-response chat execution. The entire flow remains non-blocking.
 
 ```java
-@Autowired
-private ReactiveLlmClient llmClient;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
+import reactor.core.publisher.Mono;
 
-public Mono<String> askQuestion(String question) {
-    return llmClient.chat()
-        .newChat()
-        .providerSpec()
-        .defaultProvider()
-        .defaultProfile()
-        .chatSpec()
-        .model(ctx -> "gpt-4o")
-        .textMessage(ctx -> question)
-        .general()
-        .execute()
-        .map(response -> response.getTextContent());
+@Service
+public class ChatService {
+
+    @Autowired
+    private ReactiveLlmClient llmClient;
+
+    public Mono<String> askQuestion(String prompt) {
+        return llmClient.chat()
+            .model("gpt-4o")
+            .textMessage(ctx -> prompt)
+            .general()
+            .execute()
+            .map(response -> response.getTextContent());
+    }
 }
 ```
 
-### 4. Streaming Output (Flux)
-
-Handle real-time tokens using the streaming execution mode:
+### Real-Time Streaming Chat (`Flux`)
+Handle real-time tokens dynamically using the streaming execution handler via Server-Sent Events (SSE).
 
 ```java
-public Flux<String> streamAnswer(String question) {
-    return llmClient.chat()
-        .newChat()
-        .providerSpec()
-        .defaultProvider()
-        .defaultProfile()
-        .chatSpec()
-        .model(ctx -> "gpt-4o")
-        .textMessage(ctx -> question)
+public Flux<String> streamAnswer(String prompt) {
+    return llmClient.chat() 
+        .model("gpt-4o")
+        .textMessage(ctx -> prompt)
         .stream()
         .execute()
         .map(chunk -> chunk.getTextContent());
 }
 ```
 
----
-
-## Architectural Design
-
-Reactive AI Lite is designed with modularity, immutability, and extensibility at its core.
-
-### Request Lifecycle
-
-1. **Fluent Spec Construction**: Developers use the DSL to build an immutable `ExecutionContextSpec`.
-2. **Context Instantiation**: The Spec resolves into an immutable `ExecutionContext` containing configurations, messages, and target provider details.
-3. **Interceptor Pipeline**: The request traverses a Chain-of-Responsibility composed of `ExchangeInterceptor` implementations (e.g., Logging, Authentication).
-4. **Provider SPI Execution**: The `LlmProviderExecutor` delegates the contextual request to the mapped `LlmProvider` (e.g., OpenAI, Ollama).
-5. **Reactive Response**: The provider executes the network call non-blockingly and returns a `Mono` or `Flux` encompassing the LLM response.
-
-![architecture-diagram](architecture-diagram.png)
-
-
-### Extensibility: Implementing a Custom Provider
-
-The framework utilizes a composition pattern for maximum flexibility. To integrate a custom or proprietary LLM, simply implement the `LlmChatProviderDelegate` to handle provider-specific logic (like request payloads and SSE parsing) and configure it as a Spring Bean using `DefaultLlmChatProvider`:
+### Embeddings (`Mono`)
+Generate dense vector representations for Retrieval-Augmented Generation (RAG) tasks.
 
 ```java
-@Configuration
-public class CustomLlmProviderConfiguration {
-
-    @Bean
-    public LlmChatProvider customLlmChatProvider(WebClient.Builder webClientBuilder, LlmProviderInterceptorRegistry registry) {
-        // 1. Implement your provider-specific logic
-        LlmChatProviderDelegate delegate = new CustomChatProviderDelegate(webClientBuilder);
-        
-        // 2. Define standard certifications
-        List<TokenCertification> certifications = List.of(
-            BearerTokenCertification.builder()
-                .token("your-custom-token")
-                .isDefault(true)
-                .build()
-        );
-        
-        // 3. Compose and return the DefaultLlmChatProvider
-        return new DefaultLlmChatProvider(delegate, certifications, registry);
-    }
+public Mono<List<Double>> getEmbedding(String text) {
+    return llmClient.embedding()
+        .model("text-embedding-3-small")
+        .input(ctx -> List.of(text))
+        .general()
+        .execute()
+        .map(response -> parseEmbeddings(response)); // Custom parsing logic
 }
 ```
 
@@ -164,41 +177,35 @@ public class CustomLlmProviderConfiguration {
 
 ## 🗂️ Project Structure
 
-The repository is modularized to maintain strict separation of concerns:
+The codebase is strictly compartmentalized into independent Maven modules to maintain clean dependency boundaries:
 
 ```text
 reactive-ai-lite/
-├── reactive-ai-lite-core/               # Foundational interfaces, SPIs, and the execution engine
-│   ├── api/                             # Entry points (ReactiveLlmClient, ChatModule)
-│   ├── entity/                          # Immutable request/response contexts and data structures
-│   ├── execution/                       # Execution strategies (General vs Streaming)
-│   ├── interceptor/                     # Chain-of-responsibility aspect framework
-│   └── provider/                        # LlmProvider Service Provider Interface
-├── reactive-ai-lite-starter/            # Spring Boot autoconfiguration and properties
-├── clients/                             # Official LlmProvider implementations
+├── reactive-ai-lite-core/               # Core execution engine, capabilities, and SPI delegates
+├── reactive-ai-lite-starter/            # Spring Boot auto-configuration & property bindings
+├── clients/                             # Provider REST Adapters & DTOs
 │   ├── reactive-ai-lite-client-anthropic/
 │   ├── reactive-ai-lite-client-deepseek/
 │   ├── reactive-ai-lite-client-ollama/
 │   └── reactive-ai-lite-client-openai/
-├── pom.xml                              # Maven root aggregation
+├── pom.xml                              # Aggregator POM
 └── LICENSE                              # Apache 2.0 License
 ```
 
 ---
 
-## Building from Source
+## 🛠️ Building from Source
 
-Ensure you have **JDK 21+** and **Maven 3.9+** installed.
+To build this project locally, clone the repository and use Maven:
 
 ```bash
-# Clone the repository
 git clone https://github.com/chenggangpro/reactive-ai-lite.git
 cd reactive-ai-lite
-
-# Build the project, skipping tests
 mvn clean install -DskipTests
 ```
 
-## License
+---
 
-This project is open-sourced software licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for more information.
+## 📄 License
+
+This library is open-sourced software licensed under the [Apache License 2.0](LICENSE).
