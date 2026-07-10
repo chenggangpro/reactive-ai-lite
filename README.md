@@ -117,7 +117,7 @@ reactive:
 
 ## 💡 Usage Examples
 
-Inject `ReactiveLlmClient` into your Spring services to construct and execute non-blocking requests.
+Inject `ReactiveLlmClient` into your Spring services to construct and execute non-blocking requests. Properties like `model`, `systemMessage`, or `textMessage` accept lambdas (`Function<executionContext, T>`) by default, allowing dynamic evaluation from the reactive pipeline context.
 
 ### Non-Blocking Chat (`Mono`)
 Execute a standard request-response chat execution. The entire flow remains non-blocking.
@@ -136,8 +136,10 @@ public class ChatService {
 
     public Mono<String> askQuestion(String prompt) {
         return llmClient.chat()
-            .model("gpt-4o")
-            .textMessage(ctx -> prompt)
+            .model(executionContext -> "gpt-4o")
+            .systemMessage(executionContext -> "You are a helpful assistant")
+            .textMessage(executionContext -> prompt)
+            .maxCompletionTokens(executionContext -> 1000)
             .general()
             .execute()
             .map(response -> response.getTextContent());
@@ -151,25 +153,49 @@ Handle real-time tokens dynamically using the streaming execution handler via Se
 ```java
 public Flux<String> streamAnswer(String prompt) {
     return llmClient.chat() 
-        .model("gpt-4o")
-        .textMessage(ctx -> prompt)
+        .model(executionContext -> "gpt-4o")
+        .systemMessage(executionContext -> "You are a helpful assistant")
+        .textMessage(executionContext -> prompt)
+        .maxCompletionTokens(executionContext -> 1000)
         .stream()
         .execute()
-        .map(chunk -> chunk.getTextContent());
+        .mapNotNull(streamResponse -> {
+            StreamDataChunk dataChunk = streamResponse.getDataChunk();
+            if(ANSWER_CONTENT.equals(dataChunk.getDataType())){
+                TextStreamDataChunk textStreamDataChunk = (TextStreamDataChunk) dataChunk;
+                return textStreamDataChunk.getValue();
+            }
+            // ...
+            return null;
+        });
+}
+```
+
+### Structured Output (`Mono`)
+Enforce structured JSON responses mapped directly to a Java Class using `.structured()`.
+
+```java
+import org.springframework.core.ParameterizedTypeReference;
+
+public Mono<ResultClass> askStructuredQuestion(String prompt) {
+    return llmClient.chat()
+        .model(executionContext -> "gpt-4o")
+        .textMessage(executionContext -> prompt)
+        .structured()
+        .execute(new ParameterizedTypeReference<ResultClass>() {});
 }
 ```
 
 ### Embeddings (`Mono`)
-Generate dense vector representations for Retrieval-Augmented Generation (RAG) tasks.
+Generate dense vector representations for text inputs.
 
 ```java
-public Mono<List<Double>> getEmbedding(String text) {
+public Mono<EmbeddingResponse> getEmbedding(String text) {
     return llmClient.embedding()
-        .model("text-embedding-3-small")
-        .input(ctx -> List.of(text))
+        .model(executionContext -> "text-embedding-3-small")
+        .inputText(text)
         .general()
-        .execute()
-        .map(response -> parseEmbeddings(response)); // Custom parsing logic
+        .execute();
 }
 ```
 

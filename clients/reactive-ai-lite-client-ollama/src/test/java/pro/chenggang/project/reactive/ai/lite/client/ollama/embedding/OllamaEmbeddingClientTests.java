@@ -37,7 +37,7 @@ public class OllamaEmbeddingClientTests extends OllamaLlmClientTestApplicationTe
     @Test
     void testEmbeddingGeneral() {
         reactiveLlmClient.embedding()
-                .model(contextView -> model)
+                .model(executionContext -> model)
                 .inputText("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")
                 .general()
                 .execute()
@@ -55,7 +55,7 @@ public class OllamaEmbeddingClientTests extends OllamaLlmClientTestApplicationTe
     @Test
     void testEmbeddingGeneralRaw() {
         reactiveLlmClient.embedding()
-                .model(contextView -> model)
+                .model(executionContext -> model)
                 .inputText("你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。")
                 .general()
                 .executeRaw()

@@ -55,9 +55,9 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecute() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
-                .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .textMessage((executionContext -> "192.168.64.1/24 网段范围?"))
                 .general()
                 .execute()
                 .as(StepVerifier::create)
@@ -74,9 +74,9 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteRaw() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
-                .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。"))
+                .textMessage((executionContext -> "192.168.64.1/24 网段范围?"))
                 .stream()
                 .execute()
                 .collectList()
@@ -94,13 +94,13 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStructuredExecuteRaw() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。\n"
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "你现在是一名运维工程师，你负责保障系统和服务的正常运行。你熟悉各种监控工具，能够高效地处理故障和进行系统优化。你还懂得如何进行数据备份和恢复，以保证数据安全。请在这个角色下为我解答以下问题。\n"
                         + "你的结果数据必须满足 JSON SCHEMA：" + JsonSchemaUtil.generateForType(ResultClass.class) + "  \n\n"
                         + "示例：{\"min_range\": \"192.168.0.1\", \"max_range\": \"192.168.0.255\"}"
                 ))
-                .textMessage((contextView -> "192.168.64.1/24 网段范围?"))
-                .maxCompletionTokens(contextView -> 4000)
+                .textMessage((executionContext -> "192.168.64.1/24 网段范围?"))
+                .maxCompletionTokens(executionContext -> 4000)
                 .structured()
                 .execute(new ParameterizedTypeReference<ResultClass>() {})
                 .as(StepVerifier::create)
@@ -117,9 +117,9 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "You are a helpful assistant"))
-                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "You are a helpful assistant"))
+                .textMessage((executionContext -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
@@ -145,9 +145,9 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatGeneralExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "You are a helpful assistant"))
-                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "You are a helpful assistant"))
+                .textMessage((executionContext -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
@@ -173,9 +173,9 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteWithToolCalls() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "You are a helpful assistant"))
-                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "You are a helpful assistant"))
+                .textMessage((executionContext -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
@@ -202,9 +202,9 @@ public class DeepseekChatClientTests extends DeepseekLlmClientTestApplicationTes
     @Test
     void testChatStreamExecuteRawWithToolCalls() {
         reactiveLlmClient.chat()
-                .model(contextView -> model)
-                .systemMessage((contextView -> "You are a helpful assistant"))
-                .textMessage((contextView -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
+                .model(executionContext -> model)
+                .systemMessage((executionContext -> "You are a helpful assistant"))
+                .textMessage((executionContext -> "帮我分析销售数据：1.读取sales.csv 2.计算月度增长 3.生成图表 4.写报告"))
                 .tools(List.of(
                         DefaultToolDefinition.builder()
                                 .name("read_csv")
