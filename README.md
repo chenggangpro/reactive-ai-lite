@@ -40,9 +40,7 @@ The library enforces strict separation of concerns through an SPI-based (Service
 3. **Provider Delegates:** The `LlmChatProviderDelegate` interface bridges the gap between the core framework and external provider REST APIs, handling payload normalization and stream parsing.
 4. **Dynamic Registry:** The `LlmProviderRegistry` automatically resolves and loads the correct client implementations based on the requested capability.
 
-<div align="center">
-  <img alt="Architecture Diagram" src="architecture-diagram.png" width="800"/>
-</div>
+![Architecture Diagram](architecture-diagram.png)
 
 ---
 
