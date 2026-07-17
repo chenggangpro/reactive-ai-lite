@@ -91,8 +91,8 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
      * Each interceptor declares the {@link LlmClientType}(s) it supports via
      * {@link LlmProviderExecutionBeforeInterceptor#supportedClient()} /
      * {@link LlmProviderExecutionAfterInterceptor#supportedClient()}. Interceptors are grouped by client type
-     * and internally sorted by their natural ordering (defined by 
-     * {@link LlmProviderExecutionBeforeInterceptor#getOrder()} / 
+     * and internally sorted by their natural ordering (defined by
+     * {@link LlmProviderExecutionBeforeInterceptor#getOrder()} /
      * {@link LlmProviderExecutionAfterInterceptor#getOrder()}). The sorted list is then wrapped into a
      * chain object that can invoke interceptors sequentially.
      * </p>
@@ -136,14 +136,13 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
      * </p>
      *
      * @param interceptedDataInfo the immutable request metadata (client type, provider info, etc.)
-     * @param generalExecution    the core LLM request logic that produces a {@link Mono} of
-     *                            {@link ObjectNode} (the raw response body)
+     * @param generalExecution    the core LLM request logic that produces a {@link Mono} of type T
+     *                            (e.g., JSON {@link ObjectNode} or binary data)
+     * @param <T>                 the type of the raw response payload
      * @return a {@link Mono} that emits the raw response body after all interceptors have been applied
      */
     @Override
-    public Mono<ObjectNode> interceptGeneral(
-            @NonNull InterceptedDataInfo interceptedDataInfo,
-            @NonNull Mono<ObjectNode> generalExecution) {
+    public <T> Mono<T> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<T> generalExecution) {
         return Mono.deferContextual(contextView -> Mono.justOrEmpty(contextView)
                 .defaultIfEmpty(Context.empty())
                 .flatMap(context -> {
@@ -176,7 +175,7 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
                                                                     .executionContext(resourceDataInfo.getExecutionContext())
-                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_RESPONSE_BODY_ATTRIBUTE_KEY))
+                                                                    .rawResponseBody(resourceData.getT2().get(RAW_RESPONSE_BODY_ATTRIBUTE_KEY))
                                                                     .build())
                                                             .flatMap(afterChain::next);
                                                 })
@@ -191,7 +190,7 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
                                                                     .attributes(resourceData.getT2())
                                                                     .llmProviderInfo(resourceDataInfo.getLlmProviderInfo())
                                                                     .executionContext(resourceDataInfo.getExecutionContext())
-                                                                    .rawResponseBody((ObjectNode) resourceData.getT2().get(RAW_RESPONSE_BODY_ATTRIBUTE_KEY))
+                                                                    .rawResponseBody(resourceData.getT2().get(RAW_RESPONSE_BODY_ATTRIBUTE_KEY))
                                                                     .error(err)
                                                                     .build())
                                                             .flatMap(afterChain::next);
@@ -247,14 +246,13 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
      * </p>
      *
      * @param interceptedDataInfo the immutable request metadata
-     * @param streamExecution     the core LLM request logic that produces a {@link Flux} of
-     *                            {@link RawStreamResponse}
+     * @param streamExecution     the core LLM request logic that produces a {@link Flux} of type T
+     *                            (e.g., {@link RawStreamResponse} or binary data)
+     * @param <T>                 the type of the raw stream payload
      * @return a {@link Flux} that emits the raw stream responses after all interceptors have been applied
      */
     @Override
-    public Flux<RawStreamResponse> interceptStream(
-            @NonNull LlmProviderInterceptorRegistry.InterceptedDataInfo interceptedDataInfo,
-            @NonNull Flux<RawStreamResponse> streamExecution) {
+    public <T> Flux<T> interceptStream(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Flux<T> streamExecution) {
         return Flux.deferContextual(contextView -> Mono.justOrEmpty(contextView)
                 .defaultIfEmpty(Context.empty())
                 .flatMapMany(context -> {
@@ -277,7 +275,7 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
                                                 })
                                                 .thenMany(Flux.defer(() -> {
                                                     return streamExecution.publish(rawStreamResponseFlux -> {
-                                                        Mono<RawStreamResponse> interceptorExecution = Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
+                                                        Mono<T> interceptorExecution = Mono.justOrEmpty(this.afterInterceptorChainMap.get(resourceDataInfo.getClientType()))
                                                                 .flatMap(afterChain -> {
                                                                     return Mono.fromCallable(() -> DefaultLlmProviderStreamResponseExchange.builder()
                                                                                     .clientType(resourceDataInfo.getClientType())
@@ -288,10 +286,10 @@ public class DefaultLlmProviderInterceptorRegistry implements LlmProviderInterce
                                                                                     .build())
                                                                             .flatMap(afterChain::next);
                                                                 })
-                                                                .cast(RawStreamResponse.class)
+                                                                .then(Mono.<T>empty())
                                                                 .onErrorResume(err -> {
                                                                     log.error("Error occurred while intercepting stream response", err);
-                                                                    return Mono.empty();
+                                                                    return Mono.<T>empty();
                                                                 });
                                                         return Flux.merge(interceptorExecution, rawStreamResponseFlux);
                                                     });

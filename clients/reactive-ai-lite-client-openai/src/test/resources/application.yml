@@ -33,3 +33,5 @@ reactive:
             enabled: true
           embedding:
             enabled: true
+          speech:
+            enabled: true

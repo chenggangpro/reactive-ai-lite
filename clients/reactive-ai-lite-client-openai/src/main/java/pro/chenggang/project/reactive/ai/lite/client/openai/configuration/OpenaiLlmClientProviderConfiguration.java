@@ -26,17 +26,21 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.certification.Organi
 import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties;
 import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties.ChatProperties;
 import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties.EmbeddingProperties;
+import pro.chenggang.project.reactive.ai.lite.client.openai.properties.OpenaiClientProperties.SpeechProperties;
 import pro.chenggang.project.reactive.ai.lite.client.openai.provider.OpenaiLlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.client.openai.provider.chat.OpenaiChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.client.openai.provider.embedding.OpenaiEmbeddingProviderDelegate;
+import pro.chenggang.project.reactive.ai.lite.client.openai.provider.speech.OpenaiSpeechProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSpeechProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmEmbeddingProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmSpeechProvider;
 
 import java.util.List;
 import java.util.Objects;
@@ -246,5 +250,57 @@ public class OpenaiLlmClientProviderConfiguration {
         );
         log.info("OpenAI LLM embedding provider initialized successfully");
         return defaultLlmEmbeddingProvider;
+    }
+
+    /**
+     * Creates the {@link LlmSpeechProvider} bean for OpenAI speech generation.
+     *
+     * @param webClientBuilder               reactive HTTP client builder shared across providers
+     * @param openaiClientProperties         the aggregated OpenAI configuration
+     * @param llmProviderInterceptorRegistry global registry of provider interceptors
+     * @return a fully configured {@link LlmSpeechProvider} for OpenAI speech operations
+     */
+    @ConditionalOnProperty(name = "reactive.ai.lite.client.openai.speech.enabled", havingValue = "true")
+    @Bean
+    public LlmSpeechProvider openaiLlmSpeechProvider(WebClient.Builder webClientBuilder,
+                                                     OpenaiClientProperties openaiClientProperties,
+                                                     LlmProviderInterceptorRegistry llmProviderInterceptorRegistry) {
+        List<TokenCertification> certifications = openaiClientProperties.getCertifications()
+                .stream()
+                .filter(ollamaCertification -> Objects.isNull(ollamaCertification.getCapability()) || Capability.SPEECH.equals(ollamaCertification.getCapability()))
+                .<TokenCertification>map(certification -> {
+                    if (StringUtils.hasText(certification.getOrganizationId()) && StringUtils.hasText(certification.getProjectId())) {
+                        return OrganizationTokenCertification.builder()
+                                .profile(certification.getProfile())
+                                .token(certification.getToken())
+                                .organizationId(certification.getOrganizationId())
+                                .projectId(certification.getProjectId())
+                                .isDefault(certification.isDefault())
+                                .build();
+                    }
+                    return BearerTokenCertification.builder()
+                            .profile(certification.getProfile())
+                            .token(certification.getToken())
+                            .isDefault(certification.isDefault())
+                            .build();
+                })
+                .toList();
+        SpeechProperties speechProperties = openaiClientProperties.getSpeech();
+        OpenaiSpeechProviderDelegate delegate = OpenaiSpeechProviderDelegate.builder()
+                .name(OpenaiLlmProviderInfo.DEFAULT_NAME)
+                .baseUrL(openaiClientProperties.getSpeechBaseUrl())
+                .speechEndpoint(speechProperties.getEndpoint())
+                .webClientBuilder(webClientBuilder)
+                .isDefault(speechProperties.isDefault())
+                .certifications(certifications)
+                .supportedModels(speechProperties.getLimitedModels())
+                .build();
+        DefaultLlmSpeechProvider defaultLlmSpeechProvider = new DefaultLlmSpeechProvider(
+                delegate,
+                certifications,
+                llmProviderInterceptorRegistry
+        );
+        log.info("OpenAI LLM speech provider initialized successfully");
+        return defaultLlmSpeechProvider;
     }
 }

@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.interceptor.logging;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderRequestInterceptorChain;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderResponseInterceptorChain;
@@ -99,7 +100,7 @@ class LoggingInterceptorTest {
         
         RawStreamResponse chunk = mock(RawStreamResponse.class);
         when(chunk.getDataContent()).thenReturn(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode());
-        when(streamExchange.rawStreamResponse()).thenReturn(Flux.just(chunk));
+        Mockito.doReturn(Flux.just(chunk)).when(streamExchange).rawStreamResponse();
 
         StepVerifier.create(interceptor.interceptAfterEach(streamExchange, resChain))
                 .verifyComplete();

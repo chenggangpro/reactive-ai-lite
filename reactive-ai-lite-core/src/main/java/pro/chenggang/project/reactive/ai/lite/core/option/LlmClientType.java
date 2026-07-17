@@ -68,11 +68,11 @@ public enum LlmClientType {
      */
     EMBEDDING(Capability.EMBEDDING),
 
-//    /**
-//     * A client for audio processing tasks, associated with {@link Capability#AUDIO}.
-//     */
-//    AUDIO(Capability.AUDIO),
-//
+    /**
+     * A client type for converting text to speech, corresponding to the {@link Capability#SPEECH} capability.
+     */
+    SPEECH(Capability.SPEECH),
+
 //    /**
 //     * A client for image generation or analysis, associated with {@link Capability#IMAGE}.
 //     */

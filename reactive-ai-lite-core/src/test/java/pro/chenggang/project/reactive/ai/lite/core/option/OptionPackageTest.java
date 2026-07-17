@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import pro.chenggang.project.reactive.ai.lite.core.message.chunk.TextStreamDataChunk;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSpeechProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,7 +53,8 @@ class OptionPackageTest {
     void testCapability() {
         assertThat(Capability.CHAT.getProviderClass()).isEqualTo(LlmChatProvider.class);
         assertThat(Capability.EMBEDDING.getProviderClass()).isEqualTo(LlmEmbeddingProvider.class);
-        assertThat(Capability.values()).containsExactly(Capability.CHAT, Capability.EMBEDDING);
+        assertThat(Capability.SPEECH.getProviderClass()).isEqualTo(LlmSpeechProvider.class);
+        assertThat(Capability.values()).containsExactly(Capability.CHAT, Capability.EMBEDDING, Capability.SPEECH);
         assertThat(Capability.valueOf("CHAT")).isEqualTo(Capability.CHAT);
     }
 
@@ -60,7 +62,8 @@ class OptionPackageTest {
     void testLlmClientType() {
         assertThat(LlmClientType.CHAT.getCapability()).isEqualTo(Capability.CHAT);
         assertThat(LlmClientType.EMBEDDING.getCapability()).isEqualTo(Capability.EMBEDDING);
-        assertThat(LlmClientType.values()).containsExactly(LlmClientType.CHAT, LlmClientType.EMBEDDING);
+        assertThat(LlmClientType.SPEECH.getCapability()).isEqualTo(Capability.SPEECH);
+        assertThat(LlmClientType.values()).containsExactly(LlmClientType.CHAT, LlmClientType.EMBEDDING, LlmClientType.SPEECH);
         assertThat(LlmClientType.valueOf("CHAT")).isEqualTo(LlmClientType.CHAT);
     }
 

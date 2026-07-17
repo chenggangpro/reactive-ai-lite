@@ -23,7 +23,7 @@ Unlike traditional blocking HTTP clients that can lead to thread starvation duri
 ## ✨ Core Features
 
 - **🚀 Fully Reactive Execution Pipeline**: End-to-end non-blocking I/O utilizing Project Reactor (`Mono` and `Flux`). Delivers thread-safe interactions with maximum concurrency and zero context-switching overhead.
-- **🔌 Provider Agnostic & Unified Routing**: The core engine dynamically resolves handlers based on requested capabilities (`CHAT`, `EMBEDDING`, etc.). Swap providers without changing your core business logic.
+- **🔌 Provider Agnostic & Unified Routing**: The core engine dynamically resolves handlers based on requested capabilities (`CHAT`, `EMBEDDING`, `SPEECH`, etc.). Swap providers without changing your core business logic.
 - **🌊 Native Streaming (SSE)**: First-class support for Server-Sent Events (SSE) via `Flux` for real-time token generation and immediate UX feedback.
 - **📜 Fluent Builder DSL**: Compose complex requests cleanly and type-safely using static values or dynamic context-aware lambdas.
 - **🛡️ Interceptor Chain**: A robust `ExchangeInterceptor` aspect-oriented middleware chain for request/response manipulation, security, logging, and metrics.
@@ -108,6 +108,9 @@ reactive:
             is-default: true
           embedding:
             endpoint: /v1/embeddings
+            is-default: true
+          speech:
+            endpoint: /v1/audio/speech
             is-default: true
 ```
 
@@ -194,6 +197,21 @@ public Mono<EmbeddingResponse> getEmbedding(String text) {
         .inputText(text)
         .general()
         .execute();
+}
+```
+
+### Text-to-Speech (`Mono`)
+Generate audio from text inputs.
+
+```java
+public Mono<byte[]> synthesizeSpeech(String text) {
+    return llmClient.speech()
+        .model(executionContext -> "tts-1")
+        .inputText(executionContext -> text)
+        .voice(executionContext -> "nova")
+        .general()
+        .execute()
+        .map(speechResponse -> speechResponse.getAudioData());
 }
 ```
 

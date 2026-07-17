@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.execution.values;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
@@ -178,7 +179,7 @@ public abstract class ExecutionSpec<I extends ExecutionInfo> {
      * unless explicitly configured.
      * </p>
      */
-    @lombok.Builder.Default
+    @Default
     private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure = ((executionContext, jsonNodes) -> {});
 
     /**
