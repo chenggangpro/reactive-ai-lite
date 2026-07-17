@@ -97,6 +97,15 @@ public class OpenaiClientProperties implements InitializingBean {
     private EmbeddingProperties embedding = new EmbeddingProperties();
 
     /**
+     * Holds the configuration for the speech capability.
+     * <p>
+     * Allows control over the TTS service including enabling/disabling,
+     * custom endpoints, and model limitations.
+     * </p>
+     */
+    private SpeechProperties speech = new SpeechProperties();
+
+    /**
      * Validates and completes the initialization of the properties.
      * <p>
      * If exactly one certification is present, it is automatically set as default.
@@ -118,6 +127,9 @@ public class OpenaiClientProperties implements InitializingBean {
         }
         if (embedding != null && embedding.isEnabled()) {
             this.checkEmbeddingProperties(embedding);
+        }
+        if (speech != null && speech.isEnabled()) {
+            this.checkSpeechProperties(speech);
         }
     }
 
@@ -194,6 +206,20 @@ public class OpenaiClientProperties implements InitializingBean {
     }
 
     /**
+     * Performs validation checks on the {@link SpeechProperties}.
+     * <p>
+     * Validates that the speech endpoint is specified when the speech
+     * capability is enabled.
+     * </p>
+     *
+     * @param speech the speech properties to validate; must not be {@code null}
+     * @throws IllegalArgumentException if the endpoint is missing or empty
+     */
+    private void checkSpeechProperties(SpeechProperties speech) {
+        Assert.hasLength(speech.getEndpoint(), "The endpoint of OpenAI speech API is required.");
+    }
+
+    /**
      * Retrieves the active base URL for chat API requests.
      * <p>
      * If a specific base URL is configured at the chat level (i.e., {@code chat.baseUrl} is not {@code null}),
@@ -224,6 +250,18 @@ public class OpenaiClientProperties implements InitializingBean {
     public String getEmbeddingBaseUrl() {
         if (Objects.nonNull(embedding) && Objects.nonNull(embedding.getBaseUrl())) {
             return embedding.getBaseUrl();
+        }
+        return this.baseUrl;
+    }
+
+    /**
+     * Retrieves the active base URL for speech API requests.
+     *
+     * @return the resolved speech base URL, never {@code null} if the global base URL is set
+     */
+    public String getSpeechBaseUrl() {
+        if (Objects.nonNull(speech) && Objects.nonNull(speech.getBaseUrl())) {
+            return speech.getBaseUrl();
         }
         return this.baseUrl;
     }
@@ -347,6 +385,19 @@ public class OpenaiClientProperties implements InitializingBean {
          * An empty set allows all models. This is useful for enforcing model governance.
          * </p>
          */
+        private Set<String> limitedModels = Set.of();
+    }
+
+    /**
+     * Configuration properties for the OpenAI speech capability.
+     */
+    @Getter
+    @Setter
+    public static class SpeechProperties {
+        private boolean enabled = true;
+        private String baseUrl;
+        private String endpoint = "/v1/audio/speech";
+        private boolean isDefault = true;
         private Set<String> limitedModels = Set.of();
     }
 

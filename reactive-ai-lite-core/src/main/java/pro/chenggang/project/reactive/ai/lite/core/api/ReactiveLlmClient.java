@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.api;
 
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSpeechSpec;
 
 /**
  * Reactive LLM (Large Language Model) client interface for interacting with AI services.
@@ -102,6 +103,23 @@ public interface ReactiveLlmClient {
      */
     default ConfigurableEmbeddingSpec embedding() {
         return newRequest().defaultProvider().defaultProfile().embedding();
+    }
+
+    /**
+     * A convenience method to start a speech request using the default provider and
+     * default profile immediately.
+     * <p>
+     * This is equivalent to calling
+     * <code>newRequest().defaultProvider().defaultProfile().speech()</code> and is
+     * useful when the application only uses the default speech model. The returned
+     * {@link ConfigurableSpeechSpec} provides methods to set the input texts and
+     * adjust parameters such as the voice.
+     * </p>
+     *
+     * @return a {@link ConfigurableSpeechSpec} instance ready to be configured and executed
+     */
+    default ConfigurableSpeechSpec speech() {
+        return newRequest().defaultProvider().defaultProfile().speech();
     }
 
 }

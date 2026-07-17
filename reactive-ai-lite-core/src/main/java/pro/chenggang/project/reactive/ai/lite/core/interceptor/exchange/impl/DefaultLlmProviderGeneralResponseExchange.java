@@ -26,15 +26,16 @@ import java.util.Optional;
  * Default implementation of {@link LlmProviderGeneralResponseExchange}, specializing
  * {@link AbstractLlmProviderExchange} for non‑streaming (general) LLM provider responses.
  * <p>
- * In the interceptor exchange model, a general response carries the complete JSON body
+ * In the interceptor exchange model, a general response carries the complete response body
  * returned by the LLM provider after a synchronous or non‑streaming call. This class
- * embraces a “success‑or‑failure” contract: either the raw JSON payload is available,
+ * embraces a “success‑or‑failure” contract: either the raw payload is available,
  * or an exception describes why the exchange failed. Using {@link Optional} accessors
  * enforces explicit handling of both branches by downstream processors.
  * </p>
  * <p>
- * The {@link #rawResponseBody} is intentionally typed as a Jackson {@link ObjectNode}
- * to allow flexible, path‑based inspection without carrying a concrete model. Any error
+ * The {@link #rawResponseBody} is intentionally typed as a Java {@link Object}
+ * to allow flexible inspection (often a Jackson {@link ObjectNode} for JSON)
+ * without carrying a concrete model. Any error
  * encountered during the exchange (network, timeout, deserialization, provider‑specific
  * error response) is captured in {@link #error} so that interceptors can react to failures
  * uniformly.
@@ -46,7 +47,7 @@ import java.util.Optional;
  *   DefaultLlmProviderGeneralResponseExchange.builder()
  *       .startTime(...)
  *       .connectionInfo(...)
- *       .rawResponseBody(responseJson)
+ *       .rawResponseBody(responseBody)
  *       .build();
  * </pre>
  * </p>
@@ -58,14 +59,12 @@ import java.util.Optional;
 public class DefaultLlmProviderGeneralResponseExchange extends AbstractLlmProviderExchange implements LlmProviderGeneralResponseExchange {
 
     /**
-     * The complete JSON response body received from the LLM provider, expressed as a
-     * Jackson {@link ObjectNode}. This field is {@code null} when the exchange did not
-     * produce a valid response (i.e., when {@link #error} is present). The node preserves
-     * the original tree structure, enabling interceptors to extract data points without
-     * depending on provider‑specific POJOs.
+     * The complete response body received from the LLM provider, typically expressed as a
+     * Jackson {@link ObjectNode} for JSON. This field is {@code null} when the exchange did not
+     * produce a valid response (i.e., when {@link #error} is present).
      */
     @Nullable
-    private final ObjectNode rawResponseBody;
+    private final Object rawResponseBody;
 
     /**
      * Any exception thrown during the LLM provider exchange, {@code null} if the request
@@ -78,15 +77,15 @@ public class DefaultLlmProviderGeneralResponseExchange extends AbstractLlmProvid
     private final Throwable error;
 
     /**
-     * Returns the raw JSON response body if the exchange completed successfully;
+     * Returns the raw response body if the exchange completed successfully;
      * otherwise {@link Optional#empty()}. This method enforces the invariant that a
      * successful response is never null but may be missing entirely when an error
      * occurred.
      *
-     * @return an {@link Optional} wrapping the {@link ObjectNode}, or empty on failure
+     * @return an {@link Optional} wrapping the response {@link Object}, or empty on failure
      */
     @Override
-    public Optional<ObjectNode> rawResponseBody() {
+    public Optional<Object> rawResponseBody() {
         return Optional.ofNullable(this.rawResponseBody);
     }
 

@@ -49,17 +49,17 @@ import reactor.core.publisher.Flux;
 public interface LlmProviderStreamResponseExchange extends LlmProviderResponseExchange {
 
     /**
-     * Provides the raw event stream as a cold {@link Flux} of {@link RawStreamResponse} chunks.
+     * Provides the raw event stream as a cold {@link reactor.core.publisher.Flux} or other stream objects.
      * <p>
-     * The returned flux is the original source from the provider's HTTP connection. It is
+     * The returned object is the original source from the provider's HTTP connection. It is
      * <em>cold</em> by design, meaning that each subscription triggers a new replay of the
      * streamed data from the underlying buffer or network. Interceptors should subscribe
      * cautiously and avoid multiple subscriptions without proper sharing (e.g., via
      * {@code flux.cache()} or {@code flux.share()}) to prevent data duplication or loss.
      * </p>
      * <p>
-     * Each {@link RawStreamResponse} object corresponds to one parsed JSON event from the
-     * SSE stream. Typical events include:
+     * Each chunk typically corresponds to one parsed JSON event from the
+     * SSE stream or a raw byte buffer for binary streams. Typical events include:
      * <ul>
      *   <li><strong>Data events:</strong> contain partial or full response content.</li>
      *   <li><strong>Finish events:</strong> indicate the end of the stream with optional metadata (e.g., token usage).</li>
@@ -67,8 +67,8 @@ public interface LlmProviderStreamResponseExchange extends LlmProviderResponseEx
      * </ul>
      * </p>
      *
-     * @return a non-null {@link Flux} emitting raw stream chunks as they become available
+     * @return a non-null {@link Object} representing raw stream chunks as they become available
      */
-    Flux<RawStreamResponse> rawStreamResponse();
+    Flux<?> rawStreamResponse();
 
 }

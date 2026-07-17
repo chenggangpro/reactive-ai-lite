@@ -56,22 +56,22 @@ import java.util.Optional;
 public class DefaultLlmProviderStreamResponseExchange extends AbstractLlmProviderExchange implements LlmProviderStreamResponseExchange {
 
     /**
-     * The reactive stream of raw JSON response chunks from the LLM provider.
+     * The reactive stream of raw JSON response chunks or binary payloads from the LLM provider.
      * <p>
-     * This {@link Flux} emits {@link RawStreamResponse} objects as they become available from the underlying HTTP
-     * connection. Each chunk typically contains a single line of the server-sent events (SSE) or a similar streaming
-     * protocol fragment. The stream may be empty or terminated with an error signal if the connection fails.
+     * This field typically holds a {@link reactor.core.publisher.Flux} that emits chunk objects (e.g. {@link RawStreamResponse}
+     * or {@link org.springframework.core.io.buffer.DataBuffer}) as they become available from the underlying HTTP
+     * connection.
      * <p>
      * The field is nullable to indicate that the stream could not be established at all (e.g., due to network issues,
      * HTTP 4xx/5xx responses, or timeout). In such cases, the {@link #error()} method provides the reason. By default,
-     * the {@link #rawStreamResponse()} method returns an empty {@link Flux} when this field is {@code null} to avoid
+     * the {@link #rawStreamResponse()} method returns an empty {@link reactor.core.publisher.Flux} when this field is {@code null} to avoid
      * null checks in downstream operators.
      * <p>
      * This field is set once via the builder and is not intended to be modified afterward, aligning with the immutable
      * design pattern of the exchange object.
      */
     @Nullable
-    private final Flux<RawStreamResponse> rawStreamResponse;
+    private final Flux<?> rawStreamResponse;
 
     /**
      * The error that prevented the normal execution of the streaming request, if any.
@@ -88,22 +88,17 @@ public class DefaultLlmProviderStreamResponseExchange extends AbstractLlmProvide
     private final Throwable error;
 
     /**
-     * Returns the reactive stream of raw JSON response chunks.
+     * Returns the reactive stream of raw response chunks or binary buffers.
      * <p>
      * This accessor provides a safe, non-null view of the {@link #rawStreamResponse} field. If the stream could not
-     * be initiated (field is {@code null}), an empty {@link Flux} is returned to simplify downstream operators and
-     * avoid {@link NullPointerException} risks. The returned {@link Flux} is the original instance if present,
+     * be initiated (field is {@code null}), an empty {@link reactor.core.publisher.Flux} is returned to simplify downstream operators and
+     * avoid {@link NullPointerException} risks. The returned stream is the original instance if present,
      * preserving its lazy and cold nature.
-     * <p>
-     * Downstream components, especially interceptors, can subscribe to this flux to perform transformations,
-     * logging, or aggregation. Because the flux is cold, each subscription initiates a new processing pipeline;
-     * sharing strategies such as {@link Flux#share()} or {@link Flux#cache()} must be applied by the consumer if
-     * multiple subscribers are expected.
      *
-     * @return the {@link Flux} of {@link RawStreamResponse} chunks; never {@code null}
+     * @return the raw stream response object (typically a {@link reactor.core.publisher.Flux}); never {@code null}
      */
     @Override
-    public Flux<RawStreamResponse> rawStreamResponse() {
+    public Flux<?> rawStreamResponse() {
         return this.rawStreamResponse != null ? this.rawStreamResponse : Flux.empty();
     }
 

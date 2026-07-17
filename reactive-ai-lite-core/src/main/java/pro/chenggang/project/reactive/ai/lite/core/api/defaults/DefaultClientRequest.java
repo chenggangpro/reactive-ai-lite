@@ -23,8 +23,10 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSpeechSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableEmbeddingSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableSpeechSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.ProviderConfigureInfo;
 
 import java.util.Map;
@@ -256,6 +258,20 @@ public class DefaultClientRequest implements ClientRequest {
     @Override
     public ConfigurableEmbeddingSpec embedding() {
         return new DefaultConfigurableEmbeddingSpec(LlmClientType.EMBEDDING, this.llmProviderRegistry, this.getConfigureInfo());
+    }
+
+    /**
+     * Finalizes the configuration and returns a {@link ConfigurableSpeechSpec} that
+     * can be further customized for speech operations.
+     * <p>
+     * The returned spec carries all the settings gathered so far (provider, profile,
+     * context merging, etc.) packaged inside an {@link ProviderConfigureInfo}.
+     *
+     * @return A new configurable speech spec instance, never null.
+     */
+    @Override
+    public ConfigurableSpeechSpec speech() {
+        return new DefaultConfigurableSpeechSpec(LlmClientType.SPEECH, this.llmProviderRegistry, this.getConfigureInfo());
     }
 
 }

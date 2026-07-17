@@ -59,10 +59,11 @@ public interface LlmProviderInterceptorRegistry {
      * </p>
      *
      * @param interceptedDataInfo the metadata and payload of the request, never null
-     * @param generalExecution    the core execution logic that returns the raw JSON response, never null
-     * @return a {@link Mono} emitting the intercepted and potentially modified JSON response
+     * @param generalExecution    the core execution logic that returns the raw response, never null
+     * @param <T>                 the type of the raw response payload (e.g., ObjectNode or DataBuffer)
+     * @return a {@link Mono} emitting the intercepted and potentially modified response
      */
-    Mono<ObjectNode> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<ObjectNode> generalExecution);
+    <T> Mono<T> interceptGeneral(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Mono<T> generalExecution);
 
     /**
      * Intercepts a streaming execution.
@@ -75,9 +76,10 @@ public interface LlmProviderInterceptorRegistry {
      *
      * @param interceptedDataInfo the metadata and payload of the request, never null
      * @param streamExecution     the core execution logic that returns a stream of raw responses, never null
+     * @param <T>                 the type of the raw stream payload (e.g., RawStreamResponse or DataBuffer)
      * @return a {@link Flux} emitting the intercepted and potentially modified stream chunks
      */
-    Flux<RawStreamResponse> interceptStream(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Flux<RawStreamResponse> streamExecution);
+    <T> Flux<T> interceptStream(@NonNull InterceptedDataInfo interceptedDataInfo, @NonNull Flux<T> streamExecution);
 
     /**
      * A data container holding all necessary context and payload information for interceptors
@@ -135,9 +137,10 @@ public interface LlmProviderInterceptorRegistry {
          *
          * @param lLmProviderInterceptorRegistry the registry to apply, never null
          * @param generalExecution               the core execution mono, never null
+         * @param <T>                            the type of the raw response payload
          * @return the intercepted Mono
          */
-        public Mono<ObjectNode> interceptGeneral(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Mono<ObjectNode> generalExecution) {
+        public <T> Mono<T> interceptGeneral(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Mono<T> generalExecution) {
             return lLmProviderInterceptorRegistry.interceptGeneral(this, generalExecution);
         }
 
@@ -151,9 +154,10 @@ public interface LlmProviderInterceptorRegistry {
          *
          * @param lLmProviderInterceptorRegistry the registry to apply, never null
          * @param streamExecution                the core execution flux, never null
+         * @param <T>                            the type of the raw stream payload
          * @return the intercepted Flux
          */
-        public Flux<RawStreamResponse> interceptStream(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Flux<RawStreamResponse> streamExecution) {
+        public <T> Flux<T> interceptStream(@NonNull LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry, @NonNull Flux<T> streamExecution) {
             return lLmProviderInterceptorRegistry.interceptStream(this, streamExecution);
         }
     }

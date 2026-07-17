@@ -20,6 +20,7 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSpeechSpec;
 
 import java.util.Map;
 import java.util.Objects;
@@ -191,5 +192,15 @@ public interface ClientRequest {
      * @return a new {@link ConfigurableEmbeddingSpec} instance with the shared settings applied
      */
     ConfigurableEmbeddingSpec embedding();
+
+    /**
+     * Finalizes the common configuration and branches into speech-specific settings. The
+     * returned {@link ConfigurableSpeechSpec} allows further customization of speech
+     * parameters such as input text, voice, speed and response format. After configuration, the spec can
+     * be executed to generate synthesized speech audio.
+     *
+     * @return a new {@link ConfigurableSpeechSpec} instance with the shared settings applied
+     */
+    ConfigurableSpeechSpec speech();
 
 }

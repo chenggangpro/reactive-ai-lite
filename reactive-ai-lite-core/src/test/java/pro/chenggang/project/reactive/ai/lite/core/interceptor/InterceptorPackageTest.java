@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.interceptor;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
@@ -53,14 +54,14 @@ class InterceptorPackageTest {
 
         LlmProviderInterceptorRegistry registry = mock(LlmProviderInterceptorRegistry.class);
         Mono<ObjectNode> execution = Mono.just(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode());
-        when(registry.interceptGeneral(any(), any())).thenReturn(execution);
+        when(registry.interceptGeneral(any(), ArgumentMatchers.<Mono<ObjectNode>>any())).thenReturn(execution);
 
         StepVerifier.create(dataInfo.interceptGeneral(registry, execution))
                 .expectNextCount(1)
                 .verifyComplete();
 
         Flux<RawStreamResponse> streamExecution = Flux.empty();
-        when(registry.interceptStream(any(), any())).thenReturn(streamExecution);
+        when(registry.interceptStream(any(), ArgumentMatchers.<Flux<RawStreamResponse>>any())).thenReturn(streamExecution);
 
         StepVerifier.create(dataInfo.interceptStream(registry, streamExecution))
                 .verifyComplete();

@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSpeechProvider;
 
 /**
  * Enumerates the distinct capabilities that an AI provider or model can support within the
@@ -62,11 +63,12 @@ public enum Capability {
      */
     EMBEDDING(LlmEmbeddingProvider.class),
 
-//    /**
-//     * Represents audio processing capabilities, such as speech-to-text or text-to-speech.
-//     */
-//    AUDIO(null),
-//
+    /**
+     * Represents the capability to convert text to speech (audio generation).
+     * Providers supporting this capability must implement {@link LlmSpeechProvider}.
+     */
+    SPEECH(LlmSpeechProvider.class),
+
 //    /**
 //     * Represents image generation or analysis capabilities.
 //     */
