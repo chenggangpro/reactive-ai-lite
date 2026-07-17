@@ -346,6 +346,7 @@
                         </goals>
                         <configuration>
                             <additionalOptions>${javadoc.opts}</additionalOptions>
+                            <sourcepath>target/generated-sources/delombok</sourcepath>
                         </configuration>
                     </execution>
                 </executions>
