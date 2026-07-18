@@ -79,5 +79,5 @@ public class ReactiveAiClientProperties {
      * configuration, a single toggle affects all provider instances. This design prevents 
      * accidental inconsistencies where one provider logs while another does not.
      */
-    private boolean enableLogging = true;
+    private boolean loggingEnabled = true;
 }
