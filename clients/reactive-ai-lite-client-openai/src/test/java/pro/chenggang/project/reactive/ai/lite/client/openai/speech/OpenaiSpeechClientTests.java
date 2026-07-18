@@ -23,6 +23,7 @@ import pro.chenggang.project.reactive.ai.lite.client.openai.OpenaiLlmClientTestA
 import pro.chenggang.project.reactive.ai.lite.core.api.ReactiveLlmClient;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.SpeechRawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.SpeechStreamResponse;
+import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import javax.sound.sampled.AudioInputStream;
@@ -131,7 +132,8 @@ public class OpenaiSpeechClientTests extends OpenaiLlmClientTestApplicationTests
                 .stream()
                 .executeRaw()
                 .map(SpeechRawResponse::getDataChunk)
-                .as(DataBufferUtils::join)
+                .collectList()
+                .flatMap(dataBufferList -> DataBufferUtils.join(Flux.fromIterable(dataBufferList)))
                 .as(StepVerifier::create)
                 .consumeNextWith(dataBuffer -> {
                     byte[] bytes = new byte[dataBuffer.readableByteCount()];
