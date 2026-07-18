@@ -76,7 +76,7 @@ public class ReactiveAiLiteConfiguration {
     /**
      * Creates a logging interceptor that conditionally logs LLM provider execution details.
      * <p>
-     * The decision to log is delegated to the {@link ReactiveAiClientProperties#isEnableLogging()}
+     * The decision to log is delegated to the {@link ReactiveAiClientProperties#isLoggingEnabled()}
      * method, allowing runtime control (e.g., via external configuration) without restarting
      * the application. This interceptor is typically registered automatically through the
      * {@link LlmProviderInterceptorRegistry} to provide visibility into provider calls.
@@ -87,7 +87,7 @@ public class ReactiveAiLiteConfiguration {
      */
     @Bean
     public LlmProviderExecutionLoggingInterceptor llmProviderExecutionLoggingInterceptor(ReactiveAiClientProperties reactiveAiClientProperties) {
-        LlmProviderExecutionLoggingInterceptor loggingInterceptor = new LlmProviderExecutionLoggingInterceptor(reactiveAiClientProperties::isEnableLogging);
+        LlmProviderExecutionLoggingInterceptor loggingInterceptor = new LlmProviderExecutionLoggingInterceptor(reactiveAiClientProperties::isLoggingEnabled);
         log.info("Load LLM provider execution logging interceptor successfully");
         return loggingInterceptor;
     }
