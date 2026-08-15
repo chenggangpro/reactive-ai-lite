@@ -973,7 +973,6 @@ public class AnthropicChatProviderDelegate implements LlmChatProviderDelegate {
                                             .name(assistantToolCall.getFunction().getName())
                                             .input(JsonRelatedUtil.jsonToMap(assistantToolCall.getFunction().getArguments()))
                                             .build();
-
                                 })
                                 .toList();
                         return AnthropicChatMessage.builder()
