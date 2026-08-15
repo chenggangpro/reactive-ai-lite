@@ -98,6 +98,7 @@
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
         <mockito-all.version>5.23.0</mockito-all.version>
+        <json-repair.version>0.4.0</json-repair.version>
     </properties>
 
     <dependencies>
@@ -186,6 +187,11 @@
                 <groupId>com.github.victools</groupId>
                 <artifactId>jsonschema-module-jackson</artifactId>
                 <version>${jsonschema.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.haibiiin</groupId>
+                <artifactId>json-repair</artifactId>
+                <version>${json-repair.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

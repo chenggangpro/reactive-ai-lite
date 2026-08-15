@@ -15,6 +15,8 @@
  */
 package pro.chenggang.project.reactive.ai.lite.core.execution.defaults.chat;
 
+import com.fasterxml.jackson.core.JacksonException;
+import io.github.haibiiin.json.repair.JSONRepair;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -32,6 +34,8 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.util.JsonSchemaUtil;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 import static pro.chenggang.project.reactive.ai.lite.core.util.JsonRelatedUtil.OBJECT_MAPPER;
 
@@ -119,7 +123,8 @@ public class ChatStructuredExecution implements StructuredExecution {
      *   <li>The text is cleaned of any Markdown code fences (```json...```) by
      *       {@link #extractJsonContent(String)}.</li>
      *   <li>The cleaned JSON is deserialized using Jackson's {@code ObjectMapper} and the provided
-     *       {@code resultType}.</li>
+     *       {@code resultType}. If initial deserialization fails due to malformed JSON, a repair mechanism
+     *       is attempted before finally throwing an exception.</li>
      *   <li>A {@link StructuredResponse} containing the original response metadata, the raw body,
      *       the assistant message, and the deserialized structured content is emitted.</li>
      * </ol>
@@ -154,12 +159,22 @@ public class ChatStructuredExecution implements StructuredExecution {
                                     sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null after markdown extraction")));
                                     return;
                                 }
-                                R structuredContent;
+                                R structuredContent = null;
+                                JacksonException jacksonException = null;
                                 try {
                                     structuredContent = OBJECT_MAPPER.readValue(jsonContent, resultType);
-                                } catch (Exception e) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
-                                    return;
+                                } catch (JacksonException e) {
+                                    jacksonException = e;
+                                }
+                                if(Objects.nonNull(jacksonException)){
+                                    try {
+                                        JSONRepair jsonRepair = new JSONRepair();
+                                        String handledJson = jsonRepair.handle(jsonContent);
+                                        structuredContent = OBJECT_MAPPER.readValue(handledJson, resultType);
+                                    } catch (Exception ex) {
+                                        sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, ex));
+                                        return;
+                                    }
                                 }
                                 StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
                                         .executionContext(generalResponse.getExecutionContext())
@@ -184,7 +199,8 @@ public class ChatStructuredExecution implements StructuredExecution {
      * <p>This method follows the same pipeline as {@link #execute(Class)} but uses
      * {@link ParameterizedTypeReference} to capture generic type information at runtime. The JSON schema
      * is produced from {@link ParameterizedTypeReference#getType()}, and the Jackson deserialization
-     * is performed using a {@code JavaType} derived from that same type.
+     * is performed using a {@code JavaType} derived from that same type, with fallback JSON repair
+     * if the original JSON is malformed.
      *
      * @param <R>        the type of the structured content (may include generic parameters)
      * @param resultType a {@link ParameterizedTypeReference} capturing the full generic type; must not be {@code null}
@@ -215,12 +231,22 @@ public class ChatStructuredExecution implements StructuredExecution {
                                     sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null after markdown extraction")));
                                     return;
                                 }
-                                R structuredContent;
+                                R structuredContent = null;
+                                JacksonException jacksonException = null;
                                 try {
                                     structuredContent = OBJECT_MAPPER.readValue(jsonContent, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
-                                } catch (Exception e) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, e));
-                                    return;
+                                } catch (JacksonException e) {
+                                    jacksonException = e;
+                                }
+                                if(Objects.nonNull(jacksonException)){
+                                    try {
+                                        JSONRepair jsonRepair = new JSONRepair();
+                                        String handledJson = jsonRepair.handle(jsonContent);
+                                        structuredContent = OBJECT_MAPPER.readValue(handledJson, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
+                                    } catch (Exception ex) {
+                                        sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, ex));
+                                        return;
+                                    }
                                 }
                                 StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
                                         .executionContext(generalResponse.getExecutionContext())

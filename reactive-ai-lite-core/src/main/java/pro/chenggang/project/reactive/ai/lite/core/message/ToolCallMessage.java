@@ -17,6 +17,7 @@ package pro.chenggang.project.reactive.ai.lite.core.message;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import io.github.haibiiin.json.repair.JSONRepair;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.jackson.Jacksonized;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
-import pro.chenggang.project.reactive.ai.lite.core.exception.LlmClientException;
+import pro.chenggang.project.reactive.ai.lite.core.exception.ToolArgumentsJsonParsedFailedException;
 import pro.chenggang.project.reactive.ai.lite.core.tool.ToolDefinition;
 
 import java.util.List;
@@ -209,18 +210,26 @@ public interface ToolCallMessage extends AssistantTextMessage {
          * }</pre>
          * </p>
          * <p>
-         * If the LLM produced malformed JSON (a severe error in the model’s output),
-         * an {@link LlmClientException} is thrown to alert the host application.
+         * If the LLM produced malformed JSON, the method will attempt to repair it automatically.
+         * If the repaired JSON still fails to parse (a severe error in the model’s output),
+         * a {@link ToolArgumentsJsonParsedFailedException} is thrown to alert the host application.
          * </p>
          *
          * @return a non‑null {@link JsonNode} representing the parsed arguments
-         * @throws LlmClientException if the arguments string is not valid JSON
+         * @throws ToolArgumentsJsonParsedFailedException if the arguments string is not valid JSON and cannot be repaired
          */
         public JsonNode jsonArguments() {
             try {
                 return OBJECT_MAPPER.readTree(this.arguments);
-            } catch (JsonProcessingException e) {
-                throw new LlmClientException("Failed to parse tool call arguments: " + this.arguments, e);
+            } catch (JsonProcessingException ignored) {
+
+            }
+            try {
+                JSONRepair jsonRepair = new JSONRepair();
+                String handledJson = jsonRepair.handle(this.arguments);
+                return OBJECT_MAPPER.readTree(handledJson);
+            } catch (Exception e) {
+                throw new ToolArgumentsJsonParsedFailedException("Failed to parse tool call arguments: " + this.arguments, e);
             }
         }
     }
