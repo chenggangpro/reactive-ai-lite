@@ -24,9 +24,11 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSpeechSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSystemOneSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableEmbeddingSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableSpeechSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableSystemOneSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.ProviderConfigureInfo;
 
 import java.util.Map;
@@ -272,6 +274,20 @@ public class DefaultClientRequest implements ClientRequest {
     @Override
     public ConfigurableSpeechSpec speech() {
         return new DefaultConfigurableSpeechSpec(LlmClientType.SPEECH, this.llmProviderRegistry, this.getConfigureInfo());
+    }
+
+    /**
+     * Finalizes the configuration and returns a {@link ConfigurableSystemOneSpec} that
+     * can be further customized for SystemOne operations.
+     * <p>
+     * The returned spec carries all the settings gathered so far (provider, profile,
+     * context merging, etc.) packaged inside an {@link ProviderConfigureInfo}.
+     *
+     * @return A new configurable SystemOne spec instance, never null.
+     */
+    @Override
+    public ConfigurableSystemOneSpec systemOne() {
+        return new DefaultConfigurableSystemOneSpec(LlmClientType.SYSTEM_ONE, this.llmProviderRegistry, this.getConfigureInfo());
     }
 
 }

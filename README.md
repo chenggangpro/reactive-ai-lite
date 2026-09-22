@@ -23,7 +23,7 @@ Unlike traditional blocking HTTP clients that can lead to thread starvation duri
 ## ✨ Core Features
 
 - **🚀 Fully Reactive Execution Pipeline**: End-to-end non-blocking I/O utilizing Project Reactor (`Mono` and `Flux`). Delivers thread-safe interactions with maximum concurrency and zero context-switching overhead.
-- **🔌 Provider Agnostic & Unified Routing**: The core engine dynamically resolves handlers based on requested capabilities (`CHAT`, `EMBEDDING`, `SPEECH`, etc.). Swap providers without changing your core business logic.
+- **🔌 Provider Agnostic & Unified Routing**: The core engine dynamically resolves handlers based on requested capabilities (`CHAT`, `EMBEDDING`, `SPEECH`, `SYSTEM_ONE`, etc.). Swap providers without changing your core business logic.
 - **🌊 Native Streaming (SSE)**: First-class support for Server-Sent Events (SSE) via `Flux` for real-time token generation and immediate UX feedback.
 - **📜 Fluent Builder DSL**: Compose complex requests cleanly and type-safely using static values or dynamic context-aware lambdas.
 - **🛡️ Interceptor Chain**: A robust `ExchangeInterceptor` aspect-oriented middleware chain for request/response manipulation, security, logging, and metrics.
@@ -37,7 +37,7 @@ The library enforces strict separation of concerns through an SPI-based (Service
 
 1. **Execution Engine:** The central nervous system mapping blocking models to `Mono<GeneralResponse>` and streaming requests to `Flux<StreamResponse>`.
 2. **Interceptor Middleware:** A Chain-of-Responsibility pattern that intercepts requests and responses (useful for auth, metrics, and logging).
-3. **Provider Delegates:** The `LlmChatProviderDelegate` interface bridges the gap between the core framework and external provider REST APIs, handling payload normalization and stream parsing.
+3. **Provider Delegates:** The provider delegate interfaces bridge the gap between the core framework and external provider REST APIs, handling payload normalization and stream parsing.
 4. **Dynamic Registry:** The `LlmProviderRegistry` automatically resolves and loads the correct client implementations based on the requested capability.
 
 ![Architecture Diagram](architecture-diagram.png)
@@ -52,6 +52,7 @@ Reactive AI Lite currently offers out-of-the-box support for the following provi
 - **Anthropic** (`reactive-ai-lite-client-anthropic`)
 - **DeepSeek** (`reactive-ai-lite-client-deepseek`)
 - **Ollama** (`reactive-ai-lite-client-ollama`) — Perfect for local and enterprise deployments.
+- **TypeSafe AI** (`reactive-ai-lite-client-typesafeai`) — Fast decision-making & calibrated evaluation models (e.g. Jev System One).
 
 *Implementing a proprietary model is as simple as extending the `LlmChatProviderDelegate` and registering it via the provider registry.*
 
@@ -111,6 +112,15 @@ reactive:
             is-default: true
           speech:
             endpoint: /v1/audio/speech
+            is-default: true
+        typesafeai:
+          base-url: https://api.typesafe.ai
+          certifications:
+            - profile: default
+              token: ${TYPESAFE_AI_TOKEN}
+              is-default: true
+          system-one:
+            endpoint: /v1/systemone
             is-default: true
 ```
 
@@ -215,6 +225,48 @@ public Mono<byte[]> synthesizeSpeech(String text) {
 }
 ```
 
+### SystemOne Evaluation (`Mono`)
+Fast, structured, and calibrated probabilistic decisions and classification for software applications using TypeSafe AI's Jev model (evaluating `NOUL`, `CHOICE`, and `SCORE` propositions).
+
+```java
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneAnswer.ChoiceAnswer;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneAnswer.NoulAnswer;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneAnswer.ScoreAnswer;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneResponse;
+import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
+
+public Mono<SystemOneResponse> evaluateCustomerTicket(String ticketContent) {
+    return llmClient.systemOne()
+        .model(executionContext -> "jev-latest")
+        .state(ticketContent)
+        .questionsBuilder(questions -> questions
+            .question("is_urgent", SystemOneQuestion.newNoulBuilder("Does this convey urgency?")
+                .trueOption("Explicitly time-sensitive")
+                .falseOption("No urgency expressed")
+                .build())
+            .question("department", SystemOneQuestion.newChoiceBuilder("Which team should handle this?")
+                .option("billing", "Payments, invoicing, refunds")
+                .option("technical", "Bugs, outages, integrations")
+                .option("sales", "Pricing, upgrades, new accounts")
+                .build())
+            .question("frustration", SystemOneQuestion.newScoreBuilder("How frustrated is the customer?")
+                .level("Calm")
+                .level("Frustrated")
+                .level("Very angry")
+                .build()))
+        .general()
+        .execute();
+}
+```
+
+Extract typed evaluation answers directly from `SystemOneResponse`:
+
+```java
+NoulAnswer urgency = response.getAnswer("is_urgent", NoulAnswer.class);          // scale: 0.0 ~ 1.0
+ChoiceAnswer department = response.getAnswer("department", ChoiceAnswer.class);    // choice, confidence, probabilities
+ScoreAnswer frustration = response.getAnswer("frustration", ScoreAnswer.class);    // score, confidence, legendProbabilities
+```
+
 ---
 
 ## 🗂️ Project Structure
@@ -229,7 +281,8 @@ reactive-ai-lite/
 │   ├── reactive-ai-lite-client-anthropic/
 │   ├── reactive-ai-lite-client-deepseek/
 │   ├── reactive-ai-lite-client-ollama/
-│   └── reactive-ai-lite-client-openai/
+│   ├── reactive-ai-lite-client-openai/
+│   └── reactive-ai-lite-client-typesafeai/
 ├── pom.xml                              # Aggregator POM
 └── LICENSE                              # Apache 2.0 License
 ```
