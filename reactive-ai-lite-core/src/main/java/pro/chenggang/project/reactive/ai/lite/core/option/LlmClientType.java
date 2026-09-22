@@ -73,6 +73,16 @@ public enum LlmClientType {
      */
     SPEECH(Capability.SPEECH),
 
+    /**
+     * A client type for SystemOne operations, corresponding to the {@link Capability#SYSTEM_ONE} capability.
+     * <p>
+     * SystemOne clients evaluate input data against predefined questions in parallel, returning calibrated
+     * probabilities, scores, or classifications (such as Choice, Score, or Noul/Boolean structures)
+     * optimized for fast, reliable decision-making in software workflows.
+     * </p>
+     */
+    SYSTEM_ONE(Capability.SYSTEM_ONE),
+
 //    /**
 //     * A client for image generation or analysis, associated with {@link Capability#IMAGE}.
 //     */

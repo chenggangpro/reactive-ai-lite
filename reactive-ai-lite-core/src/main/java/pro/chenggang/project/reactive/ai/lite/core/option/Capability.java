@@ -22,6 +22,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSpeechProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSystemOneProvider;
 
 /**
  * Enumerates the distinct capabilities that an AI provider or model can support within the
@@ -68,6 +69,19 @@ public enum Capability {
      * Providers supporting this capability must implement {@link LlmSpeechProvider}.
      */
     SPEECH(LlmSpeechProvider.class),
+
+    /**
+     * Represents the "System One" AI capability designed to make fast, structured decisions for software
+     * instead of generating conversational text (e.g. TypeSafe AI's Jev model).
+     * <p>
+     * Unlike traditional Large Language Models (LLMs) that predict the next token to write a response,
+     * System One models evaluate unstructured input data (such as emails, code snippets, or logs)
+     * against predefined schemas in parallel, returning calibrated probabilities, scores, or classifications
+     * (such as Choice, Score, or Noul/Boolean responses) in 70 to 500 milliseconds with zero output token cost.
+     * Providers supporting this capability must implement {@link LlmSystemOneProvider}.
+     * </p>
+     */
+    SYSTEM_ONE(LlmSystemOneProvider.class),
 
 //    /**
 //     * Represents image generation or analysis capabilities.

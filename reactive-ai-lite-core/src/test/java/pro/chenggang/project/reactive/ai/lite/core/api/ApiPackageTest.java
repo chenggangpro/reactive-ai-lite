@@ -26,6 +26,7 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSystemOneSpec;
 
 import java.util.Map;
 
@@ -58,6 +59,12 @@ public class ApiPackageTest {
     }
 
     @Test
+    void testReactiveLlmClientDefaultSystemOne() {
+        ConfigurableSystemOneSpec systemOne = reactiveLlmClient.systemOne();
+        assertThat(systemOne).isNotNull();
+    }
+
+    @Test
     void testClientRequestConfiguration() {
         ClientRequest request = reactiveLlmClient.newRequest()
                 .parentAttributes(Map.of("key", "value"))
@@ -70,6 +77,7 @@ public class ApiPackageTest {
         assertThat(request).isNotNull();
         assertThat(request.chat()).isNotNull();
         assertThat(request.embedding()).isNotNull();
+        assertThat(request.systemOne()).isNotNull();
     }
 
     @Test

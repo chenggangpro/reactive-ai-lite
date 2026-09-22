@@ -49,7 +49,6 @@ import java.util.function.BiConsumer;
  * @author Gang Cheng
  * @version 0.1.0
  */
-@Getter
 @ToString
 @EqualsAndHashCode
 @Builder
@@ -60,6 +59,7 @@ public class LlmEmbeddingRequestData {
      * It may contain session information, correlation IDs, or other environment details
      * needed for logging, monitoring, or conditional processing.
      */
+    @Getter
     @NonNull
     private final ExecutionContext executionContext;
 
@@ -68,6 +68,7 @@ public class LlmEmbeddingRequestData {
      * {@code modelNameConfigure} function in {@link EmbeddingExecutionInfo}.
      * This is provider-dependent and will be sent as part of the API request.
      */
+    @Getter
     @NonNull
     private final String modelName;
 
@@ -83,6 +84,7 @@ public class LlmEmbeddingRequestData {
      * Must not be {@code null} but can be empty. Each element represents a separate
      * input or document whose vector representation will be computed by the model.
      */
+    @Getter
     @NonNull
     private final List<String> input;
 
@@ -91,6 +93,7 @@ public class LlmEmbeddingRequestData {
      * such a configuration. A {@code null} value means the model's default dimensionality
      * will be used.
      */
+    @Getter
     private final Integer dimensions;
 
     /**
@@ -99,6 +102,7 @@ public class LlmEmbeddingRequestData {
      * This enables fine-grained control over the request structure, such as adding
      * provider-specific parameters or overriding standard fields.
      */
+    @Getter
     private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure;
 
     /**
@@ -109,17 +113,6 @@ public class LlmEmbeddingRequestData {
      */
     public Optional<TokenCertification> getTokenCertification() {
         return Optional.ofNullable(tokenCertification);
-    }
-
-    /**
-     * Returns the customizer function that can intercept and modify the raw JSON payload.
-     * This function is invoked just before the HTTP call, receiving the current {@link ExecutionContext}
-     * and the mutable {@link ObjectNode} representing the request body.
-     *
-     * @return the raw request customizer, may be {@code null} if no customization is needed
-     */
-    public BiConsumer<ExecutionContext, ObjectNode> getRawRequestCustomizerConfigure() {
-        return rawRequestCustomizerConfigure;
     }
 
     /**

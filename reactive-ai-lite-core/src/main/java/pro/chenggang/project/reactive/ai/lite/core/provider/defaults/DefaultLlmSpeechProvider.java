@@ -57,9 +57,26 @@ import static pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType.S
 @Slf4j
 public class DefaultLlmSpeechProvider implements LlmSpeechProvider {
 
+    /**
+     * The provider-specific strategy delegate that encapsulates the actual HTTP communication details
+     * for speech generation and streaming.
+     */
     private final LlmSpeechProviderDelegate delegate;
+
+    /**
+     * The registry of interceptors that can observe and potentially modify the raw request body
+     * and response body for speech operations.
+     */
     private final LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry;
+
+    /**
+     * A map of profile names to their corresponding {@link TokenCertification} instances for multi-profile routing.
+     */
     protected final Map<String, TokenCertification> certificationMap = new ConcurrentHashMap<>();
+
+    /**
+     * The default {@link TokenCertification} to use when no profile is specified or when no matching entry exists.
+     */
     protected final TokenCertification defaultCertification;
 
     /**

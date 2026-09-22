@@ -20,8 +20,12 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.response.GeneralRes
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawStreamResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.StreamResponse;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.ChatExecutionInfo;
+import pro.chenggang.project.reactive.ai.lite.core.execution.values.SystemOneExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,22 +35,22 @@ class ProviderInterfacesTest {
     void testLlmChatProviderCapability() {
         LlmChatProvider provider = new LlmChatProvider() {
             @Override
-            public reactor.core.publisher.Mono<GeneralResponse> executeGeneral(ChatExecutionInfo executionInfo) {
+            public Mono<GeneralResponse> executeGeneral(ChatExecutionInfo executionInfo) {
                 return null;
             }
 
             @Override
-            public reactor.core.publisher.Mono<RawResponse> executeGeneralRaw(ChatExecutionInfo executionInfo) {
+            public Mono<RawResponse> executeGeneralRaw(ChatExecutionInfo executionInfo) {
                 return null;
             }
 
             @Override
-            public reactor.core.publisher.Flux<StreamResponse> executeStream(ChatExecutionInfo executionInfo) {
+            public Flux<StreamResponse> executeStream(ChatExecutionInfo executionInfo) {
                 return null;
             }
 
             @Override
-            public reactor.core.publisher.Flux<RawStreamResponse> executeStreamRaw(ChatExecutionInfo executionInfo) {
+            public Flux<RawStreamResponse> executeStreamRaw(ChatExecutionInfo executionInfo) {
                 return null;
             }
 
@@ -57,5 +61,27 @@ class ProviderInterfacesTest {
         };
 
         assertThat(provider.capability()).isEqualTo(Capability.CHAT);
+    }
+
+    @Test
+    void testLlmSystemOneProviderCapability() {
+        LlmSystemOneProvider provider = new LlmSystemOneProvider() {
+            @Override
+            public Mono<SystemOneResponse> executeSystemOne(SystemOneExecutionInfo executionInfo) {
+                return null;
+            }
+
+            @Override
+            public Mono<RawResponse> executeSystemOneRaw(SystemOneExecutionInfo executionInfo) {
+                return null;
+            }
+
+            @Override
+            public LlmProviderInfo info() {
+                return null;
+            }
+        };
+
+        assertThat(provider.capability()).isEqualTo(Capability.SYSTEM_ONE);
     }
 }

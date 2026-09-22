@@ -21,6 +21,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSpeechSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSystemOneSpec;
 
 import java.util.Map;
 import java.util.Objects;
@@ -202,5 +203,15 @@ public interface ClientRequest {
      * @return a new {@link ConfigurableSpeechSpec} instance with the shared settings applied
      */
     ConfigurableSpeechSpec speech();
+
+    /**
+     * Finalizes the common configuration and branches into SystemOne-specific settings. The
+     * returned {@link ConfigurableSystemOneSpec} allows further customization of SystemOne
+     * parameters such as model selection. After configuration, the spec can
+     * be executed to perform SystemOne operations.
+     *
+     * @return a new {@link ConfigurableSystemOneSpec} instance with the shared settings applied
+     */
+    ConfigurableSystemOneSpec systemOne();
 
 }

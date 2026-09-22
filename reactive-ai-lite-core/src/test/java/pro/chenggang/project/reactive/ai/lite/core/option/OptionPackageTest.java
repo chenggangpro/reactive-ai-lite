@@ -16,10 +16,13 @@
 package pro.chenggang.project.reactive.ai.lite.core.option;
 
 import org.junit.jupiter.api.Test;
+import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneAnswer;
 import pro.chenggang.project.reactive.ai.lite.core.message.chunk.TextStreamDataChunk;
+import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSpeechProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSystemOneProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,8 +57,10 @@ class OptionPackageTest {
         assertThat(Capability.CHAT.getProviderClass()).isEqualTo(LlmChatProvider.class);
         assertThat(Capability.EMBEDDING.getProviderClass()).isEqualTo(LlmEmbeddingProvider.class);
         assertThat(Capability.SPEECH.getProviderClass()).isEqualTo(LlmSpeechProvider.class);
-        assertThat(Capability.values()).containsExactly(Capability.CHAT, Capability.EMBEDDING, Capability.SPEECH);
+        assertThat(Capability.SYSTEM_ONE.getProviderClass()).isEqualTo(LlmSystemOneProvider.class);
+        assertThat(Capability.values()).containsExactly(Capability.CHAT, Capability.EMBEDDING, Capability.SPEECH, Capability.SYSTEM_ONE);
         assertThat(Capability.valueOf("CHAT")).isEqualTo(Capability.CHAT);
+        assertThat(Capability.valueOf("SYSTEM_ONE")).isEqualTo(Capability.SYSTEM_ONE);
     }
 
     @Test
@@ -63,8 +68,30 @@ class OptionPackageTest {
         assertThat(LlmClientType.CHAT.getCapability()).isEqualTo(Capability.CHAT);
         assertThat(LlmClientType.EMBEDDING.getCapability()).isEqualTo(Capability.EMBEDDING);
         assertThat(LlmClientType.SPEECH.getCapability()).isEqualTo(Capability.SPEECH);
-        assertThat(LlmClientType.values()).containsExactly(LlmClientType.CHAT, LlmClientType.EMBEDDING, LlmClientType.SPEECH);
+        assertThat(LlmClientType.SYSTEM_ONE.getCapability()).isEqualTo(Capability.SYSTEM_ONE);
+        assertThat(LlmClientType.values()).containsExactly(LlmClientType.CHAT, LlmClientType.EMBEDDING, LlmClientType.SPEECH, LlmClientType.SYSTEM_ONE);
         assertThat(LlmClientType.valueOf("CHAT")).isEqualTo(LlmClientType.CHAT);
+        assertThat(LlmClientType.valueOf("SYSTEM_ONE")).isEqualTo(LlmClientType.SYSTEM_ONE);
+    }
+
+    @Test
+    void testSystemOneType() {
+        assertThat(SystemOneType.NOUL.getValue()).isEqualTo("noul");
+        assertThat(SystemOneType.NOUL.getQuestionClass()).isEqualTo(SystemOneQuestion.NoulQuestion.class);
+        assertThat(SystemOneType.NOUL.getAnswerClass()).isEqualTo(SystemOneAnswer.NoulAnswer.class);
+
+        assertThat(SystemOneType.CHOICE.getValue()).isEqualTo("choice");
+        assertThat(SystemOneType.CHOICE.getQuestionClass()).isEqualTo(SystemOneQuestion.ChoiceQuestion.class);
+        assertThat(SystemOneType.CHOICE.getAnswerClass()).isEqualTo(SystemOneAnswer.ChoiceAnswer.class);
+
+        assertThat(SystemOneType.SCORE.getValue()).isEqualTo("score");
+        assertThat(SystemOneType.SCORE.getQuestionClass()).isEqualTo(SystemOneQuestion.ScoreQuestion.class);
+        assertThat(SystemOneType.SCORE.getAnswerClass()).isEqualTo(SystemOneAnswer.ScoreAnswer.class);
+
+        assertThat(SystemOneType.values()).containsExactly(SystemOneType.NOUL, SystemOneType.CHOICE, SystemOneType.SCORE);
+        assertThat(SystemOneType.valueOf("NOUL")).isEqualTo(SystemOneType.NOUL);
+        assertThat(SystemOneType.valueOf("CHOICE")).isEqualTo(SystemOneType.CHOICE);
+        assertThat(SystemOneType.valueOf("SCORE")).isEqualTo(SystemOneType.SCORE);
     }
 
     @Test

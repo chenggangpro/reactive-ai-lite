@@ -18,6 +18,7 @@ package pro.chenggang.project.reactive.ai.lite.core.api;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableChatSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableEmbeddingSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSpeechSpec;
+import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSystemOneSpec;
 
 /**
  * Reactive LLM (Large Language Model) client interface for interacting with AI services.
@@ -120,6 +121,22 @@ public interface ReactiveLlmClient {
      */
     default ConfigurableSpeechSpec speech() {
         return newRequest().defaultProvider().defaultProfile().speech();
+    }
+
+    /**
+     * A convenience method to start a SystemOne request using the default provider and
+     * default profile immediately.
+     * <p>
+     * This is equivalent to calling
+     * <code>newRequest().defaultProvider().defaultProfile().systemOne()</code> and is
+     * useful when the application only uses the default SystemOne model. The returned
+     * {@link ConfigurableSystemOneSpec} provides methods to configure model options.
+     * </p>
+     *
+     * @return a {@link ConfigurableSystemOneSpec} instance ready to be configured and executed
+     */
+    default ConfigurableSystemOneSpec systemOne() {
+        return newRequest().defaultProvider().defaultProfile().systemOne();
     }
 
 }
