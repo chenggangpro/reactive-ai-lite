@@ -159,10 +159,10 @@ public sealed interface SystemOneQuestion permits NoulQuestion, ChoiceQuestion, 
 
         private NoulQuestion(@NonNull SystemOneContent<?> instructions, NoulCriteria criteria) {
             if (instructions instanceof SystemOneContent.NullContent) {
-                throw new IllegalArgumentException("Instructions can not be null content");
+                throw new IllegalArgumentException("Instructions cannot be null content");
             }
             if (instructions instanceof SystemOneContent.TextContent textContent && Objects.isNull(textContent.getValue())) {
-                throw new IllegalArgumentException("Instructions can not be null text content");
+                throw new IllegalArgumentException("Instructions cannot be null text content");
             }
             this.instructions = instructions;
             this.criteria = criteria;
@@ -299,10 +299,10 @@ public sealed interface SystemOneQuestion permits NoulQuestion, ChoiceQuestion, 
         @SuppressWarnings("unchecked")
         private ChoiceQuestion(@NonNull SystemOneContent<?> instructions, List<Entry<String, SystemOneContent<?>>> criteria) {
             if (instructions instanceof SystemOneContent.NullContent) {
-                throw new IllegalArgumentException("Instructions can not be null content");
+                throw new IllegalArgumentException("Instructions cannot be null content");
             }
             if (instructions instanceof SystemOneContent.TextContent textContent && Objects.isNull(textContent.getValue())) {
-                throw new IllegalArgumentException("Instructions can not be null text content");
+                throw new IllegalArgumentException("Instructions cannot be null text content");
             }
             this.instructions = instructions;
             if (Objects.nonNull(criteria) && !criteria.isEmpty()) {
@@ -407,10 +407,10 @@ public sealed interface SystemOneQuestion permits NoulQuestion, ChoiceQuestion, 
 
         private ScoreQuestion(@NonNull SystemOneContent<?> instructions, List<SystemOneContent<?>> criteria) {
             if (instructions instanceof SystemOneContent.NullContent) {
-                throw new IllegalArgumentException("Instructions can not be null content");
+                throw new IllegalArgumentException("Instructions cannot be null content");
             }
             if (instructions instanceof SystemOneContent.TextContent textContent && Objects.isNull(textContent.getValue())) {
-                throw new IllegalArgumentException("Instructions can not be null text content");
+                throw new IllegalArgumentException("Instructions cannot be null text content");
             }
             this.instructions = instructions;
             this.criteria = Objects.nonNull(criteria) ? List.copyOf(criteria) : List.of();

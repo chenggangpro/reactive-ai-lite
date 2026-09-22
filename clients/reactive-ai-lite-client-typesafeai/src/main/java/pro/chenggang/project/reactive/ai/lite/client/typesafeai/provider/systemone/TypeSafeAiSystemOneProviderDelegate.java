@@ -469,11 +469,11 @@ public class TypeSafeAiSystemOneProviderDelegate implements LlmSystemOneProvider
     }
 
     /**
-     * Converts {@link SystemOneContent} into plain Java representation (String, Map, List, or null)
+     * Converts {@link SystemOneContent} into a plain Java representation (String, Map, List, or null)
      * suitable for Jackson serialization.
      *
      * @param content the content container; may be null
-     * @return unwrapped Java content value, or null if empty
+     * @return the unwrapped Java content value, or null if empty
      */
     protected Object convertContent(SystemOneContent<?> content) {
         if (Objects.isNull(content) || content instanceof SystemOneContent.NullContent) {
