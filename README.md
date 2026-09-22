@@ -226,7 +226,7 @@ public Mono<byte[]> synthesizeSpeech(String text) {
 ```
 
 ### SystemOne Evaluation (`Mono`)
-Fast, structured, and calibrated probabilistic decisions and classification for software applications using TypeSafe AI's Jev model (evaluating `NOUL`, `CHOICE`, and `SCORE` propositions).
+Fast, structured, and calibrated probabilistic decisions and classifications for software applications using TypeSafe AI's Jev model (evaluating `NOUL`, `CHOICE`, and `SCORE` propositions).
 
 ```java
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneAnswer.ChoiceAnswer;

@@ -222,7 +222,7 @@ public class LlmSystemOneRequestData {
         }
 
         /**
-         * Initializes and constructs the {@link LlmSystemOneRequestData} reactively from the contextual execution context.
+         * Initializes and constructs the {@link LlmSystemOneRequestData} reactively from the reactive execution context.
          *
          * @return a {@link Mono} emitting the constructed {@link LlmSystemOneRequestData}
          */

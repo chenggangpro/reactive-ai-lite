@@ -50,7 +50,7 @@ public final class SystemOneQuestions {
 
     private SystemOneQuestions(@NonNull List<Entry<String, SystemOneQuestion>> questionList) {
         if (questionList.isEmpty()) {
-            throw new IllegalArgumentException("At least one question should configured.");
+            throw new IllegalArgumentException("At least one question should be configured.");
         }
         this.questionList = questionList;
     }

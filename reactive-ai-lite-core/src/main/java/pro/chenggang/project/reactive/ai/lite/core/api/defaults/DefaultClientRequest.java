@@ -239,7 +239,7 @@ public class DefaultClientRequest implements ClientRequest {
      * can be further customized for chat operations.
      * <p>
      * The returned spec carries all the settings gathered so far (provider, profile,
-     * context merging, etc.) packaged inside an {@link ProviderConfigureInfo}.
+     * context merging, etc.) packaged inside a {@link ProviderConfigureInfo}.
      *
      * @return A new configurable chat spec instance, never null.
      */
@@ -253,7 +253,7 @@ public class DefaultClientRequest implements ClientRequest {
      * can be further customized for embedding operations.
      * <p>
      * The returned spec carries all the settings gathered so far (provider, profile,
-     * context merging, etc.) packaged inside an {@link ProviderConfigureInfo}.
+     * context merging, etc.) packaged inside a {@link ProviderConfigureInfo}.
      *
      * @return A new configurable embedding spec instance, never null.
      */
@@ -267,7 +267,7 @@ public class DefaultClientRequest implements ClientRequest {
      * can be further customized for speech operations.
      * <p>
      * The returned spec carries all the settings gathered so far (provider, profile,
-     * context merging, etc.) packaged inside an {@link ProviderConfigureInfo}.
+     * context merging, etc.) packaged inside a {@link ProviderConfigureInfo}.
      *
      * @return A new configurable speech spec instance, never null.
      */
@@ -281,7 +281,7 @@ public class DefaultClientRequest implements ClientRequest {
      * can be further customized for SystemOne operations.
      * <p>
      * The returned spec carries all the settings gathered so far (provider, profile,
-     * context merging, etc.) packaged inside an {@link ProviderConfigureInfo}.
+     * context merging, etc.) packaged inside a {@link ProviderConfigureInfo}.
      *
      * @return A new configurable SystemOne spec instance, never null.
      */

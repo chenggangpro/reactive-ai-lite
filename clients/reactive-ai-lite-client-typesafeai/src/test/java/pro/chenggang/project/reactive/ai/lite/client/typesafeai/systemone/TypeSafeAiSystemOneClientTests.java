@@ -56,7 +56,7 @@ public class TypeSafeAiSystemOneClientTests extends TypeSafeAiLlmClientTestAppli
 
     /**
      * Tests SystemOne general execution using the complete example from the TypeSafe AI API reference.
-     * Evaluates a state containing customer support message against Noul, Choice, and Score questions.
+     * Evaluates a state containing a customer support message against Noul, Choice, and Score questions.
      */
     @Test
     @DisplayName("Test SystemOne general execution with Noul, Choice, and Score questions from API reference")
