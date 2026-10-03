@@ -58,7 +58,7 @@ class DefaultLlmChatProviderTest {
         LlmChatProviderDelegate delegate = mock(LlmChatProviderDelegate.class);
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -75,7 +75,7 @@ class DefaultLlmChatProviderTest {
         LlmChatProviderDelegate delegate = mock(LlmChatProviderDelegate.class);
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification notDefaultCert = mock(TokenCertification.class);
         when(notDefaultCert.isDefault()).thenReturn(false);
         when(notDefaultCert.profile()).thenReturn("not-default");
@@ -103,7 +103,7 @@ class DefaultLlmChatProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -116,18 +116,18 @@ class DefaultLlmChatProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         // retrieve is called directly on requestBodySpec because bodyValue returns RequestHeadersSpec
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         ObjectNode responseNode = JsonRelatedUtil.OBJECT_MAPPER.createObjectNode();
         when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(responseNode));
-        
+
         GeneralResponse generalResponse = mock(GeneralResponse.class);
         when(delegate.extractGeneralResponse(any(), any())).thenReturn(Mono.just(generalResponse));
 
@@ -142,27 +142,27 @@ class DefaultLlmChatProviderTest {
         StepVerifier.create(provider.executeGeneral(executionInfo).contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .expectNext(generalResponse)
                 .verifyComplete();
-                
+
         verify(delegate).checkTokenCertification(any());
-        
+
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Predicate<HttpStatusCode>> statusCaptor = ArgumentCaptor.forClass(Predicate.class);
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Function<ClientResponse, Mono<? extends Throwable>>> functionCaptor = ArgumentCaptor.forClass(Function.class);
         verify(responseSpec).onStatus(statusCaptor.capture(), functionCaptor.capture());
-        
+
         Predicate<HttpStatusCode> predicate = statusCaptor.getValue();
         assertThat(predicate.test(org.springframework.http.HttpStatus.BAD_REQUEST)).isTrue();
         assertThat(predicate.test(org.springframework.http.HttpStatus.OK)).isFalse();
     }
-    
+
     @Test
     void testExecuteGeneralRaw() {
         LlmChatProviderDelegate delegate = mock(LlmChatProviderDelegate.class);
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -175,14 +175,14 @@ class DefaultLlmChatProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         ObjectNode responseNode = JsonRelatedUtil.OBJECT_MAPPER.createObjectNode();
         responseNode.put("key", "value");
         when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(responseNode));
@@ -202,7 +202,7 @@ class DefaultLlmChatProviderTest {
         StepVerifier.create(provider.executeGeneralRaw(executionInfo).contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .expectNextMatches(rawResponse -> rawResponse.getResponseBody().get("key").asText().equals("value"))
                 .verifyComplete();
-                
+
         assertThat(customizerCalled.get()).isTrue();
     }
 
@@ -212,7 +212,7 @@ class DefaultLlmChatProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -222,7 +222,7 @@ class DefaultLlmChatProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
@@ -232,7 +232,7 @@ class DefaultLlmChatProviderTest {
                 .modelNameConfigure(c -> "model")
                 .textMessageConfigure(c -> "test")
                 .build();
-                
+
         LlmChatRequestData data = LlmChatRequestData.LlmChatRequestDataInitializer
                 .of(provider.certificationMap, provider.defaultCertification, providerInfo, executionInfo, false)
                 .initialize()
@@ -250,7 +250,7 @@ class DefaultLlmChatProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -263,16 +263,16 @@ class DefaultLlmChatProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         when(responseSpec.bodyToFlux(String.class)).thenReturn(Flux.just("{}"));
-        
+
         JsonStreamChunkSlide slide = JsonStreamChunkSlide.builder()
                 .streamDataType(StreamDataType.TOOL_CALL)
                 .dataContent(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode())
@@ -293,14 +293,14 @@ class DefaultLlmChatProviderTest {
         StepVerifier.create(provider.executeStream(executionInfo).contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .verifyComplete();
     }
-    
+
     @Test
     void testExecuteStreamRaw() {
         LlmChatProviderDelegate delegate = mock(LlmChatProviderDelegate.class);
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -313,16 +313,16 @@ class DefaultLlmChatProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         when(responseSpec.bodyToFlux(String.class)).thenReturn(Flux.just("{}"));
-        
+
         JsonStreamChunkSlide slide = JsonStreamChunkSlide.builder()
                 .streamDataType(StreamDataType.TOOL_CALL)
                 .dataContent(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode())
@@ -342,6 +342,7 @@ class DefaultLlmChatProviderTest {
                 .expectNextCount(1)
                 .verifyComplete();
     }
+
     @Test
     void testNonNullChecks() {
         LlmChatProviderDelegate delegate = mock(LlmChatProviderDelegate.class);
@@ -349,16 +350,16 @@ class DefaultLlmChatProviderTest {
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
         LlmProviderInterceptorRegistry registry = mock(LlmProviderInterceptorRegistry.class);
-        
+
         assertThatThrownBy(() -> new DefaultLlmChatProvider(null, List.of(defaultCert), registry))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DefaultLlmChatProvider(delegate, null, registry))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DefaultLlmChatProvider(delegate, List.of(defaultCert), null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         DefaultLlmChatProvider provider = new DefaultLlmChatProvider(delegate, List.of(defaultCert), registry);
-        
+
         assertThatThrownBy(() -> provider.executeGeneral(null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> provider.executeGeneralRaw(null))
@@ -372,6 +373,7 @@ class DefaultLlmChatProviderTest {
         assertThatThrownBy(() -> provider.generateRawRequestBody(null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
     @Test
     void testPrivateInitializeLlmRequestDataNull() throws Exception {
         LlmChatProviderDelegate delegate = mock(LlmChatProviderDelegate.class);

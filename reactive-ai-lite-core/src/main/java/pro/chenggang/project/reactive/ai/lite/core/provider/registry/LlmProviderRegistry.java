@@ -72,8 +72,8 @@ public interface LlmProviderRegistry {
      * @param providerFilter a predicate applied to each chat provider’s metadata
      * @return a {@link Mono} emitting the first matching {@link LlmChatProvider}
      * @deprecated since 0.1.0, use {@link #getProvider(Capability, Class, Predicate)}
-     *             with {@code Capability.CHAT} and {@code LlmChatProvider.class} for
-     *             a more type-safe and extensible selection mechanism.
+     * with {@code Capability.CHAT} and {@code LlmChatProvider.class} for
+     * a more type-safe and extensible selection mechanism.
      */
     @Deprecated
     Mono<LlmChatProvider> getChatProvider(@NonNull Predicate<LlmProviderInfo> providerFilter);

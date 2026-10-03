@@ -28,3 +28,5 @@ reactive:
         ollama:
           embedding:
             enabled: true
+          system-one:
+            enabled: true

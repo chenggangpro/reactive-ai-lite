@@ -60,7 +60,6 @@ import java.util.function.Function;
  *
  * @param <I> the specific type of {@link ExecutionInfo} this spec creates (e.g., a chat‑oriented
  *            or embedding‑oriented execution info)
- *
  * @author Gang Cheng
  * @version 0.1.0
  */
@@ -205,7 +204,7 @@ public abstract class ExecutionSpec<I extends ExecutionInfo> {
      *                         attributes and serves as input to all dynamic selection functions;
      *                         must not be {@code null}
      * @return a new {@link ExecutionInfo} instance configured according to this specification
-     *         and the given context
+     * and the given context
      */
     public abstract I newExecutionInfo(@NonNull ExecutionContext executionContext);
 }

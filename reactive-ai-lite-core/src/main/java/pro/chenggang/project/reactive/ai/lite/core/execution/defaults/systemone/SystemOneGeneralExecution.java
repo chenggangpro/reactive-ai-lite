@@ -38,10 +38,10 @@ import reactor.core.publisher.Mono;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see SystemOneExecution
  * @see LlmProviderExecutor
  * @see LlmSystemOneProvider
+ * @since 0.1.0
  */
 public class SystemOneGeneralExecution implements SystemOneExecution {
 

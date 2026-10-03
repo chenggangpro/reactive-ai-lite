@@ -68,7 +68,7 @@ public interface AttributesAbility {
      * @param <T>  the expected type of the attribute value
      * @param name the case-sensitive attribute key; must not be {@code null}
      * @return the attribute value cast to type {@code T}, or {@code null} if the
-     *         attribute is absent
+     * attribute is absent
      */
     @SuppressWarnings("unchecked")
     default <T> T getAttribute(@NonNull String name) {
@@ -89,7 +89,7 @@ public interface AttributesAbility {
      * @param name         the case-sensitive attribute key; must not be {@code null}
      * @param defaultValue the value to return if the attribute is absent; must not be {@code null}
      * @return the existing attribute value cast to type {@code T}, or {@code defaultValue}
-     *         if the attribute is missing
+     * if the attribute is missing
      */
     @SuppressWarnings("unchecked")
     default <T> T getAttributeOrDefault(@NonNull String name, @NonNull T defaultValue) {

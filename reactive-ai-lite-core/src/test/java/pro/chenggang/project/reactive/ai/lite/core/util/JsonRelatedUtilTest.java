@@ -70,19 +70,19 @@ class JsonRelatedUtilTest {
         // Since JsonRelatedUtil configures OBJECT_MAPPER to coerce empty strings to null for enums,
         // we should test this specific configuration.
         String json = "{\"testEnum\":\"\"}";
-        
+
         TestDto result = JsonRelatedUtil.OBJECT_MAPPER.readValue(json, TestDto.class);
-        
+
         assertThat(result).isNotNull();
         assertThat(result.getTestEnum()).isNull();
     }
-    
+
     @Test
     void testEnumCoercionValidValue() throws Exception {
         String json = "{\"testEnum\":\"VALUE_ONE\"}";
-        
+
         TestDto result = JsonRelatedUtil.OBJECT_MAPPER.readValue(json, TestDto.class);
-        
+
         assertThat(result).isNotNull();
         assertThat(result.getTestEnum()).isEqualTo(TestEnum.VALUE_ONE);
     }
@@ -100,6 +100,7 @@ class JsonRelatedUtilTest {
     }
 
     enum TestEnum {
-        VALUE_ONE, VALUE_TWO
+        VALUE_ONE,
+        VALUE_TWO
     }
 }

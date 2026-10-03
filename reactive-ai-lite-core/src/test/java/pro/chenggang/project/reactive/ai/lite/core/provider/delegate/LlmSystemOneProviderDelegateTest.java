@@ -190,6 +190,7 @@ class LlmSystemOneProviderDelegateTest {
         // Image attachment with null mimeType: mock Base64Attachment returning null
         Base64Attachment nullMimeTypeImage = mock(Base64Attachment.class);
         when(nullMimeTypeImage.mimeType()).thenReturn(null);
+        when(nullMimeTypeImage.base64Content()).thenReturn("aGVsbG8=");
         LlmSystemOneRequestData dataWithNullMimeType = LlmSystemOneRequestData.builder()
                 .executionContext(mock(ExecutionContext.class))
                 .modelName("test-model")

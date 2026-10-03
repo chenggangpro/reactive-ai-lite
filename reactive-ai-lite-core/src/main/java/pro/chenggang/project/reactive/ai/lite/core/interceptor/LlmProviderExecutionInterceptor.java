@@ -52,7 +52,7 @@ public interface LlmProviderExecutionInterceptor extends Ordered {
      * </p>
      *
      * @return a set of supported client types, or {@code null}/empty set to indicate
-     *         that this interceptor should not be applied
+     * that this interceptor should not be applied
      */
     Set<LlmClientType> supportedClient();
 

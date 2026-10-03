@@ -28,11 +28,11 @@ class ToolResultMessageTest {
     void testToolResultMessageBuilder() {
         assertThatThrownBy(() -> ToolResultMessage.newToolResultMessage(null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         ToolResultMessage msg1 = ToolResultMessage.newToolResultMessage("id1")
                 .content("result")
                 .build();
-                
+
         assertThat(msg1.getRole()).isEqualTo(Role.TOOL.getValue());
         assertThat(msg1.toolCallId()).isEqualTo("id1");
         assertThat(msg1.content()).isEqualTo("result");

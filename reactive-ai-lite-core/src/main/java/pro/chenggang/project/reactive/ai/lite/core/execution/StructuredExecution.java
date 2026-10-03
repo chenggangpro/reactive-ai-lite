@@ -49,10 +49,10 @@ import reactor.core.publisher.Mono;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see RawResponseConverter
  * @see RawResponse
  * @see StructuredResponse
+ * @since 0.1.0
  */
 public interface StructuredExecution {
 
@@ -67,7 +67,7 @@ public interface StructuredExecution {
      * @param resultType the target class (must have a no-arg constructor and be compatible with Jackson)
      * @param <R>        the type of the expected response object
      * @return a {@link Mono} emitting a {@link StructuredResponse} that holds the deserialized object,
-     *         or an error signal if the response cannot be parsed
+     * or an error signal if the response cannot be parsed
      */
     <R> Mono<StructuredResponse<R>> execute(@NonNull Class<R> resultType);
 

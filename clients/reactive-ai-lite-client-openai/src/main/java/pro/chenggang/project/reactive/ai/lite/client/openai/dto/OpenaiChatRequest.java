@@ -29,9 +29,9 @@ import java.util.List;
 
 /**
  * Represents a chat completion request specifically formatted for the OpenAI API.
- * Encapsulates all configuration parameters supported by OpenAI, including messages, 
+ * Encapsulates all configuration parameters supported by OpenAI, including messages,
  * tool choices, stream options, and specific model configurations.
- * 
+ *
  * @author Gang Cheng
  * @version 0.1.0
  */

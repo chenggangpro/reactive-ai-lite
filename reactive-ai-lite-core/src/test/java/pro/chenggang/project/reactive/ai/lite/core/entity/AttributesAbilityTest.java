@@ -46,7 +46,7 @@ class AttributesAbilityTest {
         assertThat(ability.getAttributeOrDefault("key2", "default")).isEqualTo("default");
 
         assertThat(ability.attributesStream()).hasSize(1);
-        
+
         Map<String, Object> collected = new HashMap<>();
         ability.forEachAttribute(collected::put);
         assertThat(collected).containsEntry("key1", "value1");

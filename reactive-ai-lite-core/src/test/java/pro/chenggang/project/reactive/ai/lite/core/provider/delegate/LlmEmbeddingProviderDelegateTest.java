@@ -63,7 +63,7 @@ class LlmEmbeddingProviderDelegateTest {
                 .profile("test")
                 .token("test-token")
                 .build();
-        
+
         delegate.applyStandardTokenCertification(spec, bearer);
         verify(spec).headers(org.mockito.ArgumentMatchers.any());
 
@@ -73,7 +73,7 @@ class LlmEmbeddingProviderDelegateTest {
                 .headerName("X-Api-Key")
                 .token("test-key")
                 .build();
-        
+
         delegate.applyStandardTokenCertification(spec2, header);
         verify(spec2).headers(org.mockito.ArgumentMatchers.any());
     }

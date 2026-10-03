@@ -68,24 +68,28 @@ public class TypeSafeAiSystemOneClientTests extends TypeSafeAiLlmClientTestAppli
                         .question("is_urgent", SystemOneQuestion.newNoulBuilder("Does this convey urgency?")
                                 .trueOption("Explicitly time-sensitive")
                                 .falseOption("No urgency expressed")
-                                .build())
+                                .build()
+                        )
                         .question("department", SystemOneQuestion.newChoiceBuilder("Which team should handle this?")
                                 .option("billing", "Payments, invoicing, refunds")
                                 .option("technical", "Bugs, outages, integrations")
                                 .option("sales", "Pricing, upgrades, new accounts")
-                                .build())
+                                .build()
+                        )
                         .question("frustration", SystemOneQuestion.newScoreBuilder("How frustrated is the customer?")
                                 .level("Calm")
                                 .level("Frustrated")
                                 .level("Very angry")
-                                .build()))
+                                .build()
+                        ))
                 .general()
                 .execute()
                 .as(StepVerifier::create)
                 .consumeNextWith(response -> {
                     try {
                         log.info("SystemOne general response:\n{}",
-                                JsonRelatedUtil.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(response));
+                                JsonRelatedUtil.OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(response)
+                        );
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -133,14 +137,16 @@ public class TypeSafeAiSystemOneClientTests extends TypeSafeAiLlmClientTestAppli
                 .model(model)
                 .state("Help! My payouts have been failing for 3 days.")
                 .question("is_urgent", SystemOneQuestion.newNoulBuilder("Does this convey urgency?")
-                        .build())
+                        .build()
+                )
                 .general()
                 .executeRaw()
                 .as(StepVerifier::create)
                 .consumeNextWith(rawResponse -> {
                     try {
                         log.info("SystemOne raw response:\n{}",
-                                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rawResponse));
+                                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rawResponse)
+                        );
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -165,7 +171,8 @@ public class TypeSafeAiSystemOneClientTests extends TypeSafeAiLlmClientTestAppli
                 .model(model)
                 .state("System load is at 98%, memory usage at 95%, response latency spiked to 4500ms.")
                 .question("is_incident", SystemOneQuestion.newNoulBuilder("Is this an active production incident?")
-                        .build())
+                        .build()
+                )
                 .general()
                 .execute()
                 .as(StepVerifier::create)

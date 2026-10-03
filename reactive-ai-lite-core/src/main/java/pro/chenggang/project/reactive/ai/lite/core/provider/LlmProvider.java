@@ -85,7 +85,7 @@ public interface LlmProvider {
      * </p>
      *
      * @return the {@link LlmProviderInfo} containing this provider's identity and
-     *         configuration; never {@code null}
+     * configuration; never {@code null}
      */
     LlmProviderInfo info();
 }

@@ -95,7 +95,7 @@ class DefaultLlmSpeechProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -108,14 +108,14 @@ class DefaultLlmSpeechProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         DataBuffer mockBuffer = DefaultDataBufferFactory.sharedInstance.wrap("audio-binary-data".getBytes());
         when(delegate.extractGeneralResponse(any(), any())).thenReturn(Mono.just(mockBuffer));
 
@@ -147,7 +147,7 @@ class DefaultLlmSpeechProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -160,14 +160,14 @@ class DefaultLlmSpeechProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         DataBuffer chunk1 = DefaultDataBufferFactory.sharedInstance.wrap("chunk1".getBytes());
         DataBuffer chunk2 = DefaultDataBufferFactory.sharedInstance.wrap("chunk2".getBytes());
         when(delegate.extractStreamResponse(any(), any())).thenReturn(Flux.just(chunk1, chunk2));

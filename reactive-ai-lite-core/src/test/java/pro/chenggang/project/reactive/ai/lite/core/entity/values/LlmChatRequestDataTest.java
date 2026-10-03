@@ -35,35 +35,34 @@ class LlmChatRequestDataTest {
 
 
     @Test
-
     void testProtectedMethodsNullChecks() throws Exception {
         ChatExecutionInfo executionInfo = ChatExecutionInfo.builder().modelNameConfigure(ctx -> "test").build();
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
         java.util.Map<String, TokenCertification> certificationMap = Collections.emptyMap();
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer initializer = LlmChatRequestData.LlmChatRequestDataInitializer.of(certificationMap, defaultCert, providerInfo, executionInfo, false);
-        
+
         String[] methods = {
-            "loadTokenCertification", "loadModelName", "loadSystemMessage", "loadHistoricalMessage",
-            "loadUserMessage", "loadMediaMessage", "loadTemperature", "loadTopP", "loadIncludeUsage",
-            "loadReasoning", "loadMaxCompletionTokens", "loadToolDefinitions", "loadToolChoice", "loadToolResultMessage"
+                "loadTokenCertification", "loadModelName", "loadSystemMessage", "loadHistoricalMessage",
+                "loadUserMessage", "loadMediaMessage", "loadTemperature", "loadTopP", "loadIncludeUsage",
+                "loadReasoning", "loadMaxCompletionTokens", "loadToolDefinitions", "loadToolChoice", "loadToolResultMessage"
         };
-        
+
         ExecutionContext ctx = ExecutionContext.newContext();
         for (String methodName : methods) {
             java.lang.reflect.Method method = LlmChatRequestData.LlmChatRequestDataInitializer.class.getDeclaredMethod(methodName, ChatExecutionInfo.class, ExecutionContext.class);
             method.setAccessible(true);
-            
+
             // arg1 null
             assertThatThrownBy(() -> method.invoke(initializer, null, ctx))
-                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
-                .hasCauseInstanceOf(IllegalArgumentException.class);
-                
+                    .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                    .hasCauseInstanceOf(IllegalArgumentException.class);
+
             // arg2 null
             assertThatThrownBy(() -> method.invoke(initializer, executionInfo, null))
-                .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(java.lang.reflect.InvocationTargetException.class)
+                    .hasCauseInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -115,8 +114,8 @@ class LlmChatRequestDataTest {
         );
 
         assertThatThrownBy(() -> initializer.initialize()
-                        .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
-                        .block())
+                .contextWrite(ctx -> ctx.put(ExecutionContext.class, executionContext))
+                .block())
                 .isInstanceOf(NoProfileFoundLlmClientException.class);
     }
 
@@ -124,16 +123,16 @@ class LlmChatRequestDataTest {
     void testInitializerFull() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
-                .modelNameConfigure(__ ->"gpt-4")
+                .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
-                .systemMessageConfigure(__ ->"system-msg")
-                .textMessageConfigure(__ ->"user-msg")
-                .temperatureConfigure(__ ->0.8)
-                .topPConfigure(__ ->0.9)
-                .includeUsageConfigure(__ ->true)
-                .reasoningConfigure(__ ->"thinking")
-                .maxCompletionTokensConfigure(__ ->100)
-                .toolChoiceConfigure(__ ->"auto")
+                .systemMessageConfigure(__ -> "system-msg")
+                .textMessageConfigure(__ -> "user-msg")
+                .temperatureConfigure(__ -> 0.8)
+                .topPConfigure(__ -> 0.9)
+                .includeUsageConfigure(__ -> true)
+                .reasoningConfigure(__ -> "thinking")
+                .maxCompletionTokensConfigure(__ -> 100)
+                .toolChoiceConfigure(__ -> "auto")
                 .structuredOutputType(String.class)
                 .responseJsonSchema("{}")
                 .build();
@@ -179,9 +178,9 @@ class LlmChatRequestDataTest {
         when(toolNoName.name()).thenReturn("");
 
         ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
-                .modelNameConfigure(__ ->"gpt-4")
+                .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(true)
-                .toolsConfigure(__ ->List.of(tool1, toolDuplicate, toolNoName))
+                .toolsConfigure(__ -> List.of(tool1, toolDuplicate, toolNoName))
                 .build();
 
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
@@ -207,7 +206,7 @@ class LlmChatRequestDataTest {
     void testInitializerWithProfilePicker() {
         ExecutionContext executionContext = ExecutionContext.newContext();
         ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
-                .modelNameConfigure(__ ->"gpt-4")
+                .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "custom")
                 .build();
@@ -372,23 +371,24 @@ class LlmChatRequestDataTest {
         assertThat(data.getToolDefinitions()).isEmpty();
         assertThat(data.getToolResultMessages()).isEmpty();
     }
+
     @Test
     void testInitializerExceptions() {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(null, null, null, null, false))
                 .isInstanceOf(IllegalArgumentException.class);
-        
+
         ChatExecutionInfo executionInfo = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(false)
                 .build();
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
-        
+
         LlmChatRequestData.LlmChatRequestDataInitializer init1 = LlmChatRequestData.LlmChatRequestDataInitializer.of(
                 Collections.emptyMap(), null, providerInfo, executionInfo, false
         );
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> init1.initialize().contextWrite(ctx -> ctx.put(ExecutionContext.class, ExecutionContext.newContext())).block())
                 .isInstanceOf(pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException.class);
-                
+
         ChatExecutionInfo executionInfo2 = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> "gpt-4")
                 .defaultProfile(false)
@@ -399,7 +399,7 @@ class LlmChatRequestDataTest {
         );
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> init2.initialize().contextWrite(ctx -> ctx.put(ExecutionContext.class, ExecutionContext.newContext())).block())
                 .isInstanceOf(pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException.class);
-                
+
         ChatExecutionInfo executionInfo3 = ChatExecutionInfo.builder()
                 .modelNameConfigure(__ -> null)
                 .defaultProfile(true)
@@ -418,7 +418,7 @@ class LlmChatRequestDataTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         TokenCertification defaultCert = mock(TokenCertification.class);
         java.util.Map<String, TokenCertification> certificationMap = Collections.emptyMap();
-        
+
         assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(null, defaultCert, providerInfo, executionInfo, false)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(certificationMap, defaultCert, null, executionInfo, false)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> LlmChatRequestData.LlmChatRequestDataInitializer.of(certificationMap, defaultCert, providerInfo, null, false)).isInstanceOf(IllegalArgumentException.class);

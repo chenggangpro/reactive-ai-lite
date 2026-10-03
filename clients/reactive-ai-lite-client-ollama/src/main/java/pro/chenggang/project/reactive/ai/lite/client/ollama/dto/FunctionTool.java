@@ -31,8 +31,8 @@ import java.util.Map;
  * It holds the tool type (always {@code function}) and the detailed function definition,
  * including its name, description, parameters, and optional strict mode flag.
  * <p>
- *     Instances are created via a builder and are immutable; all fields are required.
- *     Jackson serializes only non-null values.
+ * Instances are created via a builder and are immutable; all fields are required.
+ * Jackson serializes only non-null values.
  * </p>
  *
  * @author Gang Cheng

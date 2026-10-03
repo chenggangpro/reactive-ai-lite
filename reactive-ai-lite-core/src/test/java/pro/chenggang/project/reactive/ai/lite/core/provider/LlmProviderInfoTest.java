@@ -28,18 +28,21 @@ class LlmProviderInfoTest {
     void testDefaultMethods() {
         LlmProviderInfo info = new LlmProviderInfo() {
             @Override
-            public String name() { return "test"; }
+            public String name() {return "test";}
+
             @Override
-            public String baseUrl() { return "url"; }
+            public String baseUrl() {return "url";}
+
             @Override
-            public String endpoint() { return "endpoint"; }
+            public String endpoint() {return "endpoint";}
+
             @Override
-            public Set<String> profiles() { return Set.of(); }
+            public Set<String> profiles() {return Set.of();}
         };
-        
+
         assertThat(info.isDefault()).isFalse();
         assertThat(info.supportModel("any")).isTrue();
-        
+
         assertThatThrownBy(() -> info.supportModel(null))
                 .isInstanceOf(IllegalArgumentException.class);
     }

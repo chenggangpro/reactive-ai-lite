@@ -30,11 +30,11 @@ class ResponsePackageTest {
         DefaultAssistantTextMessage textMessage = DefaultAssistantTextMessage.builder()
                 .content("test")
                 .build();
-                
+
         GeneralResponse response = GeneralResponse.builder()
                 .assistantTextMessage(textMessage)
                 .build();
-                
+
         assertThat(response.getAssistantTextMessage()).isEqualTo(textMessage);
         assertThat(response.getToolCalls()).isEmpty();
     }
@@ -44,11 +44,11 @@ class ResponsePackageTest {
         DefaultToolCallMessage toolCallMessage = DefaultToolCallMessage.builder()
                 .toolCalls(List.of())
                 .build();
-                
+
         GeneralResponse response = GeneralResponse.builder()
                 .assistantTextMessage(toolCallMessage)
                 .build();
-                
+
         assertThat(response.getAssistantTextMessage()).isEqualTo(toolCallMessage);
         assertThat(response.getToolCalls()).isPresent();
     }

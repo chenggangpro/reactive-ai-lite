@@ -84,7 +84,7 @@ class DefaultLlmProviderRegistryTest {
         StepVerifier.create(registry.getChatProvider(info -> info.name().equals("chat-1")))
                 .expectNext(provider1)
                 .verifyComplete();
-                
+
         StepVerifier.create(registry.getChatProvider(info -> info.name().equals("chat-2")))
                 .verifyErrorMessage("No LlmChatProvider found that matches the given filter.");
     }
@@ -102,7 +102,7 @@ class DefaultLlmProviderRegistryTest {
         StepVerifier.create(registry.getEmbeddingProvider(info -> info.name().equals("embed-1")))
                 .expectNext(provider1)
                 .verifyComplete();
-                
+
         StepVerifier.create(registry.getEmbeddingProvider(info -> info.name().equals("embed-2")))
                 .verifyErrorMessage("No LlmEmbeddingProvider found that matches the given filter.");
     }
@@ -120,35 +120,39 @@ class DefaultLlmProviderRegistryTest {
         StepVerifier.create(registry.getProvider(Capability.CHAT, LlmChatProvider.class, info -> info.name().equals("chat-1")))
                 .expectNext(provider1)
                 .verifyComplete();
-                
+
         StepVerifier.create(registry.getProvider(Capability.CHAT, LlmChatProvider.class, info -> info.name().equals("chat-2")))
                 .verifyErrorMessage("No provider found that matches the given capability and filter.");
     }
+
     @Test
     void testNonNullChecks() {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new DefaultLlmProviderRegistry(null))
                 .isInstanceOf(IllegalArgumentException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new DefaultLlmProviderRegistry(java.util.List.of()))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider mockProvider = org.mockito.Mockito.mock(pro.chenggang.project.reactive.ai.lite.core.provider.LlmProvider.class);
         pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo mockInfo = org.mockito.Mockito.mock(pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo.class);
         org.mockito.Mockito.when(mockProvider.info()).thenReturn(mockInfo);
-        
+
         DefaultLlmProviderRegistry registry = new DefaultLlmProviderRegistry(java.util.List.of(mockProvider));
-        
+
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getDefaultProvider(null))
                 .isInstanceOf(IllegalArgumentException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getChatProvider(null))
                 .isInstanceOf(IllegalArgumentException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getEmbeddingProvider(null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(null, pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider.class, info -> true))
                 .isInstanceOf(IllegalArgumentException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(pro.chenggang.project.reactive.ai.lite.core.option.Capability.CHAT, null, info -> true))
                 .isInstanceOf(IllegalArgumentException.class);
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(pro.chenggang.project.reactive.ai.lite.core.option.Capability.CHAT, pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider.class, null))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> registry.getProvider(pro.chenggang.project.reactive.ai.lite.core.option.Capability.CHAT,
+                        pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider.class,
+                        null
+                ))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

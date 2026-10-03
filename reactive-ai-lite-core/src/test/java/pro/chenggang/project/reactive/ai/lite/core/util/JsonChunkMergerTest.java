@@ -127,7 +127,7 @@ class JsonChunkMergerTest {
         JsonChunkMerger.merge(target, source);
         assertThat(target.get("arr").get(0).asInt()).isEqualTo(2);
     }
-    
+
     @Test
     void testDeepMergeObjects() {
         ObjectNode target = OBJECT_MAPPER.createObjectNode();
@@ -142,34 +142,35 @@ class JsonChunkMergerTest {
         assertThat(target.get("nested").get("key1").asText()).isEqualTo("val1");
         assertThat(target.get("nested").get("key2").asText()).isEqualTo("val2");
     }
-    
+
     @Test
     void testMergeFallbackTypes() {
         ObjectNode target = OBJECT_MAPPER.createObjectNode();
         target.put("num", 10);
         target.put("bool", true);
-        
+
         ObjectNode source = OBJECT_MAPPER.createObjectNode();
         source.put("num", 20);
         source.put("bool", false);
         source.put("new_num", 30);
-        
+
         JsonChunkMerger.merge(target, source);
         assertThat(target.get("num").asInt()).isEqualTo(20);
         assertThat(target.get("bool").asBoolean()).isFalse();
         assertThat(target.get("new_num").asInt()).isEqualTo(30);
     }
-    
+
     @Test
     void testNonObjectNodesIgnored() {
         ObjectNode target = OBJECT_MAPPER.createObjectNode();
         ObjectNode source = OBJECT_MAPPER.createObjectNode();
-        
+
         // This is not supposed to happen through public API, but for coverage of the guard condition
         // We'll just pass empty object nodes for the public API, which calls the private method
         JsonChunkMerger.merge(target, source);
         assertThat(target).isEmpty();
     }
+
     @Test
     void testMergeFallbackWithNullSource() {
         ObjectNode target = OBJECT_MAPPER.createObjectNode();

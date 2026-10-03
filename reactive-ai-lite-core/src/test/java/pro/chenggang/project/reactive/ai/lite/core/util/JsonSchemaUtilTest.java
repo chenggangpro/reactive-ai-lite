@@ -78,9 +78,9 @@ class JsonSchemaUtilTest {
     void testConvertTypeValuesToUpperCaseArray() throws Exception {
         String json = "[{\"type\":\"string\"}, {\"type\":\"integer\"}]";
         JsonNode node = mapper.readTree(json);
-        
+
         JsonSchemaUtil.convertTypeValuesToUpperCase(node);
-        
+
         assertThat(node.get(0).get("type").asText()).isEqualTo("STRING");
         assertThat(node.get(1).get("type").asText()).isEqualTo("INTEGER");
     }
@@ -90,9 +90,12 @@ class JsonSchemaUtilTest {
         private String name;
         private java.util.List<String> items;
 
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-        public java.util.List<String> getItems() { return items; }
-        public void setItems(java.util.List<String> items) { this.items = items; }
+        public String getName() {return name;}
+
+        public void setName(String name) {this.name = name;}
+
+        public java.util.List<String> getItems() {return items;}
+
+        public void setItems(java.util.List<String> items) {this.items = items;}
     }
 }

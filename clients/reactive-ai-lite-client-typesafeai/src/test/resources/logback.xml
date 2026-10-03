@@ -17,7 +17,7 @@
 
 -->
 <configuration scan="true" scanPeriod="60 seconds" debug="false">
-    <property scope="context" name="log_dir" value="../logs" />
+    <property scope="context" name="log_dir" value="../logs"/>
     <property scope="context" name="app_name" value="reactive-ai-lite-client-typesafeai"/>
     <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%-20.20t{19}] [%-50.50logger{49}:%line] %m%n"/>
 
@@ -27,9 +27,9 @@
         </encoder>
     </appender>
 
-    <logger name="pro.chenggang" level="DEBUG" />
+    <logger name="pro.chenggang" level="DEBUG"/>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

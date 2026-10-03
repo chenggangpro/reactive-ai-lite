@@ -71,7 +71,7 @@ public abstract class BuildInPrompt {
      * </p>
      *
      * @see <a href="https://platform.openai.com/docs/guides/prompt-engineering">
-     *      OpenAI Prompt Engineering Guide</a> (for related best practices)
+     * OpenAI Prompt Engineering Guide</a> (for related best practices)
      */
     public static final String SYSTEM_PROMPT = """
             You are an intelligent, helpful AI assistant. Your goal is to assist the user with tasks, information, and problem-solving. 

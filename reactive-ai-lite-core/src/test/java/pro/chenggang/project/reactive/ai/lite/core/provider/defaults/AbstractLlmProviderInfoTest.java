@@ -37,19 +37,19 @@ class AbstractLlmProviderInfoTest {
     @Test
     void testAbstractLlmProviderInfo() {
         TestLlmProviderInfo infoWithModels = new TestLlmProviderInfo("http://base", "/end", true, Set.of("p1"), Set.of("m1", "m2"));
-        
+
         assertThat(infoWithModels.baseUrl()).isEqualTo("http://base");
         assertThat(infoWithModels.endpoint()).isEqualTo("/end");
         assertThat(infoWithModels.isDefault()).isTrue();
         assertThat(infoWithModels.profiles()).containsExactly("p1");
-        
+
         assertThat(infoWithModels.supportModel("m1")).isTrue();
         assertThat(infoWithModels.supportModel("m3")).isFalse();
-        
+
         assertThat(infoWithModels.toString()).contains("test", "http://base", "/end", "p1", "m1");
 
         TestLlmProviderInfo infoWithoutModels = new TestLlmProviderInfo("http://base", "/end", false, Set.of("p1"), null);
-        
+
         assertThat(infoWithoutModels.supportModel("m1")).isTrue();
         assertThat(infoWithoutModels.supportModel("any-model")).isTrue();
     }

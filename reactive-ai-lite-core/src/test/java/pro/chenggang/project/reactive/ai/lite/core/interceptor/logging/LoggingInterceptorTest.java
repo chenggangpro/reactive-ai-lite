@@ -45,7 +45,7 @@ class LoggingInterceptorTest {
     @Test
     void testLlmProviderExecutionLoggingInterceptor() {
         LlmProviderExecutionLoggingInterceptor interceptor = new LlmProviderExecutionLoggingInterceptor(() -> true);
-        
+
         assertThat(interceptor.getOrder()).isEqualTo(Integer.MIN_VALUE);
         assertThat(interceptor.supportedClient()).contains(LlmClientType.CHAT);
 
@@ -57,13 +57,13 @@ class LoggingInterceptorTest {
         when(requestExchange.llmProviderInfo()).thenReturn(providerInfo);
         when(requestExchange.rawRequestBody()).thenReturn(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode());
         when(requestExchange.clientType()).thenReturn(LlmClientType.CHAT);
-        
+
         LlmProviderRequestInterceptorChain reqChain = mock(LlmProviderRequestInterceptorChain.class);
         when(reqChain.next(any(LlmProviderRequestExchange.class))).thenReturn(Mono.empty());
 
         StepVerifier.create(interceptor.interceptBefore(requestExchange, reqChain))
                 .verifyComplete();
-                
+
         // Test already existing instant attribute
         Map<String, Object> existingAttrs = new HashMap<>();
         existingAttrs.put(LlmProviderExecutionLoggingInterceptor.EXECUTION_INSTANT_ATTR_KEY, Instant.now());
@@ -77,14 +77,14 @@ class LoggingInterceptorTest {
         when(responseExchange.getAttributeOrDefault(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(responseExchange.error()).thenReturn(Optional.of(new RuntimeException("Test Exception")));
         when(responseExchange.rawResponseBody()).thenReturn(Optional.of(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode()));
-        
+
         LlmProviderResponseInterceptorChain resChain = mock(LlmProviderResponseInterceptorChain.class);
         when(resChain.next(any(LlmProviderGeneralResponseExchange.class))).thenReturn(Mono.empty());
         when(resChain.next(any(LlmProviderStreamResponseExchange.class))).thenReturn(Mono.empty());
 
         StepVerifier.create(interceptor.interceptAfter(responseExchange, resChain))
                 .verifyComplete();
-                
+
         // test already logged
         StepVerifier.create(interceptor.interceptAfter(responseExchange, resChain))
                 .verifyComplete();
@@ -97,24 +97,24 @@ class LoggingInterceptorTest {
         when(streamExchange.getAttributes()).thenReturn(streamAttrs);
         when(streamExchange.getAttributeOrDefault(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
         when(streamExchange.error()).thenReturn(Optional.empty());
-        
+
         RawStreamResponse chunk = mock(RawStreamResponse.class);
         when(chunk.getDataContent()).thenReturn(JsonRelatedUtil.OBJECT_MAPPER.createObjectNode());
         Mockito.doReturn(Flux.just(chunk)).when(streamExchange).rawStreamResponse();
 
         StepVerifier.create(interceptor.interceptAfterEach(streamExchange, resChain))
                 .verifyComplete();
-                
+
         // test stream already logged
         StepVerifier.create(interceptor.interceptAfterEach(streamExchange, resChain))
                 .verifyComplete();
-                
+
         // test stream error
         when(streamExchange.error()).thenReturn(Optional.of(new RuntimeException("Stream Error")));
         when(streamExchange.getAttributes()).thenReturn(new HashMap<>());
         StepVerifier.create(interceptor.interceptAfterEach(streamExchange, resChain))
                 .verifyComplete();
-                
+
         // Test Disabled Logging
         LlmProviderExecutionLoggingInterceptor disabledInterceptor = new LlmProviderExecutionLoggingInterceptor(() -> false);
         StepVerifier.create(disabledInterceptor.interceptBefore(requestExchange, reqChain)).verifyComplete();

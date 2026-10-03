@@ -129,8 +129,8 @@ public class StreamResponseParser {
      * @param rawToolCallMerger a function that merges a list of {@link ObjectNode}s representing
      *                          a tool call into a single consolidated node; never null
      * @return a reactive {@link Flux} that emits structured {@link RawStreamResponse} objects;
-     *         the flux is cold and can be subscribed to repeatedly (each subscription triggers a
-     *         fresh processing pipeline)
+     * the flux is cold and can be subscribed to repeatedly (each subscription triggers a
+     * fresh processing pipeline)
      */
     public static Flux<RawStreamResponse> parseStreamResponse(@NonNull ExecutionContext executionContext,
                                                               @NonNull Flux<String> rawStreamResponse,

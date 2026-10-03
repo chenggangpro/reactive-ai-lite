@@ -51,9 +51,9 @@ import pro.chenggang.project.reactive.ai.lite.core.message.TextMessage;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see TextMessage
  * @see Message
+ * @since 0.1.0
  */
 @Jacksonized
 @Builder
@@ -103,7 +103,7 @@ public class DefaultTextMessage implements TextMessage {
      * of the communication.
      *
      * @return the text content, never {@code null} (enforced by {@link NonNull} +
-     *         builder)
+     * builder)
      */
     @Override
     public String getContent() {
@@ -115,7 +115,7 @@ public class DefaultTextMessage implements TextMessage {
      * multiple participants sharing the same role.
      *
      * @return the sender name, or {@code null} if none was specified during
-     *         construction
+     * construction
      */
     @Nullable
     @Override
@@ -130,7 +130,7 @@ public class DefaultTextMessage implements TextMessage {
      * actions, such as serialisation routing or validation.
      *
      * @return always {@code DefaultTextMessage.class}, representing this immutably
-     *         implemented text message type
+     * implemented text message type
      */
     @Override
     public Class<? extends Message> getActualType() {

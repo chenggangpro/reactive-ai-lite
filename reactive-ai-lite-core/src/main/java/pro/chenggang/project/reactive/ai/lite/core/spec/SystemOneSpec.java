@@ -27,8 +27,8 @@ import pro.chenggang.project.reactive.ai.lite.core.execution.SystemOneExecution;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see SystemOneExecution
+ * @since 0.1.0
  */
 public interface SystemOneSpec {
 

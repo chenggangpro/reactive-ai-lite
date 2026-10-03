@@ -72,7 +72,7 @@ public interface MediaMessage extends Message {
      * </p>
      *
      * @return the non‑null text content; may be empty if the message consists
-     *         entirely of attachments
+     * entirely of attachments
      */
     String getContent();
 
@@ -159,20 +159,30 @@ public interface MediaMessage extends Message {
     @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
     class MediaMessageBuilder {
 
-        /** The role of the sender, never null. */
+        /**
+         * The role of the sender, never null.
+         */
         @NonNull
         private final String role;
 
-        /** Optional name of the sender; may be null to indicate no name. */
+        /**
+         * Optional name of the sender; may be null to indicate no name.
+         */
         private String name;
 
-        /** Primary text content; defaults to an empty string. */
+        /**
+         * Primary text content; defaults to an empty string.
+         */
         private String content = "";
 
-        /** Reasoning content; null if no reasoning is available. */
+        /**
+         * Reasoning content; null if no reasoning is available.
+         */
         private String reasoningContent;
 
-        /** Attachments bundle; defaults to an empty array. */
+        /**
+         * Attachments bundle; defaults to an empty array.
+         */
         private Attachment[] attachments = new Attachment[0];
 
         /**

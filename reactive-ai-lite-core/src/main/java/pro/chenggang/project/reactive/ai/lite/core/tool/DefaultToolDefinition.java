@@ -141,7 +141,7 @@ public class DefaultToolDefinition implements ToolDefinition {
      * Indicates whether strict schema adherence is requested.
      *
      * @return {@code true} to enforce strict validation, {@code false} to relax it, or {@code null} to use
-     *         the provider’s default behavior
+     * the provider’s default behavior
      * @see #strict
      */
     @Override

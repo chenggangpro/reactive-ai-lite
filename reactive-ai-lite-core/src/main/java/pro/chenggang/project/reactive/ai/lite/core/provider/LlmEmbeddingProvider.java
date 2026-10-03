@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
  * <p>
  * Embedding providers transform textual or multimodal input into numerical vector representations,
  * enabling similarity search, clustering, and other downstream ML tasks. This interface extends
- * {@link LlmProvider} to integrate with the broader provider ecosystem, and specializes in 
+ * {@link LlmProvider} to integrate with the broader provider ecosystem, and specializes in
  * handling embedding-specific execution details.
  * <p>
  * Implementations are expected to support both structured responses (via {@link #executeEmbedding(EmbeddingExecutionInfo)})
@@ -43,8 +43,8 @@ public interface LlmEmbeddingProvider extends LlmProvider {
      * <p>
      * This method is the primary entry point for obtaining embeddings in a clean, provider-agnostic format.
      * The {@link EmbeddingExecutionInfo} encapsulates all necessary parameters (e.g., model name, input texts,
-     * dimensions configuration) and might carry contextual session or authentication data. The returned 
-     * {@link EmbeddingResponse} provides a uniform representation of the embedding vectors and associated 
+     * dimensions configuration) and might carry contextual session or authentication data. The returned
+     * {@link EmbeddingResponse} provides a uniform representation of the embedding vectors and associated
      * metadata, shielding callers from provider-specific intricacies.
      * <p>
      * The reactive {@link Mono} allows non-blocking integration, enabling the embedding operation to be
@@ -52,7 +52,7 @@ public interface LlmEmbeddingProvider extends LlmProvider {
      *
      * @param executionInfo the fully prepared execution context and parameters; must not be {@code null}
      * @return a {@link Mono} that, when subscribed to, initiates the embedding process and emits the
-     *         structured response upon successful completion
+     * structured response upon successful completion
      */
     Mono<EmbeddingResponse> executeEmbedding(@NonNull EmbeddingExecutionInfo executionInfo);
 
@@ -68,8 +68,8 @@ public interface LlmEmbeddingProvider extends LlmProvider {
      * about the transport. As with other reactive methods, the {@link Mono} ensures non-blocking execution.
      *
      * @param executionInfo the fully prepared execution context and parameters; must not be {@code null}
-     * @return a {@link Mono} that, when subscribed to, initiates the embedding request and emits the 
-     *         raw provider response upon completion
+     * @return a {@link Mono} that, when subscribed to, initiates the embedding request and emits the
+     * raw provider response upon completion
      */
     Mono<RawResponse> executeEmbeddingRaw(@NonNull EmbeddingExecutionInfo executionInfo);
 }

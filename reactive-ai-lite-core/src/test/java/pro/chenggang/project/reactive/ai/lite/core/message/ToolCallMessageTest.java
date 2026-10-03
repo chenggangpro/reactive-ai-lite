@@ -32,24 +32,24 @@ class ToolCallMessageTest {
                 .name("test")
                 .arguments("{\"key\":\"value\"}")
                 .build();
-                
+
         assertThat(func.getName()).isEqualTo("test");
         assertThat(func.getArguments()).isEqualTo("{\"key\":\"value\"}");
         assertThat(func.jsonArguments().get("key").asText()).isEqualTo("value");
-        
+
         AssistantToolCallFunction emptyArgs = AssistantToolCallFunction.builder()
                 .name("test2")
                 .arguments(null)
                 .build();
         assertThat(emptyArgs.getArguments()).isEqualTo("{}");
         assertThat(emptyArgs.jsonArguments().isEmpty()).isTrue();
-        
+
         AssistantToolCallFunction emptyArgs2 = AssistantToolCallFunction.builder()
                 .name("test2")
                 .arguments("")
                 .build();
         assertThat(emptyArgs2.getArguments()).isEqualTo("{}");
-        
+
         AssistantToolCallFunction invalidArgs = AssistantToolCallFunction.builder()
                 .name("test3")
                 .arguments("invalid")
@@ -57,16 +57,16 @@ class ToolCallMessageTest {
         assertThatThrownBy(invalidArgs::jsonArguments)
                 .isInstanceOf(RuntimeException.class);
     }
-    
+
     @Test
     void testAssistantToolCall() {
         AssistantToolCallFunction func = AssistantToolCallFunction.builder()
                 .name("test")
                 .arguments("{}")
                 .build();
-                
+
         ToolDefinition toolDef = mock(ToolDefinition.class);
-        
+
         AssistantToolCall call = AssistantToolCall.builder()
                 .index(1)
                 .id("call_1")
@@ -74,7 +74,7 @@ class ToolCallMessageTest {
                 .function(func)
                 .toolDefinition(toolDef)
                 .build();
-                
+
         assertThat(call.getIndex()).isEqualTo(1);
         assertThat(call.getId()).isEqualTo("call_1");
         assertThat(call.getType()).isEqualTo("function");

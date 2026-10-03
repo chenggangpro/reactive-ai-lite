@@ -37,7 +37,7 @@ public interface ConfigurableSpeechSpec extends SpeechSpec {
      * Dynamically configures the model name to be used for the speech request.
      *
      * @param modelNameConfigure a function that accepts the {@link ExecutionContext}
-     *                            and returns the model name to be used
+     *                           and returns the model name to be used
      * @return this {@link ConfigurableSpeechSpec} instance for method chaining
      */
     ConfigurableSpeechSpec model(@NonNull Function<ExecutionContext, String> modelNameConfigure);
@@ -56,7 +56,7 @@ public interface ConfigurableSpeechSpec extends SpeechSpec {
      * Dynamically configures the text to be synthesized into speech.
      *
      * @param inputTextConfigure a function that receives the {@link ExecutionContext}
-     *                            and returns a string to synthesize
+     *                           and returns a string to synthesize
      * @return this {@link ConfigurableSpeechSpec} instance for method chaining
      */
     ConfigurableSpeechSpec inputText(@NonNull Function<ExecutionContext, String> inputTextConfigure);
@@ -75,7 +75,7 @@ public interface ConfigurableSpeechSpec extends SpeechSpec {
      * Dynamically configures the voice to use for the speech request.
      *
      * @param voiceConfigure a function that accepts the {@link ExecutionContext}
-     *                        and returns the voice name (e.g. alloy)
+     *                       and returns the voice name (e.g. alloy)
      * @return this {@link ConfigurableSpeechSpec} instance for method chaining
      */
     ConfigurableSpeechSpec voice(@NonNull Function<ExecutionContext, String> voiceConfigure);
@@ -94,7 +94,7 @@ public interface ConfigurableSpeechSpec extends SpeechSpec {
      * Dynamically configures the speed of the generated audio.
      *
      * @param speedConfigure a function that accepts the {@link ExecutionContext}
-     *                        and returns the speed (e.g. 1.0)
+     *                       and returns the speed (e.g. 1.0)
      * @return this {@link ConfigurableSpeechSpec} instance for method chaining
      */
     ConfigurableSpeechSpec speed(@NonNull Function<ExecutionContext, Double> speedConfigure);
@@ -116,7 +116,7 @@ public interface ConfigurableSpeechSpec extends SpeechSpec {
      * Dynamically configures the response format for the speech request.
      *
      * @param responseFormatConfigure a function that accepts the {@link ExecutionContext}
-     *                                 and returns the response format (e.g. mp3)
+     *                                and returns the response format (e.g. mp3)
      * @return this {@link ConfigurableSpeechSpec} instance for method chaining
      */
     ConfigurableSpeechSpec responseFormat(@NonNull Function<ExecutionContext, String> responseFormatConfigure);

@@ -97,7 +97,7 @@ public interface RawStreamResponseConverter<STREAM_RESPONSE> {
      *                          execution, but defensive implementations may guard against
      *                          unusual upstream behavior
      * @return the converted response of type {@code STREAM_RESPONSE}; must not be
-     *         {@code null} to maintain downstream flow
+     * {@code null} to maintain downstream flow
      * @throws RuntimeException if conversion fails; the exception will signal an error
      *                          on the reactive stream and terminate the subscription
      */

@@ -30,7 +30,7 @@ class UsageStreamDataChunkTest {
         UsageStreamDataChunk chunk = UsageStreamDataChunk.builder()
                 .usage(usage)
                 .build();
-                
+
         assertThat(chunk.getUsage()).isEqualTo(usage);
         assertThat(chunk.getDataType()).isEqualTo(StreamDataType.USAGE);
     }

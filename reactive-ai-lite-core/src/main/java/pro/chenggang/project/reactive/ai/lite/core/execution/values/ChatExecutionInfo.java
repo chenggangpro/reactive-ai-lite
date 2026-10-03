@@ -64,7 +64,7 @@ public class ChatExecutionInfo implements ExecutionInfo {
     private final boolean defaultProfile;
 
     /**
-     * A function that selects a named profile (e.g., "conversational", "code") 
+     * A function that selects a named profile (e.g., "conversational", "code")
      * given the execution context and a set of available profile names.
      * Allows dynamic profile resolution based on user identity, conversation
      * state, or any other contextual data.

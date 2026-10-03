@@ -36,7 +36,7 @@ class StreamResponseParserTest {
     @Test
     void testParseStreamResponseStandard() {
         ExecutionContext mockContext = mock(ExecutionContext.class);
-        
+
         Flux<String> rawStream = Flux.just(
                 "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}",
                 "{\"type\":\"ANSWER_CONTENT\",\"text\":\" World\"}",
@@ -77,7 +77,7 @@ class StreamResponseParserTest {
     @Test
     void testParseStreamResponseToolCallMerging() {
         ExecutionContext mockContext = mock(ExecutionContext.class);
-        
+
         Flux<String> rawStream = Flux.just(
                 "{\"type\":\"TOOL_CALL\",\"text\":\"call1\"}",
                 "{\"type\":\"TOOL_CALL\",\"text\":\"call2\"}",
@@ -114,7 +114,7 @@ class StreamResponseParserTest {
     @Test
     void testParseStreamResponseNotObjectJson() {
         ExecutionContext mockContext = mock(ExecutionContext.class);
-        
+
         Flux<String> rawStream = Flux.just(
                 "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}",
                 "[]"
@@ -142,7 +142,7 @@ class StreamResponseParserTest {
     @Test
     void testParseStreamResponseMalformedJson() {
         ExecutionContext mockContext = mock(ExecutionContext.class);
-        
+
         Flux<String> rawStream = Flux.just(
                 "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}",
                 "invalid_json"
@@ -173,7 +173,7 @@ class StreamResponseParserTest {
     @Test
     void testParseStreamResponseExceptionInParser() {
         ExecutionContext mockContext = mock(ExecutionContext.class);
-        
+
         Flux<String> rawStream = Flux.just(
                 "{\"type\":\"ANSWER_CONTENT\",\"text\":\"Hello\"}"
         );
@@ -202,10 +202,11 @@ class StreamResponseParserTest {
         assertThat((String) data.getParsingAttribute("key2")).isNull();
         assertThat(data.getParsingAttributeOrDefault("key2", "defaultVal")).isEqualTo("defaultVal");
     }
+
     @Test
     void testParseStreamResponseNullJson() {
         ExecutionContext mockContext = mock(ExecutionContext.class);
-        
+
         Flux<String> rawStream = Flux.just("null");
 
         Function<StreamResponseParser.JsonChunkParsingData, StreamResponseParser.JsonStreamChunkSlide[]> parser = data -> new StreamResponseParser.JsonStreamChunkSlide[0];

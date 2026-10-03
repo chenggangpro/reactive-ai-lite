@@ -49,7 +49,7 @@ public interface ExecutionInfo {
      * </p>
      *
      * @return {@code true} if the default profile is to be used, {@code false} if
-     *         dynamic profile selection must occur
+     * dynamic profile selection must occur
      */
     boolean isDefaultProfile();
 
@@ -68,8 +68,8 @@ public interface ExecutionInfo {
      * </p>
      *
      * @return a bi‑function mapping {@code (ExecutionContext, Set<String>)} to the
-     *         chosen profile name; not invoked when {@link #isDefaultProfile()} returns
-     *         {@code true}
+     * chosen profile name; not invoked when {@link #isDefaultProfile()} returns
+     * {@code true}
      */
     BiFunction<ExecutionContext, Set<String>, String> getProfilePicker();
 
@@ -88,7 +88,7 @@ public interface ExecutionInfo {
      * </p>
      *
      * @return a function that accepts the current {@link ExecutionContext} and returns
-     *         the desired model name
+     * the desired model name
      */
     Function<ExecutionContext, String> getModelNameConfigure();
 
@@ -109,7 +109,7 @@ public interface ExecutionInfo {
      * </p>
      *
      * @return a bi‑consumer accepting {@code (ExecutionContext, ObjectNode)} to
-     *         customize the raw request
+     * customize the raw request
      */
     BiConsumer<ExecutionContext, ObjectNode> getRawRequestCustomizerConfigure();
 

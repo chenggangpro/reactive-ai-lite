@@ -175,7 +175,7 @@ public class LlmProviderExecutor<I extends ExecutionInfo> {
      * @param providerClass    the expected subtype of {@link LlmProvider}
      * @param <P>              concrete provider type
      * @return a {@link Mono} emitting the resolved provider, or an error if no matching
-     *         provider can be found
+     * provider can be found
      */
     public <P extends LlmProvider> Mono<P> loadLlmProvider(@NonNull ExecutionContext executionContext, @NonNull Class<P> providerClass) {
         Capability capability = executionSpec.getLlmClientType().getCapability();

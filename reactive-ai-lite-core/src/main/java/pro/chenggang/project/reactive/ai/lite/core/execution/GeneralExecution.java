@@ -69,7 +69,7 @@ public interface GeneralExecution {
      * </p>
      *
      * @return a {@link Mono} that, when subscribed to, sends the request and emits the
-     *         parsed {@link GeneralResponse} upon a successful HTTP response.
+     * parsed {@link GeneralResponse} upon a successful HTTP response.
      */
     Mono<GeneralResponse> execute();
 
@@ -109,7 +109,7 @@ public interface GeneralExecution {
      * throws an exception, that exception will propagate as an error signal on the Mono.
      * </p>
      *
-     * @param <R> the type into which the raw response will be converted
+     * @param <R>       the type into which the raw response will be converted
      * @param converter a non-null converter that knows how to transform a {@link RawResponse}
      *                  into an instance of {@code R}
      * @return a {@link Mono} that emits the converted result upon successful execution

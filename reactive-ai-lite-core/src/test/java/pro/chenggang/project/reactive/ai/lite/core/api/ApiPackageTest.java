@@ -94,10 +94,10 @@ public class ApiPackageTest {
     @Test
     void testContextMergerAppendAllWithNullOrEmpty() {
         ExecutionContext executionContext = mock(ExecutionContext.class);
-        
+
         ClientRequest.ContextMerger.APPEND_ALL.merge(executionContext, null);
         ClientRequest.ContextMerger.APPEND_ALL.merge(executionContext, Map.of());
-        
+
         Mockito.verifyNoInteractions(executionContext);
     }
 }

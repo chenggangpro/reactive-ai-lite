@@ -521,7 +521,7 @@ public class LlmChatRequestData {
          * from the certification map.
          * </p>
          *
-         * @param executionInfo the execution info containing profile logic, must not be null
+         * @param executionInfo    the execution info containing profile logic, must not be null
          * @param executionContext the current execution context, must not be null
          * @return the resolved {@link TokenCertification}
          * @throws NoProfileFoundLlmClientException if a valid profile cannot be determined
@@ -549,7 +549,7 @@ public class LlmChatRequestData {
          * always receives a valid identifier.
          * </p>
          *
-         * @param executionInfo the execution info containing the model name configuration function
+         * @param executionInfo    the execution info containing the model name configuration function
          * @param executionContext the current execution context
          * @return the model name
          * @throws IllegalArgumentException if the model name is empty or null
@@ -569,7 +569,7 @@ public class LlmChatRequestData {
          * with no content but still a valid message wrapped in {@link TextMessage}.
          * </p>
          *
-         * @param executionInfo the execution info containing system message configurations
+         * @param executionInfo    the execution info containing system message configurations
          * @param executionContext the current execution context
          * @return the configured system message
          */
@@ -591,7 +591,7 @@ public class LlmChatRequestData {
          * an empty list is returned, meaning this is treated as a new conversation or a single‑turn request.
          * </p>
          *
-         * @param executionInfo the execution info containing historical messages configurations
+         * @param executionInfo    the execution info containing historical messages configurations
          * @param executionContext the current execution context
          * @return the historical messages, or an empty list if none
          */
@@ -611,7 +611,7 @@ public class LlmChatRequestData {
          * which is required by many providers.
          * </p>
          *
-         * @param executionInfo the execution info containing the text message configuration
+         * @param executionInfo    the execution info containing the text message configuration
          * @param executionContext the current execution context
          * @return the user's text message
          */
@@ -634,7 +634,7 @@ public class LlmChatRequestData {
          * exists, {@code null} is returned, indicating a pure text interaction.
          * </p>
          *
-         * @param executionInfo the execution info containing the media message configuration
+         * @param executionInfo    the execution info containing the media message configuration
          * @param executionContext the current execution context
          * @return the media message, or null if none
          */
@@ -654,7 +654,7 @@ public class LlmChatRequestData {
          * {@code null}, allowing the provider to apply its default behavior.
          * </p>
          *
-         * @param executionInfo the execution info containing temperature configuration
+         * @param executionInfo    the execution info containing temperature configuration
          * @param executionContext the current execution context
          * @return the temperature, or null if not configured
          */
@@ -674,7 +674,7 @@ public class LlmChatRequestData {
          * configured, {@code null} is returned, deferring the parameter to the provider.
          * </p>
          *
-         * @param executionInfo the execution info containing Top-P configuration
+         * @param executionInfo    the execution info containing Top-P configuration
          * @param executionContext the current execution context
          * @return the Top-P value, or null if not configured
          */
@@ -694,7 +694,7 @@ public class LlmChatRequestData {
          * enables usage reporting. Otherwise, usage is not included (default {@code false}).
          * </p>
          *
-         * @param executionInfo the execution info holding the include‑usage configuration
+         * @param executionInfo    the execution info holding the include‑usage configuration
          * @param executionContext the current execution context
          * @return {@code true} if usage should be included, {@code false} otherwise
          */
@@ -714,7 +714,7 @@ public class LlmChatRequestData {
          * configured, {@code null} is returned, meaning no special reasoning hint is sent.
          * </p>
          *
-         * @param executionInfo the execution info containing reasoning configuration
+         * @param executionInfo    the execution info containing reasoning configuration
          * @param executionContext the current execution context
          * @return the reasoning instructions, or null if not configured
          */
@@ -733,7 +733,7 @@ public class LlmChatRequestData {
          * {@code null} is returned, allowing the provider to decide the limit.
          * </p>
          *
-         * @param executionInfo the execution info containing max tokens configuration
+         * @param executionInfo    the execution info containing max tokens configuration
          * @param executionContext the current execution context
          * @return the max tokens, or null if not configured
          */
@@ -755,7 +755,7 @@ public class LlmChatRequestData {
          * valid list of tools.
          * </p>
          *
-         * @param executionInfo the execution info containing the tool configuration function
+         * @param executionInfo    the execution info containing the tool configuration function
          * @param executionContext the current execution context
          * @return a list of valid, deduplicated tool definitions, or an empty list if none are configured
          */
@@ -796,7 +796,7 @@ public class LlmChatRequestData {
          * provider should use its default behavior.
          * </p>
          *
-         * @param executionInfo the execution info containing tool choice configuration
+         * @param executionInfo    the execution info containing tool choice configuration
          * @param executionContext the current execution context
          * @return the tool choice string, or null if not configured
          */
@@ -815,7 +815,7 @@ public class LlmChatRequestData {
          * If no function is configured, an empty list is returned.
          * </p>
          *
-         * @param executionInfo the execution info containing the tool result messages configuration
+         * @param executionInfo    the execution info containing the tool result messages configuration
          * @param executionContext the current execution context
          * @return a list of tool result messages, or an empty list if none
          */

@@ -63,7 +63,7 @@ class LlmChatProviderDelegateTest {
                 .profile("test")
                 .token("test-token")
                 .build();
-        
+
         delegate.applyStandardTokenCertification(spec, bearer);
         verify(spec).headers(ArgumentMatchers.any());
 
@@ -73,7 +73,7 @@ class LlmChatProviderDelegateTest {
                 .headerName("X-Api-Key")
                 .token("test-key")
                 .build();
-        
+
         delegate.applyStandardTokenCertification(spec2, header);
         verify(spec2).headers(ArgumentMatchers.any());
     }

@@ -152,7 +152,7 @@ class ExecutionPackageTest {
         when(response.getAssistantTextMessage()).thenReturn(atm);
         when(response.getExecutionContext()).thenReturn(ExecutionContext.newContext());
         when(response.getRawResponseBody()).thenReturn(mock(ObjectNode.class));
-        
+
         when(chatProvider.executeGeneral(any(ChatExecutionInfo.class))).thenReturn(Mono.just(response));
 
         StepVerifier.create(execution.execute(TestData.class))
@@ -219,7 +219,7 @@ class ExecutionPackageTest {
                 .expectNext(rawResponse)
                 .verifyComplete();
     }
-    
+
     @Test
     void testChatStructuredExecutionExecuteRawParameterizedType() {
         ChatExecutionSpec spec = ChatExecutionSpec.builder().llmClientType(LlmClientType.CHAT)
@@ -257,7 +257,7 @@ class ExecutionPackageTest {
                 .expectError(StructuredMessageExtractFailedException.class)
                 .verify();
     }
-    
+
     @Test
     void testChatStructuredExecutionNullMessage() {
         ChatExecutionSpec spec = ChatExecutionSpec.builder().llmClientType(LlmClientType.CHAT)
@@ -298,7 +298,7 @@ class ExecutionPackageTest {
                 .expectError(StructuredMessageExtractFailedException.class)
                 .verify();
     }
-    
+
     @Test
     void testChatStructuredExecutionMarkdownExtraction() {
         ChatExecutionSpec spec = ChatExecutionSpec.builder().llmClientType(LlmClientType.CHAT)
@@ -325,11 +325,11 @@ class ExecutionPackageTest {
 
     @Test
     void testLlmProviderExecutorWithoutClientType() {
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> 
-            ChatExecutionSpec.builder()
-                .defaultProvider(false)
-                .modelNameConfigure(ctx -> "test_model")
-                .build()
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                ChatExecutionSpec.builder()
+                        .defaultProvider(false)
+                        .modelNameConfigure(ctx -> "test_model")
+                        .build()
         ).isInstanceOf(IllegalArgumentException.class);
     }
 }

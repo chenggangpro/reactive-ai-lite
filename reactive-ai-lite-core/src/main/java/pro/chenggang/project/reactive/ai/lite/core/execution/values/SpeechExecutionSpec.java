@@ -37,31 +37,31 @@ import java.util.function.Function;
 public class SpeechExecutionSpec extends ExecutionSpec<SpeechExecutionInfo> {
 
     /**
-     * A function that dynamically extracts the text to be synthesized from the 
+     * A function that dynamically extracts the text to be synthesized from the
      * {@link ExecutionContext} at the time of execution.
      */
     private final Function<ExecutionContext, String> inputTextConfigure;
 
     /**
-     * A function that determines the desired voice from the 
+     * A function that determines the desired voice from the
      * {@link ExecutionContext} at execution time.
      */
     private final Function<ExecutionContext, String> voiceConfigure;
 
     /**
-     * A function that determines the desired speed from the 
+     * A function that determines the desired speed from the
      * {@link ExecutionContext} at execution time.
      */
     private final Function<ExecutionContext, Double> speedConfigure;
 
     /**
-     * A function that determines the desired response format from the 
+     * A function that determines the desired response format from the
      * {@link ExecutionContext} at execution time.
      */
     private final Function<ExecutionContext, String> responseFormatConfigure;
 
     /**
-     * Constructs a new {@link SpeechExecutionInfo} by transferring all configured 
+     * Constructs a new {@link SpeechExecutionInfo} by transferring all configured
      * functions and profile settings from this specification.
      *
      * @param executionContext the current execution context; must not be null.

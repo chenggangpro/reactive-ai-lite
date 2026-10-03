@@ -113,7 +113,7 @@ public class ChatStreamExecution implements StreamExecution {
      * </p>
      *
      * @return a {@link Flux} of {@link StreamResponse} objects, each representing a
-     *         parsed portion of the LLM response
+     * parsed portion of the LLM response
      */
     @Override
     public Flux<StreamResponse> execute() {
@@ -139,7 +139,7 @@ public class ChatStreamExecution implements StreamExecution {
      * </p>
      *
      * @return a {@link Flux} of {@link RawStreamResponse} objects, each containing
-     *         the raw JSON string from the LLM
+     * the raw JSON string from the LLM
      */
     @Override
     public Flux<RawStreamResponse> executeRaw() {

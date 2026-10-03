@@ -51,7 +51,7 @@ class ExecutionClassesTest {
     void testChatGeneralExecutionNulls() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         ChatExecutionSpec spec = mock(ChatExecutionSpec.class);
-        
+
         assertThatThrownBy(() -> ChatGeneralExecution.of(null, spec))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> ChatGeneralExecution.of(registry, null))
@@ -64,25 +64,25 @@ class ExecutionClassesTest {
         ChatExecutionSpec spec = mock(ChatExecutionSpec.class);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        
+
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getDefaultProvider(Capability.CHAT)).thenReturn((Mono) Mono.just(provider));
-        
+
         ChatExecutionInfo info = mock(ChatExecutionInfo.class);
         when(spec.newExecutionInfo(any(ExecutionContext.class))).thenReturn(info);
-        
+
         GeneralResponse generalResponse = mock(GeneralResponse.class);
         when(provider.executeGeneral(any())).thenReturn(Mono.just(generalResponse));
-        
+
         RawResponse rawResponse = mock(RawResponse.class);
         when(provider.executeGeneralRaw(any())).thenReturn(Mono.just(rawResponse));
-        
+
         ChatGeneralExecution execution = (ChatGeneralExecution) ChatGeneralExecution.of(registry, spec);
-        
+
         StepVerifier.create(execution.execute())
                 .expectNext(generalResponse)
                 .verifyComplete();
-                
+
         StepVerifier.create(execution.executeRaw())
                 .expectNext(rawResponse)
                 .verifyComplete();
@@ -92,7 +92,7 @@ class ExecutionClassesTest {
     void testChatStreamExecutionNulls() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         ChatExecutionSpec spec = mock(ChatExecutionSpec.class);
-        
+
         assertThatThrownBy(() -> ChatStreamExecution.of(null, spec))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> ChatStreamExecution.of(registry, null))
@@ -105,71 +105,71 @@ class ExecutionClassesTest {
         ChatExecutionSpec spec = mock(ChatExecutionSpec.class);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        
+
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getDefaultProvider(Capability.CHAT)).thenReturn((Mono) Mono.just(provider));
-        
+
         ChatExecutionInfo info = mock(ChatExecutionInfo.class);
         when(spec.newExecutionInfo(any(ExecutionContext.class))).thenReturn(info);
-        
+
         StreamResponse streamResponse = mock(StreamResponse.class);
         when(provider.executeStream(any())).thenReturn(Flux.just(streamResponse));
-        
+
         RawStreamResponse rawStreamResponse = mock(RawStreamResponse.class);
         when(provider.executeStreamRaw(any())).thenReturn(Flux.just(rawStreamResponse));
-        
+
         ChatStreamExecution execution = (ChatStreamExecution) ChatStreamExecution.of(registry, spec);
-        
+
         StepVerifier.create(execution.execute())
                 .expectNext(streamResponse)
                 .verifyComplete();
-                
+
         StepVerifier.create(execution.executeRaw())
                 .expectNext(rawStreamResponse)
                 .verifyComplete();
     }
-    
+
     @Test
     void testEmbeddingGeneralExecutionNulls() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         EmbeddingExecutionSpec spec = mock(EmbeddingExecutionSpec.class);
-        
+
         assertThatThrownBy(() -> EmbeddingGeneralExecution.of(null, spec))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> EmbeddingGeneralExecution.of(registry, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
-    
+
     @Test
     void testEmbeddingGeneralExecution() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         EmbeddingExecutionSpec spec = mock(EmbeddingExecutionSpec.class);
         when(spec.isDefaultProvider()).thenReturn(true);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.EMBEDDING);
-        
+
         LlmEmbeddingProvider provider = mock(LlmEmbeddingProvider.class);
         when(registry.getDefaultProvider(Capability.EMBEDDING)).thenReturn((Mono) Mono.just(provider));
-        
+
         EmbeddingExecutionInfo info = mock(EmbeddingExecutionInfo.class);
         when(spec.newExecutionInfo(any(ExecutionContext.class))).thenReturn(info);
-        
+
         EmbeddingResponse embeddingResponse = mock(EmbeddingResponse.class);
         when(provider.executeEmbedding(any())).thenReturn(Mono.just(embeddingResponse));
-        
+
         RawResponse rawResponse = mock(RawResponse.class);
         when(provider.executeEmbeddingRaw(any())).thenReturn(Mono.just(rawResponse));
-        
+
         EmbeddingGeneralExecution execution = (EmbeddingGeneralExecution) EmbeddingGeneralExecution.of(registry, spec);
-        
+
         StepVerifier.create(execution.execute())
                 .expectNext(embeddingResponse)
                 .verifyComplete();
-                
+
         StepVerifier.create(execution.executeRaw())
                 .expectNext(rawResponse)
                 .verifyComplete();
     }
-    
+
     @Test
     void testContextWriteInExecution() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
@@ -177,19 +177,19 @@ class ExecutionClassesTest {
         when(spec.isDefaultProvider()).thenReturn(true);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         when(spec.getParentAttributes()).thenReturn(Map.of("key", "value"));
-        
+
         LlmChatProvider provider = mock(LlmChatProvider.class);
         when(registry.getDefaultProvider(Capability.CHAT)).thenReturn((Mono) Mono.just(provider));
-        
+
         ChatExecutionInfo info = mock(ChatExecutionInfo.class);
         // Ensure execution context gets initialized correctly
         when(spec.newExecutionInfo(any(ExecutionContext.class))).thenAnswer(inv -> {
             ExecutionContext ctx = inv.getArgument(0);
             return info;
         });
-        
+
         when(provider.executeGeneral(any())).thenReturn(Mono.just(mock(GeneralResponse.class)));
-        
+
         ChatGeneralExecution execution = (ChatGeneralExecution) ChatGeneralExecution.of(registry, spec);
         StepVerifier.create(execution.execute())
                 .expectNextCount(1)

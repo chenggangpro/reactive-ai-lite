@@ -23,7 +23,7 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
  * In reactive systems, AI model outputs are often delivered incrementally to reduce latency and memory pressure.
  * Each chunk may contain a portion of the final answer (e.g., a few tokens of generated text), a part of a tool-call
  * specification, or telemetry information such as token usage counts. This interface serves as the common root for all
- * such segment types, enabling uniform processing by pipeline operators (e.g., {@code Flux<StreamDataChunk>}). 
+ * such segment types, enabling uniform processing by pipeline operators (e.g., {@code Flux<StreamDataChunk>}).
  * </p>
  * <p>
  * The chunk’s {@link #getDataType()} method categorises the payload so that downstream logic can safely cast to the
@@ -41,8 +41,8 @@ import pro.chenggang.project.reactive.ai.lite.core.option.StreamDataType;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see StreamDataType
+ * @since 0.1.0
  */
 public interface StreamDataChunk {
 

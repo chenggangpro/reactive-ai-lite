@@ -156,10 +156,10 @@ public class LlmEmbeddingRequestData {
         /**
          * Private constructor to enforce creation through the static factory method {@link #of}.
          *
-         * @param certificationMap  profiles mapped to their token certifications
+         * @param certificationMap     profiles mapped to their token certifications
          * @param defaultCertification the fallback certification, may be {@code null}
-         * @param llmProviderInfo   the provider descriptor, must not be {@code null}
-         * @param executionInfo     the embedding execution configuration, must not be {@code null}
+         * @param llmProviderInfo      the provider descriptor, must not be {@code null}
+         * @param executionInfo        the embedding execution configuration, must not be {@code null}
          */
         private LlmEmbeddingRequestDataInitializer(@NonNull Map<String, TokenCertification> certificationMap,
                                                    TokenCertification defaultCertification,
@@ -174,10 +174,10 @@ public class LlmEmbeddingRequestData {
         /**
          * Static factory method to create an initializer instance.
          *
-         * @param certificationMap  must not be {@code null}, maps profile name to token certification
+         * @param certificationMap     must not be {@code null}, maps profile name to token certification
          * @param defaultCertification optional default certification
-         * @param llmProviderInfo   must not be {@code null}, provides provider metadata
-         * @param executionInfo     must not be {@code null}, defines how to resolve request fields
+         * @param llmProviderInfo      must not be {@code null}, provides provider metadata
+         * @param executionInfo        must not be {@code null}, defines how to resolve request fields
          * @return a new initializer configured with the given dependencies
          */
         public static LlmEmbeddingRequestDataInitializer of(@NonNull Map<String, TokenCertification> certificationMap,

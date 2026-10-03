@@ -88,7 +88,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .expectNextCount(1)
                 .verifyComplete();
     }
-    
+
     @Test
     void testInterceptGeneralError() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -121,7 +121,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .expectNextCount(1)
                 .verifyComplete();
     }
-    
+
     @Test
     void testInterceptStreamError() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -137,7 +137,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .expectError(RuntimeException.class)
                 .verify();
     }
-    
+
     @Test
     void testInterceptGeneralCancel() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -153,7 +153,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .thenCancel()
                 .verify();
     }
-    
+
     @Test
     void testInterceptStreamCancel() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -170,6 +170,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .thenCancel()
                 .verify();
     }
+
     @Test
     void testInterceptGeneralNoInterceptors() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -185,7 +186,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .expectNextCount(1)
                 .verifyComplete();
     }
-    
+
     @Test
     void testInterceptGeneralErrorNoInterceptors() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -201,7 +202,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .expectError(RuntimeException.class)
                 .verify();
     }
-    
+
     @Test
     void testInterceptGeneralCancelNoInterceptors() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -250,7 +251,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .expectError(RuntimeException.class)
                 .verify();
     }
-    
+
     @Test
     void testInterceptStreamCancelNoInterceptors() {
         InterceptedDataInfo info = InterceptedDataInfo.builder()
@@ -267,23 +268,24 @@ class DefaultLlmProviderInterceptorRegistryTest {
                 .thenCancel()
                 .verify();
     }
+
     @Test
     void testNonNullChecks() throws Exception {
         assertThatThrownBy(() -> new DefaultLlmProviderInterceptorRegistry(null, List.of()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DefaultLlmProviderInterceptorRegistry(List.of(), null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         assertThatThrownBy(() -> registry.interceptGeneral(null, Mono.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> registry.interceptGeneral(mock(InterceptedDataInfo.class), null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         assertThatThrownBy(() -> registry.interceptStream(null, Flux.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> registry.interceptStream(mock(InterceptedDataInfo.class), null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         java.lang.reflect.Method m1 = DefaultLlmProviderInterceptorRegistry.class.getDeclaredMethod("initBeforeInterceptorChainMap", List.class);
         m1.setAccessible(true);
         try {
@@ -291,7 +293,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
         } catch (java.lang.reflect.InvocationTargetException e) {
             assertThat(e.getTargetException()).isInstanceOf(IllegalArgumentException.class);
         }
-        
+
         java.lang.reflect.Method m2 = DefaultLlmProviderInterceptorRegistry.class.getDeclaredMethod("initAfterInterceptorChainMap", List.class);
         m2.setAccessible(true);
         try {
@@ -300,7 +302,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
             assertThat(e.getTargetException()).isInstanceOf(IllegalArgumentException.class);
         }
     }
-    
+
     @Test
     void testInterceptStreamInterceptorError() {
         LlmProviderExecutionAfterInterceptor errorInterceptor = mock(LlmProviderExecutionAfterInterceptor.class);
@@ -309,7 +311,7 @@ class DefaultLlmProviderInterceptorRegistryTest {
         when(errorInterceptor.interceptAfterEach(any(), any())).thenAnswer(inv -> {
             return Mono.error(new RuntimeException("Interceptor error"));
         });
-        
+
         DefaultLlmProviderInterceptorRegistry errorRegistry = new DefaultLlmProviderInterceptorRegistry(
                 List.of(),
                 List.of(errorInterceptor)

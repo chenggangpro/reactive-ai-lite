@@ -31,7 +31,7 @@ class ExecutionSpecTest {
                 .llmClientType(llmClientType)
                 .modelNameConfigure(ctx -> "model")
                 .build();
-                
+
         assertThat(spec.getRawRequestCustomizerConfigure()).isNotNull();
         // Invoke it just to cover the empty lambda body
         spec.getRawRequestCustomizerConfigure().accept(mock(ExecutionContext.class), null);
