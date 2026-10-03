@@ -19,10 +19,12 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.MimeTypeUtils;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.execution.SystemOneExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.SystemOneExecutionInfo;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.SystemOneExecutionSpec;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
@@ -31,6 +33,7 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProvider
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.DefaultConfigurableSystemOneSpec;
 import pro.chenggang.project.reactive.ai.lite.core.spec.defaults.ProviderConfigureInfo;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -96,6 +99,58 @@ class SystemOneSpecTest {
         spec.model(c -> "dynamic-model");
         execSpec = invokeToSystemOneExecutionSpec(spec);
         assertThat(execSpec.getModelNameConfigure().apply(ctx)).isEqualTo("dynamic-model");
+    }
+
+    @Test
+    void testImagesConfiguration() {
+        DefaultConfigurableSystemOneSpec spec = new DefaultConfigurableSystemOneSpec(
+                LlmClientType.SYSTEM_ONE,
+                registry,
+                providerConfigureInfo
+        );
+        ExecutionContext ctx = ExecutionContext.newContext();
+        Base64Attachment attachment1 = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_PNG)
+                .name("img1.png")
+                .base64Content("aW1nMQ==")
+                .build();
+        Base64Attachment attachment2 = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_JPEG)
+                .name("img2.jpg")
+                .base64Content("aW1nMg==")
+                .build();
+
+        // Null checks
+        assertThatThrownBy(() -> spec.images((Function<ExecutionContext, List<Base64Attachment>>) null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> spec.images((List<Base64Attachment>) null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> spec.images((Base64Attachment[]) null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> spec.image(null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        spec.model("test-model");
+
+        // Static list
+        spec.images(List.of(attachment1, attachment2));
+        SystemOneExecutionSpec execSpec = invokeToSystemOneExecutionSpec(spec);
+        assertThat(execSpec.getImagesConfigure().apply(ctx)).containsExactly(attachment1, attachment2);
+
+        // Varargs
+        spec.images(attachment1, attachment2);
+        execSpec = invokeToSystemOneExecutionSpec(spec);
+        assertThat(execSpec.getImagesConfigure().apply(ctx)).containsExactly(attachment1, attachment2);
+
+        // Single image
+        spec.image(attachment1);
+        execSpec = invokeToSystemOneExecutionSpec(spec);
+        assertThat(execSpec.getImagesConfigure().apply(ctx)).containsExactly(attachment1);
+
+        // Dynamic function
+        spec.images(c -> List.of(attachment2));
+        execSpec = invokeToSystemOneExecutionSpec(spec);
+        assertThat(execSpec.getImagesConfigure().apply(ctx)).containsExactly(attachment2);
     }
 
     @Test
@@ -206,10 +261,10 @@ class SystemOneSpecTest {
         assertThat(listValue.get(1)).isEqualTo("b");
         assertThat(listValue.get(2)).isEqualTo("c");
 
-        // Empty state
-        spec.emptyState();
-        execSpec = invokeToSystemOneExecutionSpec(spec);
-        assertThat(execSpec.getStateConfigure().apply(ctx).getValue()).isNull();
+        // Reject SystemOneContent.NULL
+        assertThatThrownBy(() -> spec.state(SystemOneContent.NULL))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot be SystemOneContent.NULL");
 
         // Dynamic state function
         spec.state(c -> SystemOneContent.text("dynamic payload"));

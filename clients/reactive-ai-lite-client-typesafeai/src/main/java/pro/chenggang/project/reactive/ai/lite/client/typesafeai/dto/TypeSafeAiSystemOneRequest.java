@@ -57,8 +57,9 @@ public class TypeSafeAiSystemOneRequest {
 
     /**
      * The content or state to evaluate. Can be plain text string, structured JSON object,
-     * array of entries, or null.
+     * or array of entries.
      */
+    @NonNull
     private final Object state;
 
     /**

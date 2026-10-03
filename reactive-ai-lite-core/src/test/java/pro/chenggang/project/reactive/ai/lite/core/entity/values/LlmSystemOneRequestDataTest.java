@@ -18,12 +18,14 @@ package pro.chenggang.project.reactive.ai.lite.core.entity.values;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.MimeTypeUtils;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmSystemOneRequestData.LlmSystemOneRequestDataInitializer;
 import pro.chenggang.project.reactive.ai.lite.core.exception.ExecutionContextLossException;
 import pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.SystemOneExecutionInfo;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
@@ -31,6 +33,8 @@ import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -102,10 +106,25 @@ class LlmSystemOneRequestDataTest {
         assertThat(requestData.getExecutionContext()).isEqualTo(ctx);
         assertThat(requestData.getModelName()).isEqualTo("test-model");
         assertThat(requestData.getTokenCertification()).contains(token);
+        assertThat(requestData.getImages()).isEmpty();
         assertThat(requestData.getState()).isEqualTo(state);
         assertThat(requestData.getQuestions()).isEqualTo(testQuestions);
         assertThat(requestData.getRawRequestCustomizerConfigure()).isSameAs(customizer);
         assertThat(requestData.toString()).contains("test-model");
+
+        Base64Attachment attachment = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_PNG)
+                .name("test.png")
+                .base64Content("aGVsbG8=")
+                .build();
+        LlmSystemOneRequestData dataWithImages = LlmSystemOneRequestData.builder()
+                .executionContext(ctx)
+                .modelName("test-model")
+                .images(List.of(attachment))
+                .state(state)
+                .questions(testQuestions)
+                .build();
+        assertThat(dataWithImages.getImages()).containsExactly(attachment);
     }
 
     @Test
@@ -129,6 +148,7 @@ class LlmSystemOneRequestDataTest {
                 .executionContext(ctx)
                 .modelName("test")
                 .state(SystemOneContent.NULL)
+                .questions(testQuestions)
                 .build())
                 .isInstanceOf(IllegalArgumentException.class);
     }
@@ -185,7 +205,7 @@ class LlmSystemOneRequestDataTest {
     }
 
     @Test
-    void testInitializeWithDefaultStateWhenUnconfigured() {
+    void testInitializeMissingStateConfigure() {
         SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
                 .defaultProfile(true)
                 .modelNameConfigure(ctx -> "jev-1")
@@ -197,10 +217,42 @@ class LlmSystemOneRequestDataTest {
 
         ExecutionContext context = ExecutionContext.newContext();
         StepVerifier.create(initializer.initialize().contextWrite(Context.of(ExecutionContext.class, context)))
-                .assertNext(data -> {
-                    assertThat(data.getState()).isEqualTo(SystemOneContent.NULL);
-                })
-                .verifyComplete();
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
+    void testInitializeWithNullState() {
+        SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
+                .defaultProfile(true)
+                .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> null)
+                .questionsConfigure(ctx -> testQuestions)
+                .build();
+
+        LlmSystemOneRequestDataInitializer initializer = LlmSystemOneRequestDataInitializer.of(certificationMap, defaultCertification, providerInfo, execInfo);
+
+        ExecutionContext context = ExecutionContext.newContext();
+        StepVerifier.create(initializer.initialize().contextWrite(Context.of(ExecutionContext.class, context)))
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
+    void testInitializeWithSystemOneContentNull() {
+        SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
+                .defaultProfile(true)
+                .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> SystemOneContent.NULL)
+                .questionsConfigure(ctx -> testQuestions)
+                .build();
+
+        LlmSystemOneRequestDataInitializer initializer = LlmSystemOneRequestDataInitializer.of(certificationMap, defaultCertification, providerInfo, execInfo);
+
+        ExecutionContext context = ExecutionContext.newContext();
+        StepVerifier.create(initializer.initialize().contextWrite(Context.of(ExecutionContext.class, context)))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
@@ -209,6 +261,7 @@ class LlmSystemOneRequestDataTest {
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "test_profile")
                 .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
                 .questionsConfigure(ctx -> testQuestions)
                 .build();
 
@@ -228,6 +281,7 @@ class LlmSystemOneRequestDataTest {
                 .defaultProfile(false)
                 .profilePicker((ctx, profiles) -> "non_existent_profile")
                 .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
                 .questionsConfigure(ctx -> testQuestions)
                 .build();
 
@@ -245,6 +299,7 @@ class LlmSystemOneRequestDataTest {
                 .defaultProfile(false)
                 .profilePicker(null)
                 .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
                 .questionsConfigure(ctx -> testQuestions)
                 .build();
 
@@ -263,6 +318,7 @@ class LlmSystemOneRequestDataTest {
         SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
                 .defaultProfile(true)
                 .modelNameConfigure(ctx -> "")
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
                 .questionsConfigure(ctx -> testQuestions)
                 .build();
 
@@ -279,6 +335,7 @@ class LlmSystemOneRequestDataTest {
         SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
                 .defaultProfile(true)
                 .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
                 .questionsConfigure(null)
                 .build();
 
@@ -295,7 +352,73 @@ class LlmSystemOneRequestDataTest {
         SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
                 .defaultProfile(true)
                 .modelNameConfigure(ctx -> "jev-1")
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
                 .questionsConfigure(ctx -> SystemOneQuestions.newBuilder().build())
+                .build();
+
+        LlmSystemOneRequestDataInitializer initializer = LlmSystemOneRequestDataInitializer.of(certificationMap, defaultCertification, providerInfo, execInfo);
+
+        ExecutionContext context = ExecutionContext.newContext();
+        StepVerifier.create(initializer.initialize().contextWrite(Context.of(ExecutionContext.class, context)))
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
+    void testInitializeWithImages() {
+        Base64Attachment attachment = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_PNG)
+                .name("test.png")
+                .base64Content("aGVsbG8=")
+                .build();
+        SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
+                .defaultProfile(true)
+                .modelNameConfigure(ctx -> "jev-1")
+                .imagesConfigure(ctx -> List.of(attachment))
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
+                .questionsConfigure(ctx -> testQuestions)
+                .build();
+
+        LlmSystemOneRequestDataInitializer initializer = LlmSystemOneRequestDataInitializer.of(certificationMap, defaultCertification, providerInfo, execInfo);
+
+        ExecutionContext context = ExecutionContext.newContext();
+        StepVerifier.create(initializer.initialize().contextWrite(Context.of(ExecutionContext.class, context)))
+                .assertNext(data -> {
+                    assertThat(data.getImages()).containsExactly(attachment);
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void testInitializeWithNullImages() {
+        SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
+                .defaultProfile(true)
+                .modelNameConfigure(ctx -> "jev-1")
+                .imagesConfigure(ctx -> null)
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
+                .questionsConfigure(ctx -> testQuestions)
+                .build();
+
+        LlmSystemOneRequestDataInitializer initializer = LlmSystemOneRequestDataInitializer.of(certificationMap, defaultCertification, providerInfo, execInfo);
+
+        ExecutionContext context = ExecutionContext.newContext();
+        StepVerifier.create(initializer.initialize().contextWrite(Context.of(ExecutionContext.class, context)))
+                .assertNext(data -> {
+                    assertThat(data.getImages()).isEmpty();
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void testInitializeWithNullElementInImages() {
+        List<Base64Attachment> imagesWithNull = new ArrayList<>();
+        imagesWithNull.add(null);
+        SystemOneExecutionInfo execInfo = SystemOneExecutionInfo.builder()
+                .defaultProfile(true)
+                .modelNameConfigure(ctx -> "jev-1")
+                .imagesConfigure(ctx -> imagesWithNull)
+                .stateConfigure(ctx -> SystemOneContent.text("test-state"))
+                .questionsConfigure(ctx -> testQuestions)
                 .build();
 
         LlmSystemOneRequestDataInitializer initializer = LlmSystemOneRequestDataInitializer.of(certificationMap, defaultCertification, providerInfo, execInfo);

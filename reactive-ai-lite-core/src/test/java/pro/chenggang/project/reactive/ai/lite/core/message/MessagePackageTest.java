@@ -128,6 +128,7 @@ class MessagePackageTest {
     void testBase64Attachment() {
         Base64Attachment attachment = Base64Attachment.builder().mimeType(MimeTypeUtils.IMAGE_PNG).base64Content("iVBORw0K...").name("base64").build();
         assertThat(attachment.mimeType()).isEqualTo(MimeTypeUtils.IMAGE_PNG);
+        assertThat(attachment.base64Content()).isEqualTo("iVBORw0K...");
         assertThat(attachment.content()).contains("base64,iVBORw0K...");
         assertThat(attachment.name()).isEqualTo("base64");
     }

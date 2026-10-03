@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
@@ -26,6 +27,7 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmSystemOneReq
 import pro.chenggang.project.reactive.ai.lite.core.exception.ResponseMessageExtractFailedException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneAnswer;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion.ChoiceQuestion;
@@ -250,6 +252,59 @@ class TypeSafeAiSystemOneProviderDelegateTest {
         assertThat(qNode.get("criteria").get(0).asText()).isEqualTo("Poor");
         assertThat(qNode.get("criteria").get(1).asText()).isEqualTo("Average");
         assertThat(qNode.get("criteria").get(2).asText()).isEqualTo("Excellent");
+    }
+
+    @Test
+    @DisplayName("Initialize request body ignores images and does not include them in payload")
+    void testInitializeRequestBodyWithValidImages() {
+        NoulQuestion noulQuestion = SystemOneQuestion.newNoulBuilder("Check image content").build();
+        SystemOneQuestions questions = SystemOneQuestions.of("is_valid", noulQuestion);
+
+        Base64Attachment pngImage = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_PNG)
+                .name("test.png")
+                .base64Content("aGVsbG8=")
+                .build();
+
+        LlmSystemOneRequestData requestData = LlmSystemOneRequestData.builder()
+                .executionContext(ExecutionContext.newContext())
+                .modelName("jev-1")
+                .state(SystemOneContent.text("text with image"))
+                .images(List.of(pngImage))
+                .questions(questions)
+                .build();
+
+        ObjectNode body = delegate.initializeRequestBody(requestData);
+
+        assertThat(body.has("images")).isFalse();
+        assertThat(body.get("model").asText()).isEqualTo("jev-1");
+        assertThat(body.get("state").asText()).isEqualTo("text with image");
+        assertThat(body.has("questions")).isTrue();
+    }
+
+    @Test
+    @DisplayName("Initialize request body validates image MIME types and throws on invalid type")
+    void testInitializeRequestBodyWithInvalidImages() {
+        NoulQuestion noulQuestion = SystemOneQuestion.newNoulBuilder("Check image content").build();
+        SystemOneQuestions questions = SystemOneQuestions.of("is_valid", noulQuestion);
+
+        Base64Attachment gifImage = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_GIF)
+                .name("test.gif")
+                .base64Content("Z2lm")
+                .build();
+
+        LlmSystemOneRequestData requestData = LlmSystemOneRequestData.builder()
+                .executionContext(ExecutionContext.newContext())
+                .modelName("jev-1")
+                .state(SystemOneContent.text("text with gif"))
+                .images(List.of(gifImage))
+                .questions(questions)
+                .build();
+
+        assertThatThrownBy(() -> delegate.initializeRequestBody(requestData))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported image MIME type");
     }
 
     @Test

@@ -27,11 +27,13 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 import pro.chenggang.project.reactive.ai.lite.core.exception.ExecutionContextLossException;
 import pro.chenggang.project.reactive.ai.lite.core.exception.NoProfileFoundLlmClientException;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.SystemOneExecutionInfo;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +55,6 @@ import java.util.function.BiFunction;
  */
 @ToString
 @EqualsAndHashCode
-@Builder
 public class LlmSystemOneRequestData {
 
     /**
@@ -76,6 +77,13 @@ public class LlmSystemOneRequestData {
     private final TokenCertification tokenCertification;
 
     /**
+     * Optional image attachments shared by all questions.
+     */
+    @Getter
+    @NonNull
+    private final List<Base64Attachment> images;
+
+    /**
      * The input state or unstructured data payload to be evaluated by the model.
      */
     @Getter
@@ -94,6 +102,37 @@ public class LlmSystemOneRequestData {
      */
     @Getter
     private final BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure;
+
+    /**
+     * Constructs a new {@link LlmSystemOneRequestData} instance.
+     *
+     * @param executionContext              the execution context; must not be null
+     * @param modelName                     the model name; must not be null
+     * @param tokenCertification            optional token certification
+     * @param images                        optional list of image attachments
+     * @param state                         the input state content; must not be null or {@link SystemOneContent#NULL}
+     * @param questions                     the questions schema; must not be null
+     * @param rawRequestCustomizerConfigure optional request customizer callback
+     */
+    @Builder
+    public LlmSystemOneRequestData(@NonNull ExecutionContext executionContext,
+                                   @NonNull String modelName,
+                                   TokenCertification tokenCertification,
+                                   List<Base64Attachment> images,
+                                   @NonNull SystemOneContent<?> state,
+                                   @NonNull SystemOneQuestions questions,
+                                   BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure) {
+        if (state instanceof SystemOneContent.NullContent || Objects.isNull(state.getValue())) {
+            throw new IllegalArgumentException("State content is required and cannot be null or SystemOneContent.NULL");
+        }
+        this.executionContext = executionContext;
+        this.modelName = modelName;
+        this.tokenCertification = tokenCertification;
+        this.images = Objects.nonNull(images) ? List.copyOf(images) : List.of();
+        this.state = state;
+        this.questions = questions;
+        this.rawRequestCustomizerConfigure = rawRequestCustomizerConfigure;
+    }
 
     /**
      * Provides the authentication token if one has been assigned.
@@ -186,19 +225,47 @@ public class LlmSystemOneRequestData {
         }
 
         /**
+         * Resolves the image attachments from the execution configuration.
+         *
+         * @param executionInfo    the execution info
+         * @param executionContext the execution context
+         * @return the resolved immutable list of {@link Base64Attachment} instances (empty list if unconfigured)
+         */
+        protected List<Base64Attachment> loadImages(@NonNull SystemOneExecutionInfo executionInfo,
+                                                    @NonNull ExecutionContext executionContext) {
+            if (Objects.isNull(executionInfo.getImagesConfigure())) {
+                return List.of();
+            }
+            List<Base64Attachment> images = executionInfo.getImagesConfigure().apply(executionContext);
+            if (Objects.isNull(images) || images.isEmpty()) {
+                return List.of();
+            }
+            for (Base64Attachment image : images) {
+                if (Objects.isNull(image) || Objects.isNull(image.base64Content()) || image.base64Content().isEmpty()) {
+                    throw new IllegalArgumentException("Image attachment in images list must not be null");
+                }
+            }
+            return List.copyOf(images);
+        }
+
+        /**
          * Resolves the input state content from the execution configuration.
          *
          * @param executionInfo    the execution info
          * @param executionContext the execution context
-         * @return the resolved {@link SystemOneContent} (defaults to {@link SystemOneContent#NULL} if unconfigured)
+         * @return the resolved {@link SystemOneContent}
+         * @throws IllegalArgumentException if state configuration is missing, returns null, or is {@link SystemOneContent#NULL}
          */
         protected SystemOneContent<?> loadState(@NonNull SystemOneExecutionInfo executionInfo,
-                                               @NonNull ExecutionContext executionContext) {
+                                                @NonNull ExecutionContext executionContext) {
             if (Objects.isNull(executionInfo.getStateConfigure())) {
-                return SystemOneContent.NULL;
+                throw new IllegalArgumentException("State configuration is required for SystemOne execution");
             }
             SystemOneContent<?> state = executionInfo.getStateConfigure().apply(executionContext);
-            return Objects.nonNull(state) ? state : SystemOneContent.NULL;
+            if (Objects.isNull(state) || state instanceof SystemOneContent.NullContent || Objects.isNull(state.getValue())) {
+                throw new IllegalArgumentException("State content is required and cannot be null or SystemOneContent.NULL");
+            }
+            return state;
         }
 
         /**
@@ -234,12 +301,14 @@ public class LlmSystemOneRequestData {
                     .flatMap(executionContext -> Mono.fromCallable(() -> {
                         TokenCertification tokenCertification = loadTokenCertification(executionInfo, executionContext);
                         String modelName = loadModelName(executionInfo, executionContext);
+                        List<Base64Attachment> images = loadImages(executionInfo, executionContext);
                         SystemOneContent<?> state = loadState(executionInfo, executionContext);
                         SystemOneQuestions questions = loadQuestions(executionInfo, executionContext);
                         return LlmSystemOneRequestData.builder()
                                 .executionContext(executionContext)
                                 .modelName(modelName)
                                 .tokenCertification(tokenCertification)
+                                .images(images)
                                 .state(state)
                                 .questions(questions)
                                 .rawRequestCustomizerConfigure(executionInfo.getRawRequestCustomizerConfigure())

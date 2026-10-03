@@ -16,6 +16,7 @@
 package pro.chenggang.project.reactive.ai.lite.core.provider.delegate;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.util.MimeType;
 import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
@@ -23,9 +24,13 @@ import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.HttpHe
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmSystemOneRequestData;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.RawResponse;
 import pro.chenggang.project.reactive.ai.lite.core.execution.response.SystemOneResponse;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmProviderInfo;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Delegate interface that encapsulates the specific capabilities and API integration logic
@@ -102,6 +107,35 @@ public interface LlmSystemOneProviderDelegate {
     default void checkTokenCertification(LlmSystemOneRequestData llmSystemOneRequestData) {
         if (llmSystemOneRequestData.getTokenCertification().isEmpty()) {
             throw new IllegalStateException("At least one token certification is required for the SystemOne request.");
+        }
+    }
+
+    /**
+     * Supported image MIME subtypes for SystemOne requests (PNG, JPEG, WebP).
+     */
+    Set<String> SUPPORTED_IMAGE_MIME_SUBTYPES = Set.of("png", "jpeg", "jpg", "webp");
+
+    /**
+     * Validates that all images in the request data have supported image MIME types (PNG, JPEG, WebP).
+     *
+     * @param llmSystemOneRequestData the structured request data containing optional image attachments
+     * @throws IllegalArgumentException if any image has an unsupported MIME type or is null
+     */
+    default void checkImagesMimeType(LlmSystemOneRequestData llmSystemOneRequestData) {
+        if (llmSystemOneRequestData.getImages().isEmpty()) {
+            return;
+        }
+        for (Base64Attachment image : llmSystemOneRequestData.getImages()) {
+            if (Objects.isNull(image) || Objects.isNull(image.base64Content()) || image.base64Content().isEmpty()) {
+                throw new IllegalArgumentException("Image attachment must not be null");
+            }
+            MimeType mimeType = image.mimeType();
+            if (Objects.isNull(mimeType)
+                    || !"image".equalsIgnoreCase(mimeType.getType())
+                    || !SUPPORTED_IMAGE_MIME_SUBTYPES.contains(mimeType.getSubtype().toLowerCase())) {
+                throw new IllegalArgumentException("Unsupported image MIME type: " + mimeType +
+                        ". SystemOne only supports PNG, JPEG, and WebP images.");
+            }
         }
     }
 

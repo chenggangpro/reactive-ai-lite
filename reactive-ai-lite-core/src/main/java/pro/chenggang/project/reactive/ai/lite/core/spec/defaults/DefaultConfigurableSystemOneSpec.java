@@ -23,12 +23,14 @@ import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionConte
 import pro.chenggang.project.reactive.ai.lite.core.execution.SystemOneExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.defaults.systemone.SystemOneGeneralExecution;
 import pro.chenggang.project.reactive.ai.lite.core.execution.values.SystemOneExecutionSpec;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 import pro.chenggang.project.reactive.ai.lite.core.option.LlmClientType;
 import pro.chenggang.project.reactive.ai.lite.core.provider.registry.LlmProviderRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.spec.ConfigurableSystemOneSpec;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -42,9 +44,9 @@ import java.util.function.Function;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see ConfigurableSystemOneSpec
  * @see SystemOneExecution
+ * @since 0.1.0
  */
 @Getter(AccessLevel.PROTECTED)
 public class DefaultConfigurableSystemOneSpec implements ConfigurableSystemOneSpec {
@@ -71,6 +73,11 @@ public class DefaultConfigurableSystemOneSpec implements ConfigurableSystemOneSp
      * Function resolving the model name from the execution context.
      */
     private Function<ExecutionContext, String> modelNameConfigure;
+
+    /**
+     * Function resolving the image attachments from the execution context.
+     */
+    private Function<ExecutionContext, List<Base64Attachment>> imagesConfigure;
 
     /**
      * Function resolving the input state content from the execution context.
@@ -115,9 +122,21 @@ public class DefaultConfigurableSystemOneSpec implements ConfigurableSystemOneSp
     }
 
     /**
+     * Configures the dynamic image attachments resolver.
+     *
+     * @param imagesConfigure the function mapping execution context to list of images; must not be null
+     * @return this spec instance for method chaining
+     */
+    @Override
+    public ConfigurableSystemOneSpec images(@NonNull Function<ExecutionContext, List<Base64Attachment>> imagesConfigure) {
+        this.imagesConfigure = imagesConfigure;
+        return this;
+    }
+
+    /**
      * Configures the dynamic input state content resolver.
      *
-     * @param <T>           the type of SystemOneContent
+     * @param <T>            the type of SystemOneContent
      * @param stateConfigure the function mapping execution context to state content; must not be null
      * @return this spec instance for method chaining
      */
@@ -171,11 +190,8 @@ public class DefaultConfigurableSystemOneSpec implements ConfigurableSystemOneSp
         if (Objects.nonNull(this.rawRequestCustomizerConfigure)) {
             builder.rawRequestCustomizerConfigure(this.rawRequestCustomizerConfigure);
         }
-        if (Objects.nonNull(this.stateConfigure)) {
-            builder.stateConfigure(this.stateConfigure);
-        }
-        if (Objects.nonNull(this.questionsConfigure)) {
-            builder.questionsConfigure(this.questionsConfigure);
+        if (Objects.nonNull(this.imagesConfigure)) {
+            builder.imagesConfigure(this.imagesConfigure);
         }
         return builder.llmClientType(llmClientType)
                 .parentAttributes(providerConfigureInfo.getParentAttributes())
@@ -185,6 +201,8 @@ public class DefaultConfigurableSystemOneSpec implements ConfigurableSystemOneSp
                 .defaultProfile(providerConfigureInfo.isDefaultProfile())
                 .profilePicker(providerConfigureInfo.getProfilePicker())
                 .modelNameConfigure(this.modelNameConfigure)
+                .stateConfigure(this.stateConfigure)
+                .questionsConfigure(this.questionsConfigure)
                 .build();
     }
 }
