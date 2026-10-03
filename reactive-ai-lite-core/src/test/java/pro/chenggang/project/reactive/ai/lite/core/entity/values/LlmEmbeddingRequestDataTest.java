@@ -155,7 +155,7 @@ class LlmEmbeddingRequestDataTest {
     void testLlmEmbeddingRequestDataGetters() {
         TokenCertification profileCert = mock(TokenCertification.class);
         BiConsumer<ExecutionContext, ObjectNode> customizer = (ctx, node) -> {};
-        
+
         LlmEmbeddingRequestData data = LlmEmbeddingRequestData.builder()
                 .executionContext(ExecutionContext.newContext())
                 .tokenCertification(profileCert)

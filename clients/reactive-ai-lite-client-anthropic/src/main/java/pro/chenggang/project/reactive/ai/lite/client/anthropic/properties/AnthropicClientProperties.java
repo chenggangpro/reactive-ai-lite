@@ -89,7 +89,7 @@ public class AnthropicClientProperties implements InitializingBean {
      */
     @Override
     public void afterPropertiesSet() throws Exception {
-        if(certifications.size() == 1){
+        if (certifications.size() == 1) {
             certifications.getFirst().setDefault(true);
         }
         this.checkRootProperties();

@@ -150,33 +150,33 @@ public class OllamaChatProviderDelegate implements LlmChatProviderDelegate {
      * invoked via the builder pattern. It initializes the provider metadata, stores the
      * endpoint and base URL, and builds a {@link WebClient} bound to the base URL.
      *
-     * @param webClientBuilder    the Spring {@link WebClient.Builder} to configure
-     * @param baseUrL             the Ollama API base URL (e.g. http://localhost:11434)
+     * @param webClientBuilder       the Spring {@link WebClient.Builder} to configure
+     * @param baseUrL                the Ollama API base URL (e.g. http://localhost:11434)
      * @param chatCompletionEndpoint the endpoint path for chat completions (e.g. /api/chat)
-     * @param isDefault           whether this provider should be considered the default
-     * @param name                a human-readable provider name
-     * @param supportedModels     the set of model names this provider supports
-     * @param certifications      list of token certifications to apply (URI or header-based)
+     * @param isDefault              whether this provider should be considered the default
+     * @param name                   a human-readable provider name
+     * @param supportedModels        the set of model names this provider supports
+     * @param certifications         list of token certifications to apply (URI or header-based)
      */
     @Builder
     protected OllamaChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
-                                 @NonNull String baseUrL,
-                                 @NonNull String chatCompletionEndpoint,
-                                 boolean isDefault,
-                                 @NonNull String name,
-                                 Set<String> supportedModels,
-                                 @NonNull List<TokenCertification> certifications) {
+                                         @NonNull String baseUrL,
+                                         @NonNull String chatCompletionEndpoint,
+                                         boolean isDefault,
+                                         @NonNull String name,
+                                         Set<String> supportedModels,
+                                         @NonNull List<TokenCertification> certifications) {
         this.baseUrL = baseUrL;
         this.chatCompletionEndpoint = chatCompletionEndpoint;
         this.webClient = webClientBuilder.baseUrl(baseUrL).build();
         this.llmProviderInfo = OllamaLlmProviderInfo.builder()
-                        .isDefault(isDefault)
-                        .name(name)
-                        .supportedModels(supportedModels)
-                        .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
-                        .baseUrl(baseUrL)
-                        .endpoint(chatCompletionEndpoint)
-                        .build();
+                .isDefault(isDefault)
+                .name(name)
+                .supportedModels(supportedModels)
+                .profiles(certifications.stream().map(TokenCertification::profile).collect(Collectors.toSet()))
+                .baseUrl(baseUrL)
+                .endpoint(chatCompletionEndpoint)
+                .build();
     }
 
     /**

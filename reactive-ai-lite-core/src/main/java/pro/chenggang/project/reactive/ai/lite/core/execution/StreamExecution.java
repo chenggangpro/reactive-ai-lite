@@ -78,8 +78,8 @@ public interface StreamExecution {
      * </p>
      *
      * @return a {@link Flux} emitting structured streaming responses;
-     *         never {@code null}, may be empty if no chunks are received
-     *         (unlikely in a streaming scenario)
+     * never {@code null}, may be empty if no chunks are received
+     * (unlikely in a streaming scenario)
      */
     Flux<StreamResponse> execute();
 

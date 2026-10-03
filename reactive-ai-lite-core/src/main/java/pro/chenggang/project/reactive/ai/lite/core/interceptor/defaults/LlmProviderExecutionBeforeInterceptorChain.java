@@ -146,7 +146,7 @@ public class LlmProviderExecutionBeforeInterceptorChain implements LlmProviderRe
      *
      * @param exchange the request exchange carrying context and the outgoing request details
      * @return a {@code Mono} that completes when this portion of the chain has been handled; may be
-     *         empty if the chain is exhausted
+     * empty if the chain is exhausted
      */
     @Override
     public Mono<Void> next(LlmProviderRequestExchange exchange) {

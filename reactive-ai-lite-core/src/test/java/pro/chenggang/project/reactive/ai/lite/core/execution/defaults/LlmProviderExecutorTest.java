@@ -48,7 +48,7 @@ class LlmProviderExecutorTest {
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-                
+
         assertThatThrownBy(() -> executor.execute(null, (p, i) -> Mono.empty()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> executor.execute(LlmProvider.class, null))
@@ -62,7 +62,7 @@ class LlmProviderExecutorTest {
         assertThatThrownBy(() -> executor.loadLlmProvider(mock(ExecutionContext.class), null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
-    
+
     @Test
     void testExecuteContextLoss() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
@@ -71,16 +71,16 @@ class LlmProviderExecutorTest {
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-                
+
         StepVerifier.create(executor.execute(LlmProvider.class, (p, i) -> Mono.just("result")))
                 .expectError(ExecutionContextLossException.class)
                 .verify();
-                
+
         StepVerifier.create(executor.executeFlux(LlmProvider.class, (p, i) -> Flux.just("result")))
                 .expectError(ExecutionContextLossException.class)
                 .verify();
     }
-    
+
     @Test
     void testExecuteDefaultProvider() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
@@ -89,46 +89,46 @@ class LlmProviderExecutorTest {
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
         ExecutionInfo info = mock(ExecutionInfo.class);
         when(spec.newExecutionInfo(any())).thenReturn(info);
-        
+
         LlmProvider provider = mock(LlmProvider.class);
         when(registry.getDefaultProvider(Capability.CHAT)).thenReturn((Mono) Mono.just(provider));
-        
+
         LlmProviderExecutor executor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-                
+
         StepVerifier.create(executor.execute(LlmProvider.class, (p, i) -> Mono.just("result"))
                         .contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .expectNext("result")
                 .verifyComplete();
-                
+
         StepVerifier.create(executor.executeFlux(LlmProvider.class, (p, i) -> Flux.just("result"))
                         .contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .expectNext("result")
                 .verifyComplete();
     }
-    
+
     @Test
     void testExecuteCustomProvider() {
         LlmProviderRegistry registry = mock(LlmProviderRegistry.class);
         ExecutionSpec spec = mock(ExecutionSpec.class);
         when(spec.isDefaultProvider()).thenReturn(false);
         when(spec.getLlmClientType()).thenReturn(LlmClientType.CHAT);
-        
+
         BiPredicate<ExecutionContext, LlmProviderInfo> filter = (ctx, i) -> true;
         when(spec.getProviderFilter()).thenReturn(filter);
         ExecutionInfo info = mock(ExecutionInfo.class);
         when(spec.newExecutionInfo(any())).thenReturn(info);
-        
+
         LlmProvider provider = mock(LlmProvider.class);
         when(registry.getProvider(eq(Capability.CHAT), eq(LlmProvider.class), any())).thenReturn((Mono) Mono.just(provider));
-        
+
         LlmProviderExecutor executor = LlmProviderExecutor.builder()
                 .llmProviderRegistry(registry)
                 .executionSpec(spec)
                 .build();
-                
+
         StepVerifier.create(executor.execute(LlmProvider.class, (p, i) -> Mono.just("result"))
                         .contextWrite(Context.of(ExecutionContext.class, ExecutionContext.newContext())))
                 .expectNext("result")

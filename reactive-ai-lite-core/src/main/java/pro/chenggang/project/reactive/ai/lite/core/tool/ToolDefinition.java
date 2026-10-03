@@ -99,7 +99,7 @@ public interface ToolDefinition {
      * </p>
      *
      * @return {@code true} to enforce strict schema matching, {@code false} to allow leniency,
-     *         or {@code null} to use the provider's default
+     * or {@code null} to use the provider's default
      */
     default Boolean strict() {
         return null;

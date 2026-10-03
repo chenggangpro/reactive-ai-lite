@@ -76,7 +76,7 @@ public interface RawResponseConverter<RESPONSE> {
      * @param rawResponse non‑null raw response object wrapping the provider’s
      *                    JSON body and associated metadata
      * @return the converted instance of type {@code RESPONSE}; must not be
-     *         {@code null}
+     * {@code null}
      * @throws RuntimeException if parsing fails; the framework will wrap any
      *                          exception in a {@code ResponseConversionException}
      */

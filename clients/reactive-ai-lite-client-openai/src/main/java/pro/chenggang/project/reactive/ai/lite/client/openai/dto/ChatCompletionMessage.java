@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * Represents a single message within an OpenAI chat completion conversation.
- * It encapsulates the role of the author (e.g., system, user, assistant), the 
+ * It encapsulates the role of the author (e.g., system, user, assistant), the
  * textual or media content, tool calls, and associated metadata.
  *
  * @author Gang Cheng
@@ -53,7 +53,7 @@ public class ChatCompletionMessage {
     private final Role role;
 
     /**
-     * An optional name for the participant. Provides the model information to differentiate 
+     * An optional name for the participant. Provides the model information to differentiate
      * between participants of the same role.
      */
     @JsonProperty("name")

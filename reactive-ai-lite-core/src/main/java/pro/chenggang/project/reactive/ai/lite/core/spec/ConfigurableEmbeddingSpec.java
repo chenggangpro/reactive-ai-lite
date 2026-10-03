@@ -50,7 +50,7 @@ public interface ConfigurableEmbeddingSpec extends EmbeddingSpec {
      * attributes (e.g., user preference, request origin, A/B testing flags).
      *
      * @param modelNameConfigure a function that accepts the {@link ExecutionContext}
-     *                            and returns the model name to be used
+     *                           and returns the model name to be used
      * @return this {@link ConfigurableEmbeddingSpec} instance for method chaining
      */
     ConfigurableEmbeddingSpec model(@NonNull Function<ExecutionContext, String> modelNameConfigure);
@@ -75,7 +75,7 @@ public interface ConfigurableEmbeddingSpec extends EmbeddingSpec {
      * other runtime variables.
      *
      * @param inputTextConfigure a function that receives the {@link ExecutionContext}
-     *                            and returns a {@link List} of strings to embed
+     *                           and returns a {@link List} of strings to embed
      * @return this {@link ConfigurableEmbeddingSpec} instance for method chaining
      */
     ConfigurableEmbeddingSpec inputText(@NonNull Function<ExecutionContext, List<String>> inputTextConfigure);
@@ -111,7 +111,7 @@ public interface ConfigurableEmbeddingSpec extends EmbeddingSpec {
      * requirements, storage constraints).
      *
      * @param dimensionsConfigure a function that accepts the {@link ExecutionContext}
-     *                             and returns the desired dimension count
+     *                            and returns the desired dimension count
      * @return this {@link ConfigurableEmbeddingSpec} instance for method chaining
      */
     ConfigurableEmbeddingSpec dimensions(@NonNull Function<ExecutionContext, Integer> dimensionsConfigure);
@@ -141,8 +141,8 @@ public interface ConfigurableEmbeddingSpec extends EmbeddingSpec {
      * parameters or transforming the input based on dynamic context information.
      *
      * @param rawRequestCustomizerConfigure a {@link BiConsumer} that receives the
-     *                                       {@link ExecutionContext} and the mutable
-     *                                       {@link ObjectNode} of the request
+     *                                      {@link ExecutionContext} and the mutable
+     *                                      {@link ObjectNode} of the request
      * @return this {@link ConfigurableEmbeddingSpec} instance for method chaining
      */
     ConfigurableEmbeddingSpec rawRequestCustomizer(@NonNull BiConsumer<ExecutionContext, ObjectNode> rawRequestCustomizerConfigure);
@@ -154,7 +154,7 @@ public interface ConfigurableEmbeddingSpec extends EmbeddingSpec {
      * {@link #rawRequestCustomizer(BiConsumer)}.
      *
      * @param rawRequestCustomizerConfigure a {@link Consumer} that accepts the
-     *                                       mutable {@link ObjectNode} of the request
+     *                                      mutable {@link ObjectNode} of the request
      * @return this {@link ConfigurableEmbeddingSpec} instance for method chaining
      */
     default ConfigurableEmbeddingSpec rawRequestCustomizer(@NonNull Consumer<ObjectNode> rawRequestCustomizerConfigure) {

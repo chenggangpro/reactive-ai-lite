@@ -114,7 +114,7 @@ public final class JsonSchemaUtil {
      * with AI providers that expect uppercase type identifiers.
      *
      * @param schemaOptions the options to process; never {@code null}
-     * @param schema the schema object node to mutate
+     * @param schema        the schema object node to mutate
      */
     private static void processSchemaOptions(SchemaOption[] schemaOptions, ObjectNode schema) {
         if (Stream.of(schemaOptions)

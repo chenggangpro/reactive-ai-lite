@@ -114,6 +114,15 @@ public class Base64Attachment implements Attachment {
     }
 
     /**
+     * Returns the raw Base64-encoded content string.
+     *
+     * @return the Base64 content string
+     */
+    public String base64Content() {
+        return this.base64Content;
+    }
+
+    /**
      * Generates the complete data URI representation of this attachment.
      * <p>
      * The format follows the data URI scheme:

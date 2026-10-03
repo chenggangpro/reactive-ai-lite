@@ -16,16 +16,23 @@
 package pro.chenggang.project.reactive.ai.lite.core.provider.delegate;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.HttpHeaderTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
 import pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmSystemOneRequestData;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +40,7 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for default methods in {@link LlmSystemOneProviderDelegate}.
@@ -98,5 +106,107 @@ class LlmSystemOneProviderDelegateTest {
         TokenCertification otherCertification = mock(TokenCertification.class);
         delegate.applyStandardTokenCertification(specOther, otherCertification);
         verify(specOther, never()).headers(any());
+    }
+
+    @Test
+    void testCheckImagesMimeType() {
+        LlmSystemOneProviderDelegate delegate = mock(LlmSystemOneProviderDelegate.class);
+        doCallRealMethod().when(delegate).checkImagesMimeType(any());
+
+        SystemOneQuestions questions = SystemOneQuestions.of("q1", SystemOneQuestion.newNoulBuilder("test").build());
+
+        // Empty images: no exception
+        LlmSystemOneRequestData dataWithoutImages = LlmSystemOneRequestData.builder()
+                .executionContext(mock(ExecutionContext.class))
+                .modelName("test-model")
+                .state(SystemOneContent.text("test-state"))
+                .questions(questions)
+                .build();
+        assertThatNoException().isThrownBy(() -> delegate.checkImagesMimeType(dataWithoutImages));
+
+        // Valid image types: png, jpeg, jpg, webp
+        Base64Attachment png = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_PNG)
+                .name("test.png")
+                .base64Content("cG5n")
+                .build();
+        Base64Attachment jpeg = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_JPEG)
+                .name("test.jpeg")
+                .base64Content("anBlZw==")
+                .build();
+        Base64Attachment jpg = Base64Attachment.builder()
+                .mimeType(MimeType.valueOf("image/jpg"))
+                .name("test.jpg")
+                .base64Content("anBn")
+                .build();
+        Base64Attachment webp = Base64Attachment.builder()
+                .mimeType(MimeType.valueOf("image/webp"))
+                .name("test.webp")
+                .base64Content("d2VicA==")
+                .build();
+
+        LlmSystemOneRequestData dataWithValidImages = LlmSystemOneRequestData.builder()
+                .executionContext(mock(ExecutionContext.class))
+                .modelName("test-model")
+                .state(SystemOneContent.text("test-state"))
+                .questions(questions)
+                .images(List.of(png, jpeg, jpg, webp))
+                .build();
+        assertThatNoException().isThrownBy(() -> delegate.checkImagesMimeType(dataWithValidImages));
+
+        // Invalid MIME type: gif
+        Base64Attachment gif = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.IMAGE_GIF)
+                .name("test.gif")
+                .base64Content("Z2lm")
+                .build();
+        LlmSystemOneRequestData dataWithGif = LlmSystemOneRequestData.builder()
+                .executionContext(mock(ExecutionContext.class))
+                .modelName("test-model")
+                .state(SystemOneContent.text("test-state"))
+                .questions(questions)
+                .images(List.of(gif))
+                .build();
+        assertThatIllegalArgumentException().isThrownBy(() -> delegate.checkImagesMimeType(dataWithGif))
+                .withMessageContaining("Unsupported image MIME type");
+
+        // Invalid MIME type: application/json
+        Base64Attachment json = Base64Attachment.builder()
+                .mimeType(MimeTypeUtils.APPLICATION_JSON)
+                .name("test.json")
+                .base64Content("e30=")
+                .build();
+        LlmSystemOneRequestData dataWithJson = LlmSystemOneRequestData.builder()
+                .executionContext(mock(ExecutionContext.class))
+                .modelName("test-model")
+                .state(SystemOneContent.text("test-state"))
+                .questions(questions)
+                .images(List.of(json))
+                .build();
+        assertThatIllegalArgumentException().isThrownBy(() -> delegate.checkImagesMimeType(dataWithJson))
+                .withMessageContaining("Unsupported image MIME type");
+
+        // Image attachment with null mimeType: mock Base64Attachment returning null
+        Base64Attachment nullMimeTypeImage = mock(Base64Attachment.class);
+        when(nullMimeTypeImage.mimeType()).thenReturn(null);
+        when(nullMimeTypeImage.base64Content()).thenReturn("aGVsbG8=");
+        LlmSystemOneRequestData dataWithNullMimeType = LlmSystemOneRequestData.builder()
+                .executionContext(mock(ExecutionContext.class))
+                .modelName("test-model")
+                .state(SystemOneContent.text("test-state"))
+                .questions(questions)
+                .images(List.of(nullMimeTypeImage))
+                .build();
+        assertThatIllegalArgumentException().isThrownBy(() -> delegate.checkImagesMimeType(dataWithNullMimeType))
+                .withMessageContaining("Unsupported image MIME type");
+
+        // Null image attachment in list
+        List<Base64Attachment> listWithNull = new ArrayList<>();
+        listWithNull.add(null);
+        LlmSystemOneRequestData mockDataWithNull = mock(LlmSystemOneRequestData.class);
+        when(mockDataWithNull.getImages()).thenReturn(listWithNull);
+        assertThatIllegalArgumentException().isThrownBy(() -> delegate.checkImagesMimeType(mockDataWithNull))
+                .withMessageContaining("Image attachment must not be null");
     }
 }

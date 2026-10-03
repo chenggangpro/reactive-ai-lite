@@ -110,11 +110,11 @@ public class DeepseekClientProperties implements InitializingBean {
      * </p>
      *
      * @throws Exception if any validation assertion fails (caught by Spring as
-     *         a bean initialization error)
+     *                   a bean initialization error)
      */
     @Override
     public void afterPropertiesSet() throws Exception {
-        if(certifications.size() == 1){
+        if (certifications.size() == 1) {
             certifications.getFirst().setDefault(true);
         }
         this.checkRootProperties();

@@ -56,9 +56,9 @@ public interface LlmProviderRequestInterceptorChain {
      * </p>
      *
      * @param exchange the current request exchange containing request data, metadata, and
-     *        mutable context that can be enriched or inspected by interceptors
+     *                 mutable context that can be enriched or inspected by interceptors
      * @return a {@link Mono}{@code <Void>} that completes when the chain (and thus all
-     *         downstream logic) has finished, or signals an error if any step fails
+     * downstream logic) has finished, or signals an error if any step fails
      */
     Mono<Void> next(LlmProviderRequestExchange exchange);
 

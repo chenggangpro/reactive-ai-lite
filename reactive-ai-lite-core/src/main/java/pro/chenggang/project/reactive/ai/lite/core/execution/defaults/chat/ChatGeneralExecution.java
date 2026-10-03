@@ -146,7 +146,7 @@ public class ChatGeneralExecution implements GeneralExecution {
      * </p>
      *
      * @return a {@link Mono} that emits the raw {@link RawResponse} containing the full
-     *         provider response in its original form
+     * provider response in its original form
      */
     @Override
     public Mono<RawResponse> executeRaw() {

@@ -47,7 +47,7 @@ class DefaultLlmEmbeddingProviderTest {
         LlmEmbeddingProviderDelegate delegate = mock(LlmEmbeddingProviderDelegate.class);
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -55,7 +55,7 @@ class DefaultLlmEmbeddingProviderTest {
         LlmProviderInterceptorRegistry registry = mock(LlmProviderInterceptorRegistry.class);
 
         DefaultLlmEmbeddingProvider provider = new DefaultLlmEmbeddingProvider(delegate, List.of(defaultCert), registry);
-        
+
         assertThat(provider.capability()).isEqualTo(Capability.EMBEDDING);
         assertThat(provider.info()).isEqualTo(providerInfo);
     }
@@ -88,7 +88,7 @@ class DefaultLlmEmbeddingProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -101,17 +101,17 @@ class DefaultLlmEmbeddingProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         ObjectNode rawResponse = JsonRelatedUtil.OBJECT_MAPPER.createObjectNode();
         when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rawResponse));
-        
+
         EmbeddingResponse embeddingResponse = mock(EmbeddingResponse.class);
         when(delegate.extractGeneralResponse(any())).thenReturn(Mono.just(embeddingResponse));
 
@@ -134,7 +134,7 @@ class DefaultLlmEmbeddingProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -147,17 +147,17 @@ class DefaultLlmEmbeddingProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.RequestHeadersSpec headersSpec = mock(WebClient.RequestHeadersSpec.class);
         when(requestBodySpec.bodyValue(any())).thenReturn(headersSpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
-        
+
         ObjectNode rawResponseNode = JsonRelatedUtil.OBJECT_MAPPER.createObjectNode();
         when(responseSpec.bodyToMono(any(ParameterizedTypeReference.class))).thenReturn(Mono.just(rawResponseNode));
-        
+
         DefaultLlmEmbeddingProvider provider = new DefaultLlmEmbeddingProvider(delegate, List.of(defaultCert), registry);
 
         EmbeddingExecutionInfo executionInfo = EmbeddingExecutionInfo.builder()
@@ -180,7 +180,7 @@ class DefaultLlmEmbeddingProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -189,7 +189,7 @@ class DefaultLlmEmbeddingProviderTest {
 
         WebClient.RequestBodySpec requestBodySpec = mock(WebClient.RequestBodySpec.class);
         when(delegate.loadRequestBodySpec(any())).thenReturn(requestBodySpec);
-        
+
         WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestBodySpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
@@ -197,7 +197,7 @@ class DefaultLlmEmbeddingProviderTest {
         DefaultLlmEmbeddingProvider provider = new DefaultLlmEmbeddingProvider(delegate, List.of(defaultCert), registry);
 
         pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmEmbeddingRequestData requestData = mock(pro.chenggang.project.reactive.ai.lite.core.entity.values.LlmEmbeddingRequestData.class);
-        
+
         StepVerifier.create(provider.toResponseSpec(requestData, null))
                 .expectNext(responseSpec)
                 .verifyComplete();
@@ -209,7 +209,7 @@ class DefaultLlmEmbeddingProviderTest {
         LlmProviderInfo providerInfo = mock(LlmProviderInfo.class);
         when(providerInfo.name()).thenReturn("test-provider");
         when(delegate.providerInfo()).thenReturn(providerInfo);
-        
+
         TokenCertification defaultCert = mock(TokenCertification.class);
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
@@ -231,6 +231,7 @@ class DefaultLlmEmbeddingProviderTest {
                 })
                 .verifyComplete();
     }
+
     @Test
     void testNonNullChecks() throws Exception {
         LlmEmbeddingProviderDelegate delegate = mock(LlmEmbeddingProviderDelegate.class);
@@ -238,16 +239,16 @@ class DefaultLlmEmbeddingProviderTest {
         when(defaultCert.isDefault()).thenReturn(true);
         when(defaultCert.profile()).thenReturn("default");
         LlmProviderInterceptorRegistry registry = mock(LlmProviderInterceptorRegistry.class);
-        
+
         assertThatThrownBy(() -> new DefaultLlmEmbeddingProvider(null, List.of(defaultCert), registry))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DefaultLlmEmbeddingProvider(delegate, null, registry))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DefaultLlmEmbeddingProvider(delegate, List.of(defaultCert), null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         DefaultLlmEmbeddingProvider provider = new DefaultLlmEmbeddingProvider(delegate, List.of(defaultCert), registry);
-        
+
         assertThatThrownBy(() -> provider.executeEmbedding(null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> provider.executeEmbeddingRaw(null))
@@ -256,7 +257,7 @@ class DefaultLlmEmbeddingProviderTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> provider.generateRawRequestBody(null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         java.lang.reflect.Method method = DefaultLlmEmbeddingProvider.class.getDeclaredMethod("initializeLlmRequestData", EmbeddingExecutionInfo.class);
         method.setAccessible(true);
         try {

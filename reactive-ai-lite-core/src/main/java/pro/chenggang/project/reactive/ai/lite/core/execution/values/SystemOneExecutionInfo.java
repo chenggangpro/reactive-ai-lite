@@ -22,9 +22,11 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -43,9 +45,9 @@ import java.util.function.Function;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see ExecutionInfo
  * @see ExecutionContext
+ * @since 0.1.0
  */
 @Getter
 @Builder(toBuilder = true)
@@ -67,6 +69,11 @@ public class SystemOneExecutionInfo implements ExecutionInfo {
      */
     @NonNull
     private final Function<ExecutionContext, String> modelNameConfigure;
+
+    /**
+     * Supplies the image attachments for the current SystemOne execution.
+     */
+    private final Function<ExecutionContext, List<Base64Attachment>> imagesConfigure;
 
     /**
      * Supplies the input state content for the current SystemOne execution.

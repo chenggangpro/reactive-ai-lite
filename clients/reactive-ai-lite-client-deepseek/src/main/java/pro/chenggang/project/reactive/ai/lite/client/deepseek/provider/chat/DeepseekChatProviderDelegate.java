@@ -137,16 +137,16 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
      * of {@link TokenCertification} implementations that will be applied to every request.
      * It also records whether this provider is the default and what models it supports.
      *
-     * @param webClientBuilder    a pre‑configured {@link WebClient.Builder} (usually from
-     *                            the Spring WebFlux auto‑configuration)
-     * @param baseUrL            the root URL of the DeepSeek API (e.g., {@code https://api.deepseek.com})
+     * @param webClientBuilder       a pre‑configured {@link WebClient.Builder} (usually from
+     *                               the Spring WebFlux auto‑configuration)
+     * @param baseUrL                the root URL of the DeepSeek API (e.g., {@code https://api.deepseek.com})
      * @param chatCompletionEndpoint the relative path for chat completions (e.g., {@code /v1/chat/completions})
-     * @param isDefault           whether this provider should be treated as the default
-     *                            in a multi‑provider setup
-     * @param name                a unique symbolic name for this provider instance
-     * @param supportedModels     the set of model identifiers that this provider can serve
-     * @param certifications      a list of token‑based authentication mechanisms that will be
-     *                            attached to each HTTP request
+     * @param isDefault              whether this provider should be treated as the default
+     *                               in a multi‑provider setup
+     * @param name                   a unique symbolic name for this provider instance
+     * @param supportedModels        the set of model identifiers that this provider can serve
+     * @param certifications         a list of token‑based authentication mechanisms that will be
+     *                               attached to each HTTP request
      */
     @Builder
     private DeepseekChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,
@@ -542,8 +542,8 @@ public class DeepseekChatProviderDelegate implements LlmChatProviderDelegate {
      * a function not present in the definitions, an {@link IllegalStateException}
      * is thrown, because the invocation would be unsafe.
      *
-     * @param toolDefinitions     the list of tool definitions that describe available tools
-     * @param toolCallsArrayNode  the JSON array of tool call objects from the response
+     * @param toolDefinitions    the list of tool definitions that describe available tools
+     * @param toolCallsArrayNode the JSON array of tool call objects from the response
      * @return a list of parsed and validated assistant tool calls
      * @throws IllegalStateException if a tool call's function name is not in the definitions
      */

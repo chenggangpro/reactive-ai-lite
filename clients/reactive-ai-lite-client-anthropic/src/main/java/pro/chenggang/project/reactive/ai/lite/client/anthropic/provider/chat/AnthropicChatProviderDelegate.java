@@ -143,13 +143,13 @@ public class AnthropicChatProviderDelegate implements LlmChatProviderDelegate {
      *
      * @param webClientBuilder       builder for the {@link WebClient}, pre-configured
      *                               with any custom settings (e.g., codecs, timeouts).
-     * @param baseUrL               base URL of the Anthropic API
+     * @param baseUrL                base URL of the Anthropic API
      * @param chatCompletionEndpoint path to the chat completion endpoint (e.g., {@code /v1/messages})
-     * @param isDefault             whether this provider should be treated as the default
-     * @param name                  a human-readable name for this provider
-     * @param supportedModels       set of model identifiers that this provider can handle
-     * @param certifications        list of {@link TokenCertification} instances for authorization
-     * @param apiVersion            Anthropic API version string, e.g., {@code 2023-06-01}
+     * @param isDefault              whether this provider should be treated as the default
+     * @param name                   a human-readable name for this provider
+     * @param supportedModels        set of model identifiers that this provider can handle
+     * @param certifications         list of {@link TokenCertification} instances for authorization
+     * @param apiVersion             Anthropic API version string, e.g., {@code 2023-06-01}
      */
     @Builder
     protected AnthropicChatProviderDelegate(@NonNull WebClient.Builder webClientBuilder,

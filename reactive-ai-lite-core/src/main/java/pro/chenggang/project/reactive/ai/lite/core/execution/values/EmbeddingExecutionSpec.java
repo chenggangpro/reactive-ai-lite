@@ -28,14 +28,14 @@ import java.util.function.Function;
  * used to invoke embedding model services. This spec extends the base {@link ExecutionSpec} and adds
  * embedding-specific configuration capabilities.
  * <p>
- * The specification is designed to allow dynamic resolution of the input texts and the target 
- * embedding dimensions at runtime via {@link Function}s that accept the current 
- * {@link ExecutionContext}. This enables flexible integration with various embedding models 
- * that may support variable dimensions (e.g., OpenAI's text-embedding-3 models) and multiple 
+ * The specification is designed to allow dynamic resolution of the input texts and the target
+ * embedding dimensions at runtime via {@link Function}s that accept the current
+ * {@link ExecutionContext}. This enables flexible integration with various embedding models
+ * that may support variable dimensions (e.g., OpenAI's text-embedding-3 models) and multiple
  * input sources.
  * <p>
- * Instances are typically created using the {@code SuperBuilder} pattern provided by Lombok, 
- * which automatically generates a builder to set the properties defined here and those inherited 
+ * Instances are typically created using the {@code SuperBuilder} pattern provided by Lombok,
+ * which automatically generates a builder to set the properties defined here and those inherited
  * from {@link ExecutionSpec}.
  *
  * @author Gang Cheng
@@ -48,42 +48,42 @@ import java.util.function.Function;
 public class EmbeddingExecutionSpec extends ExecutionSpec<EmbeddingExecutionInfo> {
 
     /**
-     * A function that dynamically extracts the list of texts to be embedded from the 
+     * A function that dynamically extracts the list of texts to be embedded from the
      * {@link ExecutionContext} at the time of execution.
      * <p>
-     * The function is invoked when the {@link EmbeddingExecutionInfo} resolves its input 
-     * texts, allowing the actual content to depend on runtime state such as user queries, 
-     * documents, or other context information. The returned list of strings will be sent 
+     * The function is invoked when the {@link EmbeddingExecutionInfo} resolves its input
+     * texts, allowing the actual content to depend on runtime state such as user queries,
+     * documents, or other context information. The returned list of strings will be sent
      * to the embedding model.
      */
     private final Function<ExecutionContext, List<String>> inputTextConfigure;
 
     /**
-     * A function that determines the desired embedding dimensions from the 
+     * A function that determines the desired embedding dimensions from the
      * {@link ExecutionContext} at execution time.
      * <p>
-     * Many modern embedding models support configurable output dimensions to trade off 
-     * between accuracy and performance. This function enables dynamic selection of the 
-     * dimension count based on the execution context, allowing the same specification 
+     * Many modern embedding models support configurable output dimensions to trade off
+     * between accuracy and performance. This function enables dynamic selection of the
+     * dimension count based on the execution context, allowing the same specification
      * to be used with different configurations for different calls.
      */
     private final Function<ExecutionContext, Integer> dimensionsConfigure;
 
     /**
-     * Constructs a new {@link EmbeddingExecutionInfo} by transferring all configured 
-     * functions and profile settings from this specification. The returned object 
-     * is a concrete builder that will lazily resolve the input texts and dimensions 
+     * Constructs a new {@link EmbeddingExecutionInfo} by transferring all configured
+     * functions and profile settings from this specification. The returned object
+     * is a concrete builder that will lazily resolve the input texts and dimensions
      * when the embedding request is prepared.
      * <p>
-     * This method is called internally by the execution framework when an embedding 
-     * operation is requested. It ensures that all configuration from the spec is 
+     * This method is called internally by the execution framework when an embedding
+     * operation is requested. It ensures that all configuration from the spec is
      * properly passed to the execution info instance.
      *
-     * @param executionContext the current execution context, which will be passed to 
-     *                         the configuration functions when their values are needed; 
+     * @param executionContext the current execution context, which will be passed to
+     *                         the configuration functions when their values are needed;
      *                         must not be null.
-     * @return a fully configured {@link EmbeddingExecutionInfo} that is ready to 
-     *         generate the embedding request.
+     * @return a fully configured {@link EmbeddingExecutionInfo} that is ready to
+     * generate the embedding request.
      */
     @Override
     public EmbeddingExecutionInfo newExecutionInfo(@NonNull ExecutionContext executionContext) {

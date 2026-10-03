@@ -128,7 +128,7 @@ public abstract class JsonRelatedUtil {
      * @param objectMapper the Jackson mapper to use for deserialization
      * @return a map representation of the JSON data
      * @throws LlmClientException if deserialization fails for any reason (including mapper-specific
-     *                           configuration issues)
+     *                            configuration issues)
      */
     public static Map<String, Object> jsonToMap(String json, ObjectMapper objectMapper) {
         try {

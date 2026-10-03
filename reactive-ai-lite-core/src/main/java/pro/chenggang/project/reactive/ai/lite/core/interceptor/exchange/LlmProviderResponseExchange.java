@@ -68,7 +68,7 @@ public interface LlmProviderResponseExchange extends LlmProviderExchange {
      * </p>
      *
      * @return an {@link Optional} wrapping a {@link Throwable} if the execution failed,
-     *         or an empty {@code Optional} if it succeeded without errors.
+     * or an empty {@code Optional} if it succeeded without errors.
      */
     Optional<Throwable> error();
 }

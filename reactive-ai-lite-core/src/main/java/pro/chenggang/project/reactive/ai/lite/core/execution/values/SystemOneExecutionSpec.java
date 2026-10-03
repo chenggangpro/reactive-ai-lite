@@ -19,9 +19,11 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -33,13 +35,18 @@ import java.util.function.Function;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see ExecutionSpec
  * @see SystemOneExecutionInfo
+ * @since 0.1.0
  */
 @Getter
 @SuperBuilder
 public class SystemOneExecutionSpec extends ExecutionSpec<SystemOneExecutionInfo> {
+
+    /**
+     * Supplies the image attachments for the SystemOne execution.
+     */
+    private final Function<ExecutionContext, List<Base64Attachment>> imagesConfigure;
 
     /**
      * Supplies the input state content for the SystemOne execution.
@@ -64,6 +71,7 @@ public class SystemOneExecutionSpec extends ExecutionSpec<SystemOneExecutionInfo
                 .profilePicker(this.getProfilePicker())
                 .defaultProfile(this.isDefaultProfile())
                 .modelNameConfigure(this.getModelNameConfigure())
+                .imagesConfigure(this.getImagesConfigure())
                 .stateConfigure(this.getStateConfigure())
                 .questionsConfigure(this.getQuestionsConfigure())
                 .rawRequestCustomizerConfigure(this.getRawRequestCustomizerConfigure())

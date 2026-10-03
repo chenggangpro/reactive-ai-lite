@@ -83,7 +83,7 @@ public interface LlmChatProvider extends LlmProvider {
      *                      temperature, tools, and other options; must not be {@code null}
      *                      (enforced by {@link lombok.NonNull})
      * @return a {@link Mono} that completes with the unified response once the
-     *         entire chat answer is ready
+     * entire chat answer is ready
      * @see GeneralResponse
      */
     Mono<GeneralResponse> executeGeneral(@NonNull ChatExecutionInfo executionInfo);
@@ -103,8 +103,8 @@ public interface LlmChatProvider extends LlmProvider {
      *                      temperature, tools, and other options; must not be {@code null}
      *                      (enforced by {@link lombok.NonNull})
      * @return a {@link Mono} that completes with the raw response as a
-     *         {@link RawResponse} instance (which typically wraps the original JSON
-     *         string)
+     * {@link RawResponse} instance (which typically wraps the original JSON
+     * string)
      * @see RawResponse
      */
     Mono<RawResponse> executeGeneralRaw(@NonNull ChatExecutionInfo executionInfo);
@@ -124,7 +124,7 @@ public interface LlmChatProvider extends LlmProvider {
      *                      temperature, tools, and other options; must not be {@code null}
      *                      (enforced by {@link lombok.NonNull})
      * @return a {@link Flux} that emits sequential {@link StreamResponse} instances until
-     *         the stream completes or is cancelled
+     * the stream completes or is cancelled
      * @see StreamResponse
      */
     Flux<StreamResponse> executeStream(@NonNull ChatExecutionInfo executionInfo);
@@ -144,7 +144,7 @@ public interface LlmChatProvider extends LlmProvider {
      *                      temperature, tools, and other options; must not be {@code null}
      *                      (enforced by {@link lombok.NonNull})
      * @return a {@link Flux} that emits sequential {@link RawStreamResponse} instances
-     *         until the stream ends or is cancelled
+     * until the stream ends or is cancelled
      * @see RawStreamResponse
      */
     Flux<RawStreamResponse> executeStreamRaw(@NonNull ChatExecutionInfo executionInfo);

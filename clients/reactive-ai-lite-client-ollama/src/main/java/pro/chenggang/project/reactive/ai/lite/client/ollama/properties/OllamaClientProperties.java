@@ -85,6 +85,7 @@ public class OllamaClientProperties implements InitializingBean {
      * (either automatically or via the {@code isDefault} flag). This design supports
      * multi‑tenancy and token rotation scenarios.
      * </p>
+     *
      * @see OllamaCertification
      */
     private List<OllamaCertification> certifications = List.of();
@@ -109,6 +110,14 @@ public class OllamaClientProperties implements InitializingBean {
     private EmbeddingProperties embedding = new EmbeddingProperties();
 
     /**
+     * Configuration for the SystemOne decision capability.
+     * <p>
+     * By default, SystemOne is disabled ({@code enabled = false}) to explicitly require opt‑in configuration.
+     * </p>
+     */
+    private SystemOneProperties systemOne = new SystemOneProperties();
+
+    /**
      * Validates the configuration and auto‑assigns a default certification when appropriate.
      * <p>
      * After all property values have been injected, this method:
@@ -117,12 +126,13 @@ public class OllamaClientProperties implements InitializingBean {
      *   <li>Invokes {@link #checkRootProperties()} to validate base URL and certifications.</li>
      *   <li>If chat is enabled, calls {@link #checkChatProperties(ChatProperties)}.</li>
      *   <li>If embedding is enabled, calls {@link #checkEmbeddingProperties(EmbeddingProperties)}.</li>
+     *   <li>If SystemOne is enabled, calls {@link #checkSystemOneProperties(SystemOneProperties)}.</li>
      * </ol>
      * This ensures the application context fails fast on misconfiguration.
      * </p>
      *
      * @throws IllegalArgumentException if any validation fails.
-     * @throws Exception if {@link InitializingBean} contract requires; only {@link IllegalArgumentException} is thrown.
+     * @throws Exception                if {@link InitializingBean} contract requires; only {@link IllegalArgumentException} is thrown.
      */
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -135,6 +145,9 @@ public class OllamaClientProperties implements InitializingBean {
         }
         if (embedding != null && embedding.isEnabled()) {
             this.checkEmbeddingProperties(embedding);
+        }
+        if (systemOne != null && systemOne.isEnabled()) {
+            this.checkSystemOneProperties(systemOne);
         }
     }
 
@@ -195,6 +208,16 @@ public class OllamaClientProperties implements InitializingBean {
     }
 
     /**
+     * Validates the SystemOne capability’s endpoint property.
+     *
+     * @param systemOne the SystemOne properties to validate; must not be null.
+     * @throws IllegalArgumentException if the SystemOne endpoint is empty.
+     */
+    private void checkSystemOneProperties(SystemOneProperties systemOne) {
+        Assert.hasLength(systemOne.getEndpoint(), "The endpoint of Ollama SystemOne API is required.");
+    }
+
+    /**
      * Resolves the effective base URL for chat requests.
      * <p>
      * Follows a cascade: if the chat capability defines its own {@code baseUrl} (non‑null),
@@ -222,6 +245,21 @@ public class OllamaClientProperties implements InitializingBean {
     public String getEmbeddingBaseUrl() {
         if (Objects.nonNull(embedding) && Objects.nonNull(embedding.getBaseUrl())) {
             return embedding.getBaseUrl();
+        }
+        return this.baseUrl;
+    }
+
+    /**
+     * Resolves the effective base URL for SystemOne requests.
+     * <p>
+     * Works identically to {@link #getChatBaseUrl()} but for the SystemOne capability.
+     * </p>
+     *
+     * @return the SystemOne base URL, never null.
+     */
+    public String getSystemOneBaseUrl() {
+        if (Objects.nonNull(systemOne) && Objects.nonNull(systemOne.getBaseUrl())) {
+            return systemOne.getBaseUrl();
         }
         return this.baseUrl;
     }
@@ -345,11 +383,55 @@ public class OllamaClientProperties implements InitializingBean {
     }
 
     /**
+     * Configuration properties specific to the Ollama SystemOne decision capability.
+     * <p>
+     * Allows fine-grained control over the SystemOne API endpoint, enabling/disabling
+     * the feature, overriding the base URL, and restricting the set of models that can be used.
+     * </p>
+     */
+    @Getter
+    @Setter
+    public static class SystemOneProperties {
+
+        /**
+         * Whether the SystemOne capability is enabled.
+         * <p>
+         * Defaults to {@code false}. This default requires developers to intentionally enable the feature.
+         * </p>
+         */
+        private boolean enabled = false;
+
+        /**
+         * An optional base URL override for SystemOne endpoints.
+         */
+        private String baseUrl;
+
+        /**
+         * The relative path of the SystemOne decision API.
+         * <p>
+         * Defaults to {@code /v1/systemone}, the standard Ollama SystemOne endpoint.
+         * </p>
+         */
+        private String endpoint = "/v1/systemone";
+
+        /**
+         * Marker indicating whether this SystemOne provider should be considered the default
+         * among multiple implementations.
+         */
+        private boolean isDefault = true;
+
+        /**
+         * An optional set of model names that this SystemOne provider is allowed to handle.
+         */
+        private Set<String> limitedModels;
+    }
+
+    /**
      * Represents a named authentication credential for Ollama API access.
      * <p>
      * Each certification holds an API token and a profile identifier. The optional
-     * {@link Capability} field restricts the credential to a specific feature (chat or
-     * embedding), enabling separate tokens for different service tiers or usage limits.
+     * {@link Capability} field restricts the credential to a specific feature (chat,
+     * embedding, or SystemOne), enabling separate tokens for different service tiers or usage limits.
      * Exactly one certification must be marked as the default when multiple are defined;
      * the default is used when no explicit profile matches a request.
      * </p>
@@ -406,9 +488,10 @@ public class OllamaClientProperties implements InitializingBean {
         /**
          * Restricts this certification to a specific capability.
          * <ul>
-         *   <li>{@code null} – the credential can be used for any capability (chat and embedding).</li>
+         *   <li>{@code null} – the credential can be used for any capability (chat, embedding, and SystemOne).</li>
          *   <li>{@link Capability#CHAT} – only chat requests can use this token.</li>
          *   <li>{@link Capability#EMBEDDING} – only embedding requests can use this token.</li>
+         *   <li>{@link Capability#SYSTEM_ONE} – only SystemOne requests can use this token.</li>
          * </ul>
          * <p>
          * This separation is useful when different tokens have different rate limits

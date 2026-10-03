@@ -18,11 +18,14 @@ package pro.chenggang.project.reactive.ai.lite.core.spec;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.NonNull;
 import pro.chenggang.project.reactive.ai.lite.core.entity.context.ExecutionContext;
+import pro.chenggang.project.reactive.ai.lite.core.message.attachment.Base64Attachment;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneContent;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestion;
 import pro.chenggang.project.reactive.ai.lite.core.message.systemone.SystemOneQuestions;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -63,10 +66,49 @@ public interface ConfigurableSystemOneSpec extends SystemOneSpec {
     }
 
     /**
+     * Dynamically configures the image attachments to be evaluated by the SystemOne model.
+     * The function is evaluated at execution time with the current {@link ExecutionContext}.
+     *
+     * @param imagesConfigure a function mapping {@link ExecutionContext} to the list of {@link Base64Attachment} images; must not be null
+     * @return this spec instance for method chaining
+     */
+    ConfigurableSystemOneSpec images(@NonNull Function<ExecutionContext, List<Base64Attachment>> imagesConfigure);
+
+    /**
+     * Sets static image attachments for the SystemOne request.
+     *
+     * @param images the list of {@link Base64Attachment} images; must not be null
+     * @return this spec instance for method chaining
+     */
+    default ConfigurableSystemOneSpec images(@NonNull List<Base64Attachment> images) {
+        return images(contextView -> images);
+    }
+
+    /**
+     * Sets static image attachments for the SystemOne request using varargs.
+     *
+     * @param images the {@link Base64Attachment} images to attach
+     * @return this spec instance for method chaining
+     */
+    default ConfigurableSystemOneSpec images(@NonNull Base64Attachment... images) {
+        return images(contextView -> List.of(images));
+    }
+
+    /**
+     * Convenience method to attach a single image to the SystemOne request.
+     *
+     * @param image the {@link Base64Attachment} image; must not be null
+     * @return this spec instance for method chaining
+     */
+    default ConfigurableSystemOneSpec image(@NonNull Base64Attachment image) {
+        return images(List.of(image));
+    }
+
+    /**
      * Dynamically configures the input state content to be evaluated by the SystemOne model.
      * The function is evaluated at execution time with the current {@link ExecutionContext}.
      *
-     * @param <T>           the type of SystemOneContent
+     * @param <T>            the type of SystemOneContent
      * @param stateConfigure a function mapping {@link ExecutionContext} to the state content; must not be null
      * @return this spec instance for method chaining
      */
@@ -79,6 +121,9 @@ public interface ConfigurableSystemOneSpec extends SystemOneSpec {
      * @return this spec instance for method chaining
      */
     default ConfigurableSystemOneSpec state(@NonNull SystemOneContent<?> state) {
+        if (state instanceof SystemOneContent.NullContent || Objects.isNull(state.getValue())) {
+            throw new IllegalArgumentException("State content is required and cannot be SystemOneContent.NULL");
+        }
         return state(contextView -> state);
     }
 
@@ -110,15 +155,6 @@ public interface ConfigurableSystemOneSpec extends SystemOneSpec {
      */
     default ConfigurableSystemOneSpec state(Object... initialValues) {
         return state(SystemOneContent.array(initialValues));
-    }
-
-    /**
-     * Sets an empty/null input state for context-free proposition evaluation.
-     *
-     * @return this spec instance for method chaining
-     */
-    default ConfigurableSystemOneSpec emptyState() {
-        return state(SystemOneContent.NULL);
     }
 
     /**

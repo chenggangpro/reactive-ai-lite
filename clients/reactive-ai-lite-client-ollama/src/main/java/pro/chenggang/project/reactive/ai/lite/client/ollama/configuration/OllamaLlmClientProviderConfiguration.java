@@ -24,17 +24,21 @@ import org.springframework.web.reactive.function.client.WebClient;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties.ChatProperties;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties.EmbeddingProperties;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.properties.OllamaClientProperties.SystemOneProperties;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.provider.OllamaLlmProviderInfo;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.provider.chat.OllamaChatProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.client.ollama.provider.embedding.OllamaEmbeddingProviderDelegate;
+import pro.chenggang.project.reactive.ai.lite.client.ollama.provider.systemone.OllamaSystemOneProviderDelegate;
 import pro.chenggang.project.reactive.ai.lite.core.certification.TokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.certification.defaults.BearerTokenCertification;
 import pro.chenggang.project.reactive.ai.lite.core.interceptor.LlmProviderInterceptorRegistry;
 import pro.chenggang.project.reactive.ai.lite.core.option.Capability;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.LlmEmbeddingProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.LlmSystemOneProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmChatProvider;
 import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmEmbeddingProvider;
+import pro.chenggang.project.reactive.ai.lite.core.provider.defaults.DefaultLlmSystemOneProvider;
 
 import java.util.List;
 import java.util.Objects;
@@ -73,7 +77,7 @@ public class OllamaLlmClientProviderConfiguration {
      * application's property sources.
      *
      * @return a freshly instantiated but still unbound properties holder that
-     *         Spring will subsequently bind to the external configuration
+     * Spring will subsequently bind to the external configuration
      */
     @ConfigurationProperties(OllamaClientProperties.PREFIX)
     @Bean
@@ -102,15 +106,15 @@ public class OllamaLlmClientProviderConfiguration {
      *       {@link LlmProviderInterceptorRegistry}.</li>
      * </ul>
      *
-     * @param webClientBuilder              the reactive web client builder,
-     *                                      provided by Spring Boot auto‑configuration
-     * @param ollamaClientProperties        the Ollama client configuration
-     *                                      properties, fully populated from the
-     *                                      application context
+     * @param webClientBuilder               the reactive web client builder,
+     *                                       provided by Spring Boot auto‑configuration
+     * @param ollamaClientProperties         the Ollama client configuration
+     *                                       properties, fully populated from the
+     *                                       application context
      * @param lLmProviderInterceptorRegistry the central registry for LLM provider
-     *                                      interceptors
+     *                                       interceptors
      * @return a fully configured {@link DefaultLlmChatProvider} backed by
-     *         Ollama’s HTTP API
+     * Ollama’s HTTP API
      */
     @ConditionalOnProperty(name = "reactive.ai.lite.client.ollama.chat.enabled", havingValue = "true", matchIfMissing = true)
     @Bean
@@ -166,12 +170,12 @@ public class OllamaLlmClientProviderConfiguration {
      *       interceptor support.</li>
      * </ul>
      *
-     * @param webClientBuilder              the reactive web client builder
-     * @param ollamaClientProperties        the Ollama client configuration
-     *                                      properties
+     * @param webClientBuilder               the reactive web client builder
+     * @param ollamaClientProperties         the Ollama client configuration
+     *                                       properties
      * @param lLmProviderInterceptorRegistry the central interceptor registry
      * @return a configured {@link DefaultLlmEmbeddingProvider} for Ollama
-     *         embeddings
+     * embeddings
      */
     @ConditionalOnProperty(name = "reactive.ai.lite.client.ollama.embedding.enabled", havingValue = "true")
     @Bean
@@ -206,5 +210,51 @@ public class OllamaLlmClientProviderConfiguration {
         );
         log.info("Ollama LLM embedding provider initialized successfully");
         return defaultLlmEmbeddingProvider;
+    }
+
+    /**
+     * Conditionally creates an {@link LlmSystemOneProvider} bean for Ollama's
+     * SystemOne decision models.
+     * <p>
+     * Requires the property {@code reactive.ai.lite.client.ollama.system-one.enabled} to be
+     * explicitly set to {@code true}.
+     * </p>
+     *
+     * @param webClientBuilder               the reactive web client builder
+     * @param ollamaClientProperties         the Ollama client configuration properties
+     * @param lLmProviderInterceptorRegistry the central interceptor registry
+     * @return a configured {@link DefaultLlmSystemOneProvider} for Ollama SystemOne decisions
+     */
+    @ConditionalOnProperty(name = "reactive.ai.lite.client.ollama.system-one.enabled", havingValue = "true")
+    @Bean
+    public LlmSystemOneProvider ollamaLlmSystemOneProvider(WebClient.Builder webClientBuilder,
+                                                           OllamaClientProperties ollamaClientProperties,
+                                                           LlmProviderInterceptorRegistry lLmProviderInterceptorRegistry) {
+        List<TokenCertification> certifications = ollamaClientProperties.getCertifications()
+                .stream()
+                .filter(ollamaCertification -> Objects.isNull(ollamaCertification.getCapability()) || Capability.SYSTEM_ONE.equals(ollamaCertification.getCapability()))
+                .<TokenCertification>map(certification -> BearerTokenCertification.builder()
+                        .profile(certification.getProfile())
+                        .token(certification.getToken())
+                        .isDefault(certification.isDefault())
+                        .build())
+                .toList();
+        SystemOneProperties systemOneProperties = ollamaClientProperties.getSystemOne();
+        OllamaSystemOneProviderDelegate delegate = OllamaSystemOneProviderDelegate.builder()
+                .name(OllamaLlmProviderInfo.DEFAULT_NAME)
+                .baseUrl(ollamaClientProperties.getSystemOneBaseUrl())
+                .systemOneEndpoint(systemOneProperties.getEndpoint())
+                .webClientBuilder(webClientBuilder)
+                .isDefault(systemOneProperties.isDefault())
+                .supportedModels(systemOneProperties.getLimitedModels())
+                .certifications(certifications)
+                .build();
+        DefaultLlmSystemOneProvider defaultLlmSystemOneProvider = new DefaultLlmSystemOneProvider(
+                delegate,
+                certifications,
+                lLmProviderInterceptorRegistry
+        );
+        log.info("Ollama LLM SystemOne provider initialized successfully");
+        return defaultLlmSystemOneProvider;
     }
 }

@@ -39,7 +39,7 @@ import java.util.Map;
  * <p>
  * Note that {@code maxTokens} is mandatory for every request, while other fields
  * are optional and will be omitted from the JSON if not set.
- * 
+ *
  * @author Gang Cheng
  * @version 0.1.0
  * @see <a href="https://docs.anthropic.com/en/api/messages">Anthropic Messages API</a>

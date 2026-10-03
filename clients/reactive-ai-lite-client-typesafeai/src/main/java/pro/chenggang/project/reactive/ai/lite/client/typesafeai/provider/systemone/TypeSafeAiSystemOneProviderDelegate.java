@@ -232,10 +232,19 @@ public class TypeSafeAiSystemOneProviderDelegate implements LlmSystemOneProvider
      * <p>
      * Converts the structured {@link LlmSystemOneRequestData} into a TypeSafe AI
      * JSON payload containing {@code model}, {@code state}, and {@code questions}.
+     * Validates image MIME types via {@link #checkImagesMimeType(LlmSystemOneRequestData)}
+     * and logs a warning if any image attachments are provided, as TypeSafe AI SystemOne
+     * does not support image attachments.
      * </p>
      */
     @Override
     public ObjectNode initializeRequestBody(@NonNull LlmSystemOneRequestData llmSystemOneRequestData) {
+        this.checkImagesMimeType(llmSystemOneRequestData);
+        if (!llmSystemOneRequestData.getImages().isEmpty()) {
+            log.warn("TypeSafe AI SystemOne does not support image attachments. The provided {} image(s) will be ignored.",
+                    llmSystemOneRequestData.getImages().size()
+            );
+        }
         TypeSafeAiSystemOneRequest request = this.buildRequest(llmSystemOneRequestData);
         return OBJECT_MAPPER.valueToTree(request);
     }
@@ -283,7 +292,7 @@ public class TypeSafeAiSystemOneProviderDelegate implements LlmSystemOneProvider
                             continue;
                         }
                         JsonNode typeNode = answerNode.at("/type");
-                        if(typeNode.isMissingNode() || !typeNode.isTextual()){
+                        if (typeNode.isMissingNode() || !typeNode.isTextual()) {
                             continue;
                         }
                         String type = typeNode.asText();
@@ -406,6 +415,9 @@ public class TypeSafeAiSystemOneProviderDelegate implements LlmSystemOneProvider
      */
     protected TypeSafeAiSystemOneRequest buildRequest(@NonNull LlmSystemOneRequestData requestData) {
         Object stateValue = this.convertContent(requestData.getState());
+        if (Objects.isNull(stateValue)) {
+            throw new IllegalArgumentException("State value cannot be null for TypeSafe AI SystemOne request");
+        }
         Map<String, TypeSafeAiQuestion> questionsMap = new LinkedHashMap<>();
         requestData.getQuestions().getAllQuestions().forEach((key, question) -> {
             TypeSafeAiQuestion convertedQuestion = this.convertQuestion(question);

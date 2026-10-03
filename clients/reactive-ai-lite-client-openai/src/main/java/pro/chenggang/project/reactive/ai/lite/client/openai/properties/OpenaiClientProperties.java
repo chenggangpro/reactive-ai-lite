@@ -61,7 +61,7 @@ public class OpenaiClientProperties implements InitializingBean {
      * The default base URL for the OpenAI API.
      * <p>
      * This value is used as a fallback if no capability-specific base URL is provided.
-     * It defaults to the standard OpenAI endpoint "https://api.openai.com". 
+     * It defaults to the standard OpenAI endpoint "https://api.openai.com".
      * Override this property if using a custom proxy or a different OpenAI-compatible service.
      * </p>
      */

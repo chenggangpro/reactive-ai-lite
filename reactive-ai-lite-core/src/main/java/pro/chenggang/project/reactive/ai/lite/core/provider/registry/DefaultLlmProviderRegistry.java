@@ -139,7 +139,7 @@ public class DefaultLlmProviderRegistry implements LlmProviderRegistry {
      *
      * @param capability the {@link Capability} required; must not be null
      * @return a {@link Mono} emitting the default {@link LlmProvider} for that capability;
-     *         an error signal if none is configured
+     * an error signal if none is configured
      */
     @Override
     public Mono<? extends LlmProvider> getDefaultProvider(@NonNull Capability capability) {

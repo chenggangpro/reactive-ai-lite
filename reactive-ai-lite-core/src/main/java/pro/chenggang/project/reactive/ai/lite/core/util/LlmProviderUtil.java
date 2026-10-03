@@ -82,7 +82,7 @@ public abstract class LlmProviderUtil {
      *
      * @param clientResponse the reactive HTTP client response representing the error (status not in 2xx family)
      * @return a {@link Mono} that emits only an error signal; the emitted {@link Throwable} is a
-     *         {@link ClientResponseErrorException} wrapping the appropriate Spring exception
+     * {@link ClientResponseErrorException} wrapping the appropriate Spring exception
      */
     public static Mono<Throwable> handleClientResponseError(ClientResponse clientResponse) {
         return clientResponse.bodyToMono(new ParameterizedTypeReference<byte[]>() {})

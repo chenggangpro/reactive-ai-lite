@@ -46,9 +46,9 @@ class AbstractAttributeTest {
         Map<String, Object> map = new HashMap<>();
         map.put("key1", "value1");
         TestAttribute attribute = new TestAttribute(map);
-        
+
         assertThat(attribute.getAttributes()).hasSize(1).containsEntry("key1", "value1");
-        
+
         // Ensure it's a copy/new map
         map.put("key2", "value2");
         assertThat(attribute.getAttributes()).hasSize(1).doesNotContainKey("key2");
@@ -58,10 +58,10 @@ class AbstractAttributeTest {
     void testGetAttribute() {
         TestAttribute attribute = new TestAttribute();
         attribute.getAttributes().put("key1", "value1");
-        
+
         String val = attribute.getAttribute("key1");
         assertThat(val).isEqualTo("value1");
-        
+
         String missing = attribute.getAttribute("missing");
         assertThat(missing).isNull();
     }
@@ -70,10 +70,10 @@ class AbstractAttributeTest {
     void testGetAttributeOrDefault() {
         TestAttribute attribute = new TestAttribute();
         attribute.getAttributes().put("key1", "value1");
-        
+
         String val = attribute.getAttributeOrDefault("key1", "default1");
         assertThat(val).isEqualTo("value1");
-        
+
         String missing = attribute.getAttributeOrDefault("missing", "default2");
         assertThat(missing).isEqualTo("default2");
     }
@@ -83,7 +83,7 @@ class AbstractAttributeTest {
         TestAttribute attribute = new TestAttribute();
         attribute.getAttributes().put("key1", "value1");
         attribute.getAttributes().put("key2", "value2");
-        
+
         long count = attribute.attributesStream().count();
         assertThat(count).isEqualTo(2);
     }
@@ -93,14 +93,14 @@ class AbstractAttributeTest {
         TestAttribute attribute = new TestAttribute();
         attribute.getAttributes().put("key1", "value1");
         attribute.getAttributes().put("key2", "value2");
-        
+
         AtomicInteger count = new AtomicInteger(0);
         attribute.forEachAttribute((k, v) -> {
             count.incrementAndGet();
             assertThat(k).startsWith("key");
             assertThat(v).asString().startsWith("value");
         });
-        
+
         assertThat(count.get()).isEqualTo(2);
     }
 }

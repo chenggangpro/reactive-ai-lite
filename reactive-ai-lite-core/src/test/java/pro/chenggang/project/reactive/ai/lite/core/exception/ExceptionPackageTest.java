@@ -77,13 +77,16 @@ class ExceptionPackageTest {
     void testNoProfileFoundLlmClientException() {
         LlmProviderInfo providerInfo = new LlmProviderInfo() {
             @Override
-            public String name() { return "test_provider"; }
+            public String name() {return "test_provider";}
+
             @Override
-            public String baseUrl() { return ""; }
+            public String baseUrl() {return "";}
+
             @Override
-            public String endpoint() { return ""; }
+            public String endpoint() {return "";}
+
             @Override
-            public Set<String> profiles() { return Set.of("profile1", "profile2"); }
+            public Set<String> profiles() {return Set.of("profile1", "profile2");}
         };
 
         NoProfileFoundLlmClientException exception1 = new NoProfileFoundLlmClientException(providerInfo);

@@ -132,60 +132,64 @@ public class ChatStructuredExecution implements StructuredExecution {
      * @param <R>        the type of the structured content the caller expects
      * @param resultType the Java class representing the expected JSON structure; must not be {@code null}
      * @return a cold {@link Mono} emitting the {@link StructuredResponse} on success,
-     *         or an error if any extraction or deserialization step fails
+     * or an error if any extraction or deserialization step fails
      */
     @Override
     public <R> Mono<StructuredResponse<R>> execute(@NonNull Class<R> resultType) {
         return llmProviderExecutor.<LlmChatProvider, StructuredResponse<R>>execute(LlmChatProvider.class, (llmChatProvider, executionInfo) -> {
-                    String schema = JsonSchemaUtil.generateForType(resultType);
-                    ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                            .structuredOutputType(resultType)
-                            .responseJsonSchema(schema)
-                            .build();
-                    return llmChatProvider.executeGeneral(modifiedInfo)
-                            .handle((generalResponse, sink) -> {
-                                AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
-                                if (assistantTextMessage == null) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), null, new IllegalArgumentException("AssistantTextMessage is null")));
-                                    return;
-                                }
-                                String content = assistantTextMessage.getContent();
-                                if (content == null || content.isBlank()) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
-                                    return;
-                                }
-                                String jsonContent = extractJsonContent(content);
-                                if (jsonContent.isBlank()) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null after markdown extraction")));
-                                    return;
-                                }
-                                R structuredContent = null;
-                                JacksonException jacksonException = null;
-                                try {
-                                    structuredContent = OBJECT_MAPPER.readValue(jsonContent, resultType);
-                                } catch (JacksonException e) {
-                                    jacksonException = e;
-                                }
-                                if(Objects.nonNull(jacksonException)){
-                                    try {
-                                        JSONRepair jsonRepair = new JSONRepair();
-                                        String handledJson = jsonRepair.handle(jsonContent);
-                                        structuredContent = OBJECT_MAPPER.readValue(handledJson, resultType);
-                                    } catch (Exception ex) {
-                                        sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, ex));
-                                        return;
-                                    }
-                                }
-                                StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
-                                        .executionContext(generalResponse.getExecutionContext())
-                                        .rawResponseBody(generalResponse.getRawResponseBody())
-                                        .usage(generalResponse.getUsage())
-                                        .assistantTextMessage(generalResponse.getAssistantTextMessage())
-                                        .structuredContent(structuredContent)
-                                        .build();
-                                sink.next(structuredResponse);
-                            });
-                })
+                            String schema = JsonSchemaUtil.generateForType(resultType);
+                            ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                                    .structuredOutputType(resultType)
+                                    .responseJsonSchema(schema)
+                                    .build();
+                            return llmChatProvider.executeGeneral(modifiedInfo)
+                                    .handle((generalResponse, sink) -> {
+                                        AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
+                                        if (assistantTextMessage == null) {
+                                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), null, new IllegalArgumentException("AssistantTextMessage is null")));
+                                            return;
+                                        }
+                                        String content = assistantTextMessage.getContent();
+                                        if (content == null || content.isBlank()) {
+                                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
+                                            return;
+                                        }
+                                        String jsonContent = extractJsonContent(content);
+                                        if (jsonContent.isBlank()) {
+                                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(),
+                                                    content,
+                                                    new IllegalArgumentException("Structured content is empty or null after markdown extraction")
+                                            ));
+                                            return;
+                                        }
+                                        R structuredContent = null;
+                                        JacksonException jacksonException = null;
+                                        try {
+                                            structuredContent = OBJECT_MAPPER.readValue(jsonContent, resultType);
+                                        } catch (JacksonException e) {
+                                            jacksonException = e;
+                                        }
+                                        if (Objects.nonNull(jacksonException)) {
+                                            try {
+                                                JSONRepair jsonRepair = new JSONRepair();
+                                                String handledJson = jsonRepair.handle(jsonContent);
+                                                structuredContent = OBJECT_MAPPER.readValue(handledJson, resultType);
+                                            } catch (Exception ex) {
+                                                sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, ex));
+                                                return;
+                                            }
+                                        }
+                                        StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
+                                                .executionContext(generalResponse.getExecutionContext())
+                                                .rawResponseBody(generalResponse.getRawResponseBody())
+                                                .usage(generalResponse.getUsage())
+                                                .assistantTextMessage(generalResponse.getAssistantTextMessage())
+                                                .structuredContent(structuredContent)
+                                                .build();
+                                        sink.next(structuredResponse);
+                                    });
+                        }
+                )
                 .contextWrite(context -> {
                     ExecutionSpec<ChatExecutionInfo> executionSpec = llmProviderExecutor.getExecutionSpec();
                     return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
@@ -209,55 +213,59 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public <R> Mono<StructuredResponse<R>> execute(@NonNull ParameterizedTypeReference<R> resultType) {
         return llmProviderExecutor.<LlmChatProvider, StructuredResponse<R>>execute(LlmChatProvider.class, (llmChatProvider, executionInfo) -> {
-                    String schema = JsonSchemaUtil.generateForType(resultType.getType());
-                    ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                            .structuredOutputType(resultType.getType())
-                            .responseJsonSchema(schema)
-                            .build();
-                    return llmChatProvider.executeGeneral(modifiedInfo)
-                            .handle((generalResponse, sink) -> {
-                                AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
-                                if (assistantTextMessage == null) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), null, new IllegalArgumentException("AssistantTextMessage is null")));
-                                    return;
-                                }
-                                String content = assistantTextMessage.getContent();
-                                if (content == null || content.isBlank()) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
-                                    return;
-                                }
-                                String jsonContent = extractJsonContent(content);
-                                if (jsonContent.isBlank()) {
-                                    sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null after markdown extraction")));
-                                    return;
-                                }
-                                R structuredContent = null;
-                                JacksonException jacksonException = null;
-                                try {
-                                    structuredContent = OBJECT_MAPPER.readValue(jsonContent, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
-                                } catch (JacksonException e) {
-                                    jacksonException = e;
-                                }
-                                if(Objects.nonNull(jacksonException)){
-                                    try {
-                                        JSONRepair jsonRepair = new JSONRepair();
-                                        String handledJson = jsonRepair.handle(jsonContent);
-                                        structuredContent = OBJECT_MAPPER.readValue(handledJson, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
-                                    } catch (Exception ex) {
-                                        sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, ex));
-                                        return;
-                                    }
-                                }
-                                StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
-                                        .executionContext(generalResponse.getExecutionContext())
-                                        .rawResponseBody(generalResponse.getRawResponseBody())
-                                        .usage(generalResponse.getUsage())
-                                        .assistantTextMessage(generalResponse.getAssistantTextMessage())
-                                        .structuredContent(structuredContent)
-                                        .build();
-                                sink.next(structuredResponse);
-                            });
-                })
+                            String schema = JsonSchemaUtil.generateForType(resultType.getType());
+                            ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                                    .structuredOutputType(resultType.getType())
+                                    .responseJsonSchema(schema)
+                                    .build();
+                            return llmChatProvider.executeGeneral(modifiedInfo)
+                                    .handle((generalResponse, sink) -> {
+                                        AssistantTextMessage assistantTextMessage = generalResponse.getAssistantTextMessage();
+                                        if (assistantTextMessage == null) {
+                                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), null, new IllegalArgumentException("AssistantTextMessage is null")));
+                                            return;
+                                        }
+                                        String content = assistantTextMessage.getContent();
+                                        if (content == null || content.isBlank()) {
+                                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, new IllegalArgumentException("Structured content is empty or null")));
+                                            return;
+                                        }
+                                        String jsonContent = extractJsonContent(content);
+                                        if (jsonContent.isBlank()) {
+                                            sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(),
+                                                    content,
+                                                    new IllegalArgumentException("Structured content is empty or null after markdown extraction")
+                                            ));
+                                            return;
+                                        }
+                                        R structuredContent = null;
+                                        JacksonException jacksonException = null;
+                                        try {
+                                            structuredContent = OBJECT_MAPPER.readValue(jsonContent, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
+                                        } catch (JacksonException e) {
+                                            jacksonException = e;
+                                        }
+                                        if (Objects.nonNull(jacksonException)) {
+                                            try {
+                                                JSONRepair jsonRepair = new JSONRepair();
+                                                String handledJson = jsonRepair.handle(jsonContent);
+                                                structuredContent = OBJECT_MAPPER.readValue(handledJson, OBJECT_MAPPER.getTypeFactory().constructType(resultType.getType()));
+                                            } catch (Exception ex) {
+                                                sink.error(new StructuredMessageExtractFailedException(generalResponse.getRawResponseBody(), content, ex));
+                                                return;
+                                            }
+                                        }
+                                        StructuredResponse<R> structuredResponse = StructuredResponse.<R>builder()
+                                                .executionContext(generalResponse.getExecutionContext())
+                                                .rawResponseBody(generalResponse.getRawResponseBody())
+                                                .usage(generalResponse.getUsage())
+                                                .assistantTextMessage(generalResponse.getAssistantTextMessage())
+                                                .structuredContent(structuredContent)
+                                                .build();
+                                        sink.next(structuredResponse);
+                                    });
+                        }
+                )
                 .contextWrite(context -> {
                     ExecutionSpec<ChatExecutionInfo> executionSpec = llmProviderExecutor.getExecutionSpec();
                     return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
@@ -279,11 +287,12 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public Mono<RawResponse> executeRaw(@NonNull String responseJsonSchema) {
         return llmProviderExecutor.execute(LlmChatProvider.class, (llmChatProvider, executionInfo) -> {
-                    ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                            .responseJsonSchema(responseJsonSchema)
-                            .build();
-                    return llmChatProvider.executeGeneralRaw(modifiedInfo);
-                })
+                            ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                                    .responseJsonSchema(responseJsonSchema)
+                                    .build();
+                            return llmChatProvider.executeGeneralRaw(modifiedInfo);
+                        }
+                )
                 .contextWrite(context -> {
                     ExecutionSpec<ChatExecutionInfo> executionSpec = llmProviderExecutor.getExecutionSpec();
                     return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
@@ -305,13 +314,14 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public <R> Mono<RawResponse> executeRaw(@NonNull Class<R> resultType) {
         return llmProviderExecutor.execute(LlmChatProvider.class, (llmChatProvider, executionInfo) -> {
-                    String schema = JsonSchemaUtil.generateForType(resultType);
-                    ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                            .structuredOutputType(resultType)
-                            .responseJsonSchema(schema)
-                            .build();
-                    return llmChatProvider.executeGeneralRaw(modifiedInfo);
-                })
+                            String schema = JsonSchemaUtil.generateForType(resultType);
+                            ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                                    .structuredOutputType(resultType)
+                                    .responseJsonSchema(schema)
+                                    .build();
+                            return llmChatProvider.executeGeneralRaw(modifiedInfo);
+                        }
+                )
                 .contextWrite(context -> {
                     ExecutionSpec<ChatExecutionInfo> executionSpec = llmProviderExecutor.getExecutionSpec();
                     return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());
@@ -333,13 +343,14 @@ public class ChatStructuredExecution implements StructuredExecution {
     @Override
     public <R> Mono<RawResponse> executeRaw(@NonNull ParameterizedTypeReference<R> resultType) {
         return llmProviderExecutor.execute(LlmChatProvider.class, (llmChatProvider, executionInfo) -> {
-                    String schema = JsonSchemaUtil.generateForType(resultType.getType());
-                    ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
-                            .structuredOutputType(resultType.getType())
-                            .responseJsonSchema(schema)
-                            .build();
-                    return llmChatProvider.executeGeneralRaw(modifiedInfo);
-                })
+                            String schema = JsonSchemaUtil.generateForType(resultType.getType());
+                            ChatExecutionInfo modifiedInfo = executionInfo.toBuilder()
+                                    .structuredOutputType(resultType.getType())
+                                    .responseJsonSchema(schema)
+                                    .build();
+                            return llmChatProvider.executeGeneralRaw(modifiedInfo);
+                        }
+                )
                 .contextWrite(context -> {
                     ExecutionSpec<ChatExecutionInfo> executionSpec = llmProviderExecutor.getExecutionSpec();
                     return ExecutionContext.initializeExecutionContext(context, executionSpec.getParentAttributes(), executionSpec.getContextConfigure());

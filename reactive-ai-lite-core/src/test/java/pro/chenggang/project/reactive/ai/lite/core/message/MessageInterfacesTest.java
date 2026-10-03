@@ -36,13 +36,13 @@ class MessageInterfacesTest {
 
         Attachment attachment1 = mock(Attachment.class);
         Attachment attachment2 = mock(Attachment.class);
-        
+
         MediaMessage msg1 = MediaMessage.newMediaMessage(Role.USER)
                 .name("testName")
                 .content("hello")
                 .attachments(attachment1, attachment2)
                 .build();
-                
+
         assertThat(msg1.getRole()).isEqualTo(Role.USER.getValue());
         assertThat(msg1.getName()).isEqualTo("testName");
         assertThat(msg1.getContent()).isEqualTo("hello");
@@ -53,44 +53,44 @@ class MessageInterfacesTest {
                 .content(null)
                 .attachments((Attachment[]) null)
                 .build();
-                
+
         assertThat(msg2.getRole()).isEqualTo("custom_role");
         assertThat(msg2.getName()).isNull();
         assertThat(msg2.getContent()).isEmpty(); // default
         assertThat(msg2.getAttachments()).isEmpty();
-        
+
         MediaMessage msg3 = MediaMessage.newMediaMessage("role")
                 .attachments(List.of(attachment1))
                 .build();
         assertThat(msg3.getAttachments()).containsExactly(attachment1);
-        
+
         MediaMessage msg4 = MediaMessage.newMediaMessage("role")
                 .attachments((List<Attachment>) null)
                 .build();
         assertThat(msg4.getAttachments()).isEmpty();
     }
-    
+
     @Test
     void testTextMessageBuilder() {
         assertThatThrownBy(() -> TextMessage.newTextMessage((Role) null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> TextMessage.newTextMessage((String) null))
                 .isInstanceOf(IllegalArgumentException.class);
-                
+
         TextMessage msg1 = TextMessage.newTextMessage(Role.ASSISTANT)
                 .name("sys")
                 .content("hey")
                 .build();
-                
+
         assertThat(msg1.getRole()).isEqualTo(Role.ASSISTANT.getValue());
         assertThat(msg1.getName()).isEqualTo("sys");
         assertThat(msg1.getContent()).isEqualTo("hey");
-        
+
         TextMessage msg2 = TextMessage.newTextMessage("some_role")
                 .name(null)
                 .content(null)
                 .build();
-                
+
         assertThat(msg2.getRole()).isEqualTo("some_role");
         assertThat(msg2.getName()).isNull();
         assertThat(msg2.getContent()).isEmpty();

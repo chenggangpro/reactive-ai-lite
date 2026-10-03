@@ -116,18 +116,18 @@ class ToolDefinitionTest {
         ToolDefinition.ToolDefinitionBuilder builder = ToolDefinition.newToolDefinition();
         java.lang.reflect.Method[] methods = builder.getClass().getDeclaredMethods();
         for (java.lang.reflect.Method method : methods) {
-            if (method.getName().equals("name") || method.getName().equals("description") 
-                || method.getName().equals("inputSchema") || method.getName().equals("inputSchemaType") 
-                || method.getName().equals("strict")) {
+            if (method.getName().equals("name") || method.getName().equals("description")
+                    || method.getName().equals("inputSchema") || method.getName().equals("inputSchemaType")
+                    || method.getName().equals("strict")) {
                 method.setAccessible(true);
                 org.assertj.core.api.Assertions.assertThatThrownBy(() -> {
-                        if (method.getParameterCount() == 1) {
-                            method.invoke(builder, new Object[]{null});
-                        } else if (method.getParameterCount() == 2) {
-                            method.invoke(builder, new Object[]{null, null});
-                        }
-                    })
-                    .hasCauseInstanceOf(IllegalArgumentException.class);
+                            if (method.getParameterCount() == 1) {
+                                method.invoke(builder, new Object[]{null});
+                            } else if (method.getParameterCount() == 2) {
+                                method.invoke(builder, new Object[]{null, null});
+                            }
+                        })
+                        .hasCauseInstanceOf(IllegalArgumentException.class);
             }
         }
     }

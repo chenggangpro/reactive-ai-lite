@@ -102,16 +102,16 @@ public class OllamaEmbeddingProviderDelegate implements LlmEmbeddingProviderDele
      *
      * @param webClientBuilder  the {@link WebClient.Builder} used to create the
      *                          central {@link WebClient} instance; must not be null.
-     * @param baseUrL            the Ollama server base URL, e.g., {@code http://localhost:11434}.
-     * @param embeddingEndpoint  the API endpoint for embeddings, e.g., {@code /api/embed}.
-     * @param isDefault          whether this provider should be considered the default
+     * @param baseUrL           the Ollama server base URL, e.g., {@code http://localhost:11434}.
+     * @param embeddingEndpoint the API endpoint for embeddings, e.g., {@code /api/embed}.
+     * @param isDefault         whether this provider should be considered the default
      *                          embedding provider.
-     * @param name               the logical name of this provider (e.g., {@code ollama}).
-     * @param supportedModels    optional set of model names that this provider claims
+     * @param name              the logical name of this provider (e.g., {@code ollama}).
+     * @param supportedModels   optional set of model names that this provider claims
      *                          to support; may be empty.
-     * @param certifications     list of {@link TokenCertification} objects used to
-     *                           extract profile names for the provider info; must not
-     *                           be null.
+     * @param certifications    list of {@link TokenCertification} objects used to
+     *                          extract profile names for the provider info; must not
+     *                          be null.
      */
     @Builder
     private OllamaEmbeddingProviderDelegate(@NonNull WebClient.Builder webClientBuilder,

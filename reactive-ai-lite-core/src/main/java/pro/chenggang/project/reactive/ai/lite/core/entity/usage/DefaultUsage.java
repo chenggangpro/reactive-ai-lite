@@ -123,6 +123,7 @@ public class DefaultUsage implements Usage {
      * model. It is part of the {@link Usage} interface contract and can be used for
      * cost estimation, rate limiting, or user feedback.
      * </p>
+     *
      * @return prompt token count, never {@code null}, defaulting to {@code 0}
      */
     @Override
@@ -138,6 +139,7 @@ public class DefaultUsage implements Usage {
      * billing. A return value of {@code 0} indicates either no output was generated
      * or the metric was not provided.
      * </p>
+     *
      * @return completion token count, never {@code null}, defaulting to {@code 0}
      */
     @Override
@@ -153,6 +155,7 @@ public class DefaultUsage implements Usage {
      * included in the interface for completeness and may be used to obtain a fully
      * detailed breakdown of token consumption.
      * </p>
+     *
      * @return other token count, never {@code null}, defaulting to {@code 0}
      */
     @Override
@@ -168,6 +171,7 @@ public class DefaultUsage implements Usage {
      * include additional internal counts dictated by the model provider. It is the
      * primary metric for overall usage tracking.
      * </p>
+     *
      * @return total token count, never {@code null}, defaulting to {@code 0}
      */
     @Override
@@ -184,6 +188,7 @@ public class DefaultUsage implements Usage {
      * debugging is required. The return value is nullable to indicate the absence of
      * raw data.
      * </p>
+     *
      * @return the raw usage node, or {@code null} if unavailable
      */
     @Nullable

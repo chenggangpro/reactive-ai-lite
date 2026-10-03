@@ -29,10 +29,10 @@ import reactor.core.publisher.Mono;
  *
  * @author Gang Cheng
  * @version 0.1.0
- * @since 0.1.0
  * @see SystemOneResponse
  * @see RawResponse
  * @see RawResponseConverter
+ * @since 0.1.0
  */
 public interface SystemOneExecution {
 

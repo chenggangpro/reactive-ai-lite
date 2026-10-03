@@ -88,7 +88,7 @@ public interface LlmProviderExecutionBeforeInterceptor extends LlmProviderExecut
      * @param chain    the chain of request interceptors; use {@code chain.next(exchange)} to
      *                 proceed, never {@code null}
      * @return a {@link Mono} that signals completion (or failure) of the entire
-     *         request‑response lifecycle, as seen from this interceptor's perspective
+     * request‑response lifecycle, as seen from this interceptor's perspective
      */
     Mono<Void> interceptBefore(LlmProviderRequestExchange exchange, LlmProviderRequestInterceptorChain chain);
 

@@ -43,7 +43,7 @@ class CertificationPackageTest {
         HttpHeaders headers = new HttpHeaders();
         cert.applyTo(headers);
         assertThat(headers.get(HttpHeaders.AUTHORIZATION)).containsExactly("Bearer my-bearer-token");
-        
+
         assertThrows(IllegalArgumentException.class, () -> BearerTokenCertification.builder().token("").build());
     }
 

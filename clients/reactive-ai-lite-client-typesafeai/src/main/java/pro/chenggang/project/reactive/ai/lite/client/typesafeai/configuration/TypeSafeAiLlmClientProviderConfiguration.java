@@ -73,8 +73,8 @@ public class TypeSafeAiLlmClientProviderConfiguration {
     @ConditionalOnProperty(name = "reactive.ai.lite.client.typesafeai.system-one.enabled", havingValue = "true", matchIfMissing = true)
     @Bean
     public LlmSystemOneProvider typeSafeAiLlmSystemOneProvider(WebClient.Builder webClientBuilder,
-                                                              TypeSafeAiClientProperties properties,
-                                                              LlmProviderInterceptorRegistry llmProviderInterceptorRegistry) {
+                                                               TypeSafeAiClientProperties properties,
+                                                               LlmProviderInterceptorRegistry llmProviderInterceptorRegistry) {
         List<TokenCertification> certifications = properties.getCertifications()
                 .stream()
                 .filter(cert -> Objects.isNull(cert.getCapability()) || Capability.SYSTEM_ONE.equals(cert.getCapability()))

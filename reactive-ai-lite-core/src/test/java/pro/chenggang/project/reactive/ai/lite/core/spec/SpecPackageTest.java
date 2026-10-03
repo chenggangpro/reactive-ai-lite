@@ -122,7 +122,7 @@ class SpecPackageTest {
         invokeConfigFunction(spec, "toolsConfigure", mockCtx);
         assertThatThrownBy(() -> spec.tools((Collection<ToolDefinition>) null)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> spec.tools((Function<ExecutionContext, Collection<ToolDefinition>>) null)).isInstanceOf(IllegalArgumentException.class);
-        
+
         spec.distinctToolCalls(true);
 
         spec.toolChoice("auto");

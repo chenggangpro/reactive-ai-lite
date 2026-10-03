@@ -102,13 +102,13 @@ public class DefaultConfigurableEmbeddingSpec implements ConfigurableEmbeddingSp
      * dependencies. The constructor receives the client type, provider registry, and the preceding
      * provider specification so that this spec can build upon the already chosen provider settings.
      *
-     * @param llmClientType        the LLM client type, not null
-     * @param llmProviderRegistry  the registry for locating provider implementations, not null
+     * @param llmClientType         the LLM client type, not null
+     * @param llmProviderRegistry   the registry for locating provider implementations, not null
      * @param providerConfigureInfo the provider configuration details from the previous spec stage, not null
      */
     public DefaultConfigurableEmbeddingSpec(@NonNull LlmClientType llmClientType,
-                                        @NonNull LlmProviderRegistry llmProviderRegistry,
-                                        @NonNull ProviderConfigureInfo providerConfigureInfo) {
+                                            @NonNull LlmProviderRegistry llmProviderRegistry,
+                                            @NonNull ProviderConfigureInfo providerConfigureInfo) {
         this.llmClientType = llmClientType;
         this.llmProviderRegistry = llmProviderRegistry;
         this.providerConfigureInfo = providerConfigureInfo;

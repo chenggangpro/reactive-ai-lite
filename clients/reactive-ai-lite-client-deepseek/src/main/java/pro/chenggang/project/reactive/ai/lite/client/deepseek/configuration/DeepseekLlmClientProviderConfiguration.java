@@ -89,9 +89,9 @@ public class DeepseekLlmClientProviderConfiguration {
      * The resulting provider can be injected anywhere an {@link LlmChatProvider} is
      * required and will handle chat requests to the Deepseek API.
      *
-     * @param webClientBuilder                Spring WebClient.Builder for HTTP communication
-     * @param deepseekClientProperties        the Deepseek-specific configuration properties
-     * @param lLmProviderInterceptorRegistry  registry of interceptors common across all LLM providers
+     * @param webClientBuilder               Spring WebClient.Builder for HTTP communication
+     * @param deepseekClientProperties       the Deepseek-specific configuration properties
+     * @param lLmProviderInterceptorRegistry registry of interceptors common across all LLM providers
      * @return a fully configured {@link DefaultLlmChatProvider} instance
      */
     @ConditionalOnProperty(name = "reactive.ai.lite.client.deepseek.chat.enabled", havingValue = "true", matchIfMissing = true)

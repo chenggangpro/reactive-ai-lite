@@ -63,8 +63,8 @@ public interface ChatSpec {
      * </p>
      *
      * @return a {@link GeneralExecution} instance that can be further configured
-     *         (for example, with the prompt and model parameters) and finally
-     *         executed to obtain the full chat response
+     * (for example, with the prompt and model parameters) and finally
+     * executed to obtain the full chat response
      */
     GeneralExecution general();
 
@@ -83,7 +83,7 @@ public interface ChatSpec {
      * </p>
      *
      * @return a {@link StreamExecution} instance that allows configuration of stream‑specific
-     *         options and subscribes to a reactive stream of response chunks
+     * options and subscribes to a reactive stream of response chunks
      */
     StreamExecution stream();
 
@@ -110,7 +110,7 @@ public interface ChatSpec {
      * </p>
      *
      * @return a {@link StructuredExecution} instance for configuring and executing
-     *         a request that yields a structured, typed response
+     * a request that yields a structured, typed response
      */
     StructuredExecution structured();
 }
