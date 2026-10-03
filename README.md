@@ -51,7 +51,7 @@ Reactive AI Lite currently offers out-of-the-box support for the following provi
 - **OpenAI** (`reactive-ai-lite-client-openai`)
 - **Anthropic** (`reactive-ai-lite-client-anthropic`)
 - **DeepSeek** (`reactive-ai-lite-client-deepseek`)
-- **Ollama** (`reactive-ai-lite-client-ollama`) — Perfect for local and enterprise deployments.
+- **Ollama** (`reactive-ai-lite-client-ollama`) — Perfect for local and enterprise deployments (Chat, Embeddings, and SystemOne decision models like `clef:latest` with multimodal image support).
 - **TypeSafe AI** (`reactive-ai-lite-client-typesafeai`) — Fast decision-making & calibrated evaluation models (e.g. Jev System One).
 
 *Implementing a proprietary model is as simple as extending the `LlmChatProviderDelegate` and registering it via the provider registry.*
@@ -119,6 +119,17 @@ reactive:
             - profile: default
               token: ${TYPESAFE_AI_TOKEN}
               is-default: true
+          system-one:
+            endpoint: /v1/systemone
+            is-default: true
+        ollama:
+          base-url: http://localhost:11434
+          chat:
+            endpoint: /api/chat
+            is-default: true
+          embedding:
+            endpoint: /api/embeddings
+            is-default: true
           system-one:
             endpoint: /v1/systemone
             is-default: true
